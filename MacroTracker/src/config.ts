@@ -13,11 +13,3 @@ export const SUPABASE_URL =
 export const SUPABASE_ANON_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
   'sb_publishable_jqBzGgPboooHWKv_JJ_tCw_PoqcgOWU';
-
-// Nutritionix (restaurant / branded food coverage). Get free keys at
-// https://developer.nutritionix.com — then set EXPO_PUBLIC_NUTRITIONIX_APP_ID
-// and EXPO_PUBLIC_NUTRITIONIX_APP_KEY in your .env. When unset, Nutritionix
-// results are simply skipped (USDA + Open Food Facts still work).
-export const NUTRITIONIX_APP_ID = process.env.EXPO_PUBLIC_NUTRITIONIX_APP_ID ?? '';
-
-export const NUTRITIONIX_APP_KEY = process.env.EXPO_PUBLIC_NUTRITIONIX_APP_KEY ?? '';
