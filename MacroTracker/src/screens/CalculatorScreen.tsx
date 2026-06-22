@@ -16,7 +16,7 @@ type Sex = 'male' | 'female';
 type Units = 'imperial' | 'metric';
 
 const ACTIVITY_LEVELS = [
-  { label: 'Sedentary', description: 'Desk job, little exercise', multiplier: 1.2 },
+  { label: 'Not Active', description: 'Desk job, little exercise', multiplier: 1.2 },
   { label: 'Light', description: '1–3 workouts/week', multiplier: 1.375 },
   { label: 'Moderate', description: '3–5 workouts/week', multiplier: 1.55 },
   { label: 'Active', description: '6–7 workouts/week', multiplier: 1.725 },
@@ -287,9 +287,6 @@ export function CalculatorScreen() {
                 </Text>
                 <Text style={styles.activityDesc}>{a.description}</Text>
               </View>
-              <Text style={[styles.activityMultiplier, i === activityIdx && { color: '#10B981' }]}>
-                ×{a.multiplier}
-              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -462,7 +459,6 @@ const styles = StyleSheet.create({
   activityLabel: { fontSize: 14, fontWeight: '600', color: '#374151' },
   activityLabelActive: { color: '#065F46' },
   activityDesc: { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
-  activityMultiplier: { fontSize: 13, fontWeight: '700', color: '#D1D5DB' },
   calcBtn: {
     backgroundColor: '#10B981', borderRadius: 16, paddingVertical: 16,
     alignItems: 'center', marginVertical: 4,
