@@ -75,12 +75,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
             <Text style={styles.empty}>No foods logged yet</Text>
           ) : (
             entries.map((entry) => (
-              <TouchableOpacity
-                key={entry.id}
-                style={styles.entryRow}
-                onLongPress={() => handleDelete(entry)}
-                activeOpacity={0.7}
-              >
+              <View key={entry.id} style={styles.entryRow}>
                 <View style={styles.entryLeft}>
                   <Text style={styles.entryName}>{entry.food.name}</Text>
                   <Text style={styles.entryDetail}>{formatAmount(entry)}</Text>
@@ -95,7 +90,15 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                     {'  '}F:{Math.round(entry.food.macros.fat * entry.servings)}g
                   </Text>
                 </View>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDelete(entry)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  activeOpacity={0.6}
+                >
+                  <Text style={styles.deleteButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
             ))
           )}
           <TouchableOpacity
@@ -192,6 +195,21 @@ const styles = StyleSheet.create({
   },
   entryMacros: {
     alignItems: 'flex-end',
+  },
+  deleteButton: {
+    marginLeft: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#EF4444',
+    lineHeight: 16,
   },
   entryCals: {
     fontSize: 14,
