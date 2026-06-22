@@ -130,7 +130,12 @@ interface OffProduct {
   id?: string;
   product_name?: string;
   brands?: string;
+  countries_tags?: string[];
   nutriments?: OffNutriments;
+}
+
+function isUsProduct(p: OffProduct): boolean {
+  return (p.countries_tags ?? []).includes('en:united-states');
 }
 
 function offToFood(p: OffProduct): Food | null {
@@ -158,14 +163,25 @@ async function searchOpenFoodFacts(q: string, signal?: AbortSignal): Promise<Foo
   const url =
     `https://world.openfoodfacts.org/cgi/search.pl` +
     `?search_terms=${encodeURIComponent(q)}` +
-    `&json=1&page_size=30` +
-    `&fields=id,product_name,brands,nutriments`;
+    `&json=1&page_size=40` +
+    `&fields=id,product_name,brands,countries_tags,nutriments`;
 
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`OFF ${res.status}`);
   const json = await res.json();
   const products: OffProduct[] = json.products ?? [];
-  return products.map(offToFood).filter((f): f is Food => f !== null);
+
+  // Surface US products first, preserving relevance order within each group,
+  // so foreign items stop dominating the top of the list.
+  const ranked = products
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => {
+      const ua = isUsProduct(a.p) ? 0 : 1;
+      const ub = isUsProduct(b.p) ? 0 : 1;
+      return ua - ub || a.i - b.i;
+    });
+
+  return ranked.map(({ p }) => offToFood(p)).filter((f): f is Food => f !== null);
 }
 
 // --- Combined search ---------------------------------------------------------
