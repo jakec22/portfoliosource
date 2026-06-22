@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,17 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
-  Modal,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Food, MealType } from '../types';
 import { useStore } from '../store/useStore';
 import { searchFoods } from '../data/foods';
-import { todayString } from '../utils/date';
+import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
+import { BarcodeScanner } from '../components/BarcodeScanner';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -32,15 +33,56 @@ interface Props {
 export function LogFoodScreen({ route, navigation }: Props) {
   const { meal, date } = route.params;
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Food[]>(() => searchFoods(''));
+  const [loading, setLoading] = useState(false);
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [servings, setServings] = useState('1');
   const addEntry = useStore((s) => s.addEntry);
 
-  const results = useMemo(() => searchFoods(query), [query]);
+  // Debounced live search against USDA (falls back to local foods offline).
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    setLoading(true);
+    const t = setTimeout(() => {
+      searchFoodsApi(query, controller.signal)
+        .then((r) => {
+          if (active) {
+            setResults(r);
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          /* aborted by a newer query — ignore */
+        });
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [query]);
 
   function handleSelectFood(food: Food) {
     setSelectedFood(food);
     setServings('1');
+  }
+
+  async function handleBarcodeScanned(barcode: string) {
+    setScannerVisible(false);
+    setScanLoading(true);
+    const food = await lookupBarcode(barcode);
+    setScanLoading(false);
+    if (food) {
+      handleSelectFood(food);
+    } else {
+      Alert.alert(
+        'Product Not Found',
+        `No nutrition data found for barcode ${barcode}. Try searching by name instead.`
+      );
+    }
   }
 
   function handleAdd() {
@@ -84,17 +126,27 @@ export function LogFoodScreen({ route, navigation }: Props) {
           <View style={{ width: 60 }} />
         </View>
 
-        <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search foods..."
-            value={query}
-            onChangeText={setQuery}
-            autoCapitalize="none"
-            clearButtonMode="while-editing"
-            placeholderTextColor="#9CA3AF"
-          />
+        <View style={styles.searchRow}>
+          <View style={styles.searchBar}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search foods..."
+              value={query}
+              onChangeText={setQuery}
+              autoCapitalize="none"
+              clearButtonMode="while-editing"
+              placeholderTextColor="#9CA3AF"
+            />
+            {loading && <ActivityIndicator size="small" color="#10B981" />}
+          </View>
+          <TouchableOpacity
+            style={styles.scanBtn}
+            onPress={() => setScannerVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.scanBtnIcon}>📷</Text>
+          </TouchableOpacity>
         </View>
 
         <FlatList
@@ -137,12 +189,19 @@ export function LogFoodScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           )}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>No foods found</Text>
-              <Text style={styles.emptySubtext}>
-                Try a different search term
-              </Text>
-            </View>
+            loading ? (
+              <View style={styles.empty}>
+                <ActivityIndicator color="#10B981" />
+                <Text style={styles.emptySubtext}>Searching foods…</Text>
+              </View>
+            ) : (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>No foods found</Text>
+                <Text style={styles.emptySubtext}>
+                  Try a different search term or scan a barcode
+                </Text>
+              </View>
+            )
           }
         />
 
@@ -220,6 +279,21 @@ export function LogFoodScreen({ route, navigation }: Props) {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      <BarcodeScanner
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        onScanned={handleBarcodeScanned}
+      />
+
+      {scanLoading && (
+        <View style={styles.scanOverlay}>
+          <View style={styles.scanOverlayBox}>
+            <ActivityIndicator size="large" color="#10B981" />
+            <Text style={styles.scanOverlayText}>Looking up product…</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -256,10 +330,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
-  searchBar: {
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 12,
+    marginHorizontal: 12,
+    marginVertical: 12,
+    gap: 10,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 14,
     backgroundColor: '#fff',
     borderRadius: 14,
@@ -269,6 +350,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
+  },
+  scanBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  scanBtnIcon: {
+    fontSize: 22,
+  },
+  scanOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanOverlayBox: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 28,
+    alignItems: 'center',
+  },
+  scanOverlayText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
   },
   searchIcon: {
     fontSize: 16,
