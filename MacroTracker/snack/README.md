@@ -3,12 +3,15 @@
 This folder contains a **single-file** build of the whole app, made for
 [snack.expo.dev](https://snack.expo.dev). Nothing to install locally.
 
+The file is **plain JavaScript** (`snack/App.js`) so it pastes straight into
+Snack's default `App.js` with no file-renaming needed.
+
 ## Steps
 
 1. Open **https://snack.expo.dev** in your browser.
 2. In the file list on the left, open `App.js`.
 3. Select all the existing code and delete it.
-4. Open `snack/App.tsx` from this repo, copy the **entire** file, and paste it in.
+4. Open `snack/App.js` from this repo, copy the **entire** file, and paste it in.
 5. Snack auto-detects the imports. If a banner appears asking to add missing
    packages, click **"Add dependencies"** (or accept the suggested versions).
    The packages it needs:
