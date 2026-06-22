@@ -37,5 +37,6 @@ yarn-error.*
 *.tsbuildinfo
 
 # generated native folders
-/ios
+# NOTE: ios/ is committed so the Xcode project is ready to open.
+# To regenerate it from app.json config, run: npx expo prebuild --clean
 /android

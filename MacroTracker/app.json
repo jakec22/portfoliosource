@@ -5,18 +5,27 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "macrotracker",
     "userInterfaceStyle": "light",
-    "sdkVersion": "51.0.0",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#10B981"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.macrotracker.app",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSUserTrackingUsageDescription": "Used only for local analytics."
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "package": "com.macrotracker.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#10B981",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
