@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { FoodEntry, MealType } from '../types';
 import { useStore } from '../store/useStore';
-import { todayString } from '../utils/date';
+import { formatAmount } from '../utils/serving';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -90,10 +90,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
               >
                 <View style={styles.entryLeft}>
                   <Text style={styles.entryName}>{entry.food.name}</Text>
-                  <Text style={styles.entryDetail}>
-                    {entry.servings} × {entry.food.serving_size}
-                    {entry.food.serving_unit}
-                  </Text>
+                  <Text style={styles.entryDetail}>{formatAmount(entry)}</Text>
                 </View>
                 <View style={styles.entryMacros}>
                   <Text style={styles.entryCals}>

@@ -41,13 +41,28 @@ export const useStore = create<AppState>()(
       waterIntake: {},
       waterGoal: 64, // default ~8 cups
       bodyWeightLbs: undefined,
+      recentFoods: [],
 
       setGoals: (goals) => set({ goals }),
+
+      addRecentFood: (food) =>
+        set((state) => ({
+          recentFoods: [
+            food,
+            ...state.recentFoods.filter((f) => f.id !== food.id),
+          ].slice(0, 20),
+        })),
 
       addEntry: (entry) =>
         set((state) => {
           const existing = state.logs[entry.date] ?? [];
-          return { logs: { ...state.logs, [entry.date]: [...existing, entry] } };
+          return {
+            logs: { ...state.logs, [entry.date]: [...existing, entry] },
+            recentFoods: [
+              entry.food,
+              ...state.recentFoods.filter((f) => f.id !== entry.food.id),
+            ].slice(0, 20),
+          };
         }),
 
       removeEntry: (date, entryId) =>

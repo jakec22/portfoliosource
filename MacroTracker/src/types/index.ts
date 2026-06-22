@@ -1,5 +1,9 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 
+// How a logged amount is expressed. 'serving' = multiples of the food's
+// base serving_size; the rest are absolute mass/volume amounts.
+export type ServingUnit = 'serving' | 'g' | 'oz' | 'ml' | 'fl oz';
+
 export interface MacroNutrients {
   calories: number;
   protein: number;
@@ -21,7 +25,9 @@ export interface Food {
 export interface FoodEntry {
   id: string;
   food: Food;
-  servings: number;
+  servings: number; // multiplier applied to food.macros
+  amount?: number; // amount entered in `unit` (for display)
+  unit?: ServingUnit; // unit the amount was entered in (for display)
   meal: MealType;
   timestamp: number;
   date: string; // YYYY-MM-DD
@@ -46,8 +52,10 @@ export interface AppState {
   waterIntake: Record<string, number>; // date -> fluid ounces
   waterGoal: number; // daily target in fluid ounces
   bodyWeightLbs?: number; // last known body weight, used for hydration calc
+  recentFoods: Food[]; // most-recently scanned/logged foods, newest first
   setGoals: (goals: DailyGoals) => void;
   addEntry: (entry: FoodEntry) => void;
+  addRecentFood: (food: Food) => void;
   removeEntry: (date: string, entryId: string) => void;
   updateEntry: (date: string, entryId: string, servings: number) => void;
   addWater: (date: string, oz: number) => void;

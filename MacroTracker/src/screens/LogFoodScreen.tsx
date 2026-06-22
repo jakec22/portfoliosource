@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TextInput,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -12,11 +13,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Food, MealType } from '../types';
+import { Food, MealType, ServingUnit } from '../types';
 import { useStore } from '../store/useStore';
 import { searchFoods } from '../data/foods';
 import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -38,8 +40,11 @@ export function LogFoodScreen({ route, navigation }: Props) {
   const [scannerVisible, setScannerVisible] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
-  const [servings, setServings] = useState('1');
+  const [unit, setUnit] = useState<ServingUnit>('serving');
+  const [amount, setAmount] = useState('1');
   const addEntry = useStore((s) => s.addEntry);
+  const addRecentFood = useStore((s) => s.addRecentFood);
+  const recentFoods = useStore((s) => s.recentFoods);
 
   // Debounced live search against USDA (falls back to local foods offline).
   useEffect(() => {
@@ -67,7 +72,21 @@ export function LogFoodScreen({ route, navigation }: Props) {
 
   function handleSelectFood(food: Food) {
     setSelectedFood(food);
-    setServings('1');
+    setUnit('serving');
+    setAmount('1');
+  }
+
+  function handleUnitChange(food: Food, newUnit: ServingUnit) {
+    setUnit(newUnit);
+    setAmount(String(defaultAmount(food, newUnit)));
+  }
+
+  function adjustAmount(delta: number) {
+    if (!selectedFood) return;
+    // Step by ~1 serving's worth in the current unit, min one step.
+    const step = unit === 'serving' ? 0.5 : Math.max(1, Math.round(defaultAmount(selectedFood, unit) * 0.25));
+    const next = Math.max(step, Math.round(((parseFloat(amount) || 0) + delta * step) * 10) / 10);
+    setAmount(String(next));
   }
 
   async function handleBarcodeScanned(barcode: string) {
@@ -76,6 +95,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
     const food = await lookupBarcode(barcode);
     setScanLoading(false);
     if (food) {
+      addRecentFood(food); // remember scanned products even before logging
       handleSelectFood(food);
     } else {
       Alert.alert(
@@ -85,17 +105,22 @@ export function LogFoodScreen({ route, navigation }: Props) {
     }
   }
 
+  const multiplier = selectedFood
+    ? toMultiplier(selectedFood, parseFloat(amount) || 0, unit)
+    : 0;
+
   function handleAdd() {
     if (!selectedFood) return;
-    const s = parseFloat(servings);
-    if (isNaN(s) || s <= 0) {
-      Alert.alert('Invalid servings', 'Please enter a valid number of servings.');
+    if (multiplier <= 0) {
+      Alert.alert('Invalid amount', 'Please enter a valid amount.');
       return;
     }
     addEntry({
       id: `${Date.now()}-${Math.random()}`,
       food: selectedFood,
-      servings: s,
+      servings: multiplier,
+      amount: parseFloat(amount),
+      unit,
       meal,
       timestamp: Date.now(),
       date,
@@ -105,12 +130,14 @@ export function LogFoodScreen({ route, navigation }: Props) {
 
   const preview = selectedFood
     ? {
-        calories: Math.round(selectedFood.macros.calories * (parseFloat(servings) || 0)),
-        protein: Math.round(selectedFood.macros.protein * (parseFloat(servings) || 0)),
-        carbs: Math.round(selectedFood.macros.carbs * (parseFloat(servings) || 0)),
-        fat: Math.round(selectedFood.macros.fat * (parseFloat(servings) || 0)),
+        calories: Math.round(selectedFood.macros.calories * multiplier),
+        protein: Math.round(selectedFood.macros.protein * multiplier),
+        carbs: Math.round(selectedFood.macros.carbs * multiplier),
+        fat: Math.round(selectedFood.macros.fat * multiplier),
       }
     : null;
+
+  const showRecents = query.trim() === '' && recentFoods.length > 0;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -154,6 +181,36 @@ export function LogFoodScreen({ route, navigation }: Props) {
           keyExtractor={(f) => f.id}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            showRecents ? (
+              <View style={styles.recentSection}>
+                <Text style={styles.recentTitle}>Recent</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={styles.recentRow}
+                >
+                  {recentFoods.map((f) => (
+                    <TouchableOpacity
+                      key={f.id}
+                      style={styles.recentChip}
+                      onPress={() => handleSelectFood(f)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.recentChipName} numberOfLines={1}>
+                        {f.name}
+                      </Text>
+                      <Text style={styles.recentChipCals}>
+                        {f.macros.calories} kcal
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <Text style={styles.allFoodsLabel}>All Foods</Text>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[
@@ -240,34 +297,40 @@ export function LogFoodScreen({ route, navigation }: Props) {
               </View>
             )}
 
+            {/* Unit selector */}
+            <View style={styles.unitRow}>
+              {availableUnits(selectedFood).map((u) => (
+                <TouchableOpacity
+                  key={u}
+                  style={[styles.unitBtn, unit === u && styles.unitBtnActive]}
+                  onPress={() => handleUnitChange(selectedFood, u)}
+                >
+                  <Text style={[styles.unitBtnText, unit === u && styles.unitBtnTextActive]}>
+                    {u === 'serving' ? 'Serving' : u}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Amount stepper */}
             <View style={styles.servingsRow}>
               <Text style={styles.servingsLabel}>
-                Servings ({selectedFood.serving_size}{selectedFood.serving_unit} each):
+                {unit === 'serving'
+                  ? `Amount (${selectedFood.serving_size}${selectedFood.serving_unit} each)`
+                  : `Amount in ${unit}`}
               </Text>
               <View style={styles.servingsControl}>
-                <TouchableOpacity
-                  style={styles.servingsBtn}
-                  onPress={() => {
-                    const v = Math.max(0.5, (parseFloat(servings) || 1) - 0.5);
-                    setServings(v.toString());
-                  }}
-                >
+                <TouchableOpacity style={styles.servingsBtn} onPress={() => adjustAmount(-1)}>
                   <Text style={styles.servingsBtnText}>−</Text>
                 </TouchableOpacity>
                 <TextInput
                   style={styles.servingsInput}
-                  value={servings}
-                  onChangeText={setServings}
+                  value={amount}
+                  onChangeText={setAmount}
                   keyboardType="decimal-pad"
                   selectTextOnFocus
                 />
-                <TouchableOpacity
-                  style={styles.servingsBtn}
-                  onPress={() => {
-                    const v = (parseFloat(servings) || 1) + 0.5;
-                    setServings(v.toString());
-                  }}
-                >
+                <TouchableOpacity style={styles.servingsBtn} onPress={() => adjustAmount(1)}>
                   <Text style={styles.servingsBtnText}>+</Text>
                 </TouchableOpacity>
               </View>
@@ -400,6 +463,79 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 12,
     paddingBottom: 8,
+  },
+  recentSection: {
+    marginBottom: 4,
+  },
+  recentTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+    marginLeft: 2,
+  },
+  recentRow: {
+    gap: 8,
+    paddingBottom: 4,
+    paddingRight: 8,
+  },
+  recentChip: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    maxWidth: 160,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  recentChipName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  recentChipCals: {
+    fontSize: 11,
+    color: '#10B981',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  allFoodsLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginTop: 14,
+    marginBottom: 4,
+    marginLeft: 2,
+  },
+  unitRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  unitBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  unitBtnActive: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  unitBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  unitBtnTextActive: {
+    color: '#10B981',
   },
   foodItem: {
     flexDirection: 'row',
