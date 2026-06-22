@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -32,8 +32,10 @@ interface Props {
 
 export function MealSection({ meal, date, onAddFood }: Props) {
   const [expanded, setExpanded] = useState(true);
-  const entries = useStore((s) => s.getEntriesForDate(date)).filter(
-    (e) => e.meal === meal
+  const dateEntries = useStore((s) => s.logs[date]);
+  const entries = useMemo(
+    () => (dateEntries ?? []).filter((e) => e.meal === meal),
+    [dateEntries, meal]
   );
   const removeEntry = useStore((s) => s.removeEntry);
 

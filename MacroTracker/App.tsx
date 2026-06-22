@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Text } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LogFoodScreen } from './src/screens/LogFoodScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
@@ -28,6 +29,7 @@ function HomeStack() {
 
 export default function App() {
   return (
+    <SafeAreaProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         <Tab.Navigator
@@ -66,5 +68,6 @@ export default function App() {
         </Tab.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
