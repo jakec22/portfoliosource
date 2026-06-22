@@ -23,7 +23,7 @@ interface Props {
 export function HomeScreen({ navigation }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayString());
   const goals = useStore((s) => s.goals);
-  const dateEntries = useStore((s) => s.logs[selectedDate] ?? []);
+  const dateEntries = useStore((s) => s.logs[selectedDate]);
   const waterIntake = useStore((s) => s.waterIntake);
   const setWater = useStore((s) => s.setWater);
   const waterGoal = useStore((s) => s.waterGoal);
@@ -32,7 +32,7 @@ export function HomeScreen({ navigation }: Props) {
   const setWaterIncrement = useStore((s) => s.setWaterIncrement);
   const bodyWeightLbs = useStore((s) => s.bodyWeightLbs);
 
-  const totals = useMemo(() => sumMacros(dateEntries), [dateEntries]);
+  const totals = useMemo(() => sumMacros(dateEntries ?? []), [dateEntries]);
   const water = waterIntake[selectedDate] ?? 0;
 
   const OZ_PER_BUBBLE = waterIncrement;
