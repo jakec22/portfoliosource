@@ -151,7 +151,7 @@ export const useStore = create<AppState>()(
       },
 
       setWaterIncrement: (oz) => {
-        set({ waterIncrement: Math.min(32, Math.max(1, Math.round(oz))) });
+        set({ waterIncrement: Math.min(40, Math.max(1, Math.round(oz))) });
         syncSettings();
       },
 

@@ -50,9 +50,9 @@ function MainTabs() {
             },
             tabBarIcon: ({ focused, color }) => {
               const icons: Record<string, string> = {
-                Today: '🏠',
+                Home: '🏠',
                 History: '📊',
-                Goals: '⚙️',
+                Profile: '⚙️',
               };
               return (
                 <Text style={{ fontSize: focused ? 24 : 20 }}>
@@ -62,9 +62,9 @@ function MainTabs() {
             },
           })}
         >
-          <Tab.Screen name="Today" component={HomeStack} />
+          <Tab.Screen name="Home" component={HomeStack} />
           <Tab.Screen name="History" component={HistoryScreen} />
-          <Tab.Screen name="Goals" component={CalculatorScreen} />
+          <Tab.Screen name="Profile" component={CalculatorScreen} />
         </Tab.Navigator>
       </NavigationContainer>
   );
