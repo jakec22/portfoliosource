@@ -91,7 +91,7 @@ function computeResults(
   return [
     calcMacros(tdee, -500, 0.40, 0.30, 0.30, fiber, 'Weight Loss', '📉', '#3B82F6', '−500 kcal/day · ~0.5 lb/week'),
     calcMacros(tdee,    0, 0.30, 0.40, 0.30, fiber, 'Maintenance', '⚖️', '#10B981', 'TDEE — maintain current weight'),
-    calcMacros(tdee, +350, 0.25, 0.50, 0.25, fiber, 'Muscle Gain',  '📈', '#F59E0B', '+350 kcal/day · lean bulk'),
+    calcMacros(tdee, +350, 0.30, 0.45, 0.25, fiber, 'Muscle Gain',  '📈', '#F59E0B', '+350 kcal/day · lean bulk'),
   ];
 }
 
