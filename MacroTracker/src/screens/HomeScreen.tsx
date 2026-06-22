@@ -28,12 +28,14 @@ export function HomeScreen({ navigation }: Props) {
   const setWater = useStore((s) => s.setWater);
   const waterGoal = useStore((s) => s.waterGoal);
   const setWaterGoal = useStore((s) => s.setWaterGoal);
+  const waterIncrement = useStore((s) => s.waterIncrement);
+  const setWaterIncrement = useStore((s) => s.setWaterIncrement);
   const bodyWeightLbs = useStore((s) => s.bodyWeightLbs);
 
   const totals = useMemo(() => sumMacros(dateEntries), [dateEntries]);
   const water = waterIntake[selectedDate] ?? 0;
 
-  const OZ_PER_BUBBLE = 8;
+  const OZ_PER_BUBBLE = waterIncrement;
   const numBubbles = Math.max(4, Math.round(waterGoal / OZ_PER_BUBBLE));
   const filledBubbles = Math.round(water / OZ_PER_BUBBLE);
   const waterPct = Math.min(Math.round((water / waterGoal) * 100), 100);
@@ -185,6 +187,26 @@ export function HomeScreen({ navigation }: Props) {
             </TouchableOpacity>
             <TouchableOpacity style={styles.waterAutoBtn} onPress={handleAutoGoal}>
               <Text style={styles.waterAutoBtnText}>Auto</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Droplet size adjuster */}
+          <View style={styles.waterGoalRow}>
+            <TouchableOpacity
+              style={styles.waterGoalBtn}
+              onPress={() => setWaterIncrement(waterIncrement - 1)}
+            >
+              <Text style={styles.waterGoalBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.waterGoalCenter}>
+              <Text style={styles.waterGoalLabel}>Per Droplet</Text>
+              <Text style={styles.waterGoalValue}>{waterIncrement} fl oz</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.waterGoalBtn}
+              onPress={() => setWaterIncrement(waterIncrement + 1)}
+            >
+              <Text style={styles.waterGoalBtnText}>+</Text>
             </TouchableOpacity>
           </View>
         </View>

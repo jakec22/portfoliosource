@@ -40,6 +40,7 @@ export const useStore = create<AppState>()(
       logs: {},
       waterIntake: {},
       waterGoal: 64, // default ~8 cups
+      waterIncrement: 8, // fl oz per droplet tap
       bodyWeightLbs: undefined,
       recentFoods: [],
 
@@ -106,6 +107,9 @@ export const useStore = create<AppState>()(
         })),
 
       setWaterGoal: (oz) => set({ waterGoal: Math.max(8, Math.round(oz)) }),
+
+      setWaterIncrement: (oz) =>
+        set({ waterIncrement: Math.min(32, Math.max(1, Math.round(oz))) }),
 
       setBodyWeight: (lbs) => set({ bodyWeightLbs: Math.round(lbs) }),
 
