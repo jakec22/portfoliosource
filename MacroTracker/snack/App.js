@@ -1,11 +1,9 @@
 // MacroTracker — single-file build for Expo Snack (snack.expo.dev)
 // Paste this entire file into App.js / App.tsx on Snack.
 // Snack will auto-detect and add the required packages.
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, TextInput, FlatList, KeyboardAvoidingView, Platform, Alert, Modal, } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 /* ------------------------------------------------------------------ */
 /* Date utils                                                          */
@@ -111,46 +109,92 @@ function sumMacros(entries) {
         };
     }, { ...ZERO_MACROS });
 }
-const useStore = create()(persist((set, get) => ({
+// --- Minimal global store (no external deps) ----------------------
+const STORAGE_KEY = 'macro-tracker-storage';
+const listeners = new Set();
+
+let storeState = {
     goals: DEFAULT_GOALS,
     logs: {},
     waterIntake: {},
-    setGoals: (goals) => set({ goals }),
-    addEntry: (entry) => set((state) => {
+};
+
+function persistState() {
+    AsyncStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+            goals: storeState.goals,
+            logs: storeState.logs,
+            waterIntake: storeState.waterIntake,
+        })
+    ).catch(() => {});
+}
+
+function setState(partial) {
+    const next = typeof partial === 'function' ? partial(storeState) : partial;
+    storeState = { ...storeState, ...next };
+    listeners.forEach((l) => l());
+    persistState();
+}
+
+// Hydrate persisted data on startup.
+AsyncStorage.getItem(STORAGE_KEY)
+    .then((raw) => {
+        if (!raw) return;
+        try {
+            const data = JSON.parse(raw);
+            storeState = {
+                ...storeState,
+                goals: data.goals ?? storeState.goals,
+                logs: data.logs ?? {},
+                waterIntake: data.waterIntake ?? {},
+            };
+            listeners.forEach((l) => l());
+        } catch (e) {
+            // ignore corrupt data
+        }
+    })
+    .catch(() => {});
+
+const storeApi = {
+    get goals() { return storeState.goals; },
+    get logs() { return storeState.logs; },
+    get waterIntake() { return storeState.waterIntake; },
+    setGoals: (goals) => setState({ goals }),
+    addEntry: (entry) => setState((state) => {
         const existing = state.logs[entry.date] ?? [];
         return { logs: { ...state.logs, [entry.date]: [...existing, entry] } };
     }),
-    removeEntry: (date, entryId) => set((state) => {
+    removeEntry: (date, entryId) => setState((state) => {
+        const existing = state.logs[date] ?? [];
+        return { logs: { ...state.logs, [date]: existing.filter((e) => e.id !== entryId) } };
+    }),
+    updateEntry: (date, entryId, servings) => setState((state) => {
         const existing = state.logs[date] ?? [];
         return {
             logs: {
                 ...state.logs,
-                [date]: existing.filter((e) => e.id !== entryId),
+                [date]: existing.map((e) => (e.id === entryId ? { ...e, servings } : e)),
             },
         };
     }),
-    updateEntry: (date, entryId, servings) => set((state) => {
-        const existing = state.logs[date] ?? [];
-        return {
-            logs: {
-                ...state.logs,
-                [date]: existing.map((e) => e.id === entryId ? { ...e, servings } : e),
-            },
-        };
-    }),
-    addWater: (date, ml) => set((state) => ({
-        waterIntake: {
-            ...state.waterIntake,
-            [date]: (state.waterIntake[date] ?? 0) + ml,
-        },
+    addWater: (date, ml) => setState((state) => ({
+        waterIntake: { ...state.waterIntake, [date]: (state.waterIntake[date] ?? 0) + ml },
     })),
-    getEntriesForDate: (date) => get().logs[date] ?? [],
-    getTotalsForDate: (date) => sumMacros(get().logs[date] ?? []),
-    getMealTotals: (date, meal) => sumMacros((get().logs[date] ?? []).filter((e) => e.meal === meal)),
-}), {
-    name: 'macro-tracker-storage',
-    storage: createJSONStorage(() => AsyncStorage),
-}));
+    getEntriesForDate: (date) => storeState.logs[date] ?? [],
+    getTotalsForDate: (date) => sumMacros(storeState.logs[date] ?? []),
+    getMealTotals: (date, meal) => sumMacros((storeState.logs[date] ?? []).filter((e) => e.meal === meal)),
+};
+
+function useStore(selector) {
+    const [, forceRender] = useState(0);
+    useEffect(() => {
+        const listener = () => forceRender((n) => n + 1);
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+    }, []);
+    return selector(storeApi);
+}
 /* ------------------------------------------------------------------ */
 /* Components                                                          */
 /* ------------------------------------------------------------------ */
