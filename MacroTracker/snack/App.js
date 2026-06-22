@@ -2,15 +2,11 @@
 // Paste this entire file into App.js / App.tsx on Snack.
 // Snack will auto-detect and add the required packages.
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, TextInput, FlatList, KeyboardAvoidingView, Platform, Alert, } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, TextInput, FlatList, KeyboardAvoidingView, Platform, Alert, Modal, } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 /* ------------------------------------------------------------------ */
 /* Date utils                                                          */
 /* ------------------------------------------------------------------ */
@@ -345,7 +341,7 @@ const mealStyles = StyleSheet.create({
 /* ------------------------------------------------------------------ */
 /* Home Screen                                                         */
 /* ------------------------------------------------------------------ */
-function HomeScreen({ navigation }) {
+function HomeScreen({ onAddFood: openLogFood }) {
     const [selectedDate, setSelectedDate] = useState(todayString());
     const goals = useStore((s) => s.goals);
     const getTotals = useStore((s) => s.getTotalsForDate);
@@ -361,7 +357,7 @@ function HomeScreen({ navigation }) {
             setSelectedDate(newDate);
     }
     function handleAddFood(meal) {
-        navigation.navigate('LogFood', { meal, date: selectedDate });
+        openLogFood(meal, selectedDate);
     }
     const isToday = selectedDate === todayString();
     return (<SafeAreaView style={homeStyles.safe}>
@@ -448,8 +444,7 @@ const homeStyles = StyleSheet.create({
 /* ------------------------------------------------------------------ */
 /* Log Food Screen                                                     */
 /* ------------------------------------------------------------------ */
-function LogFoodScreen({ route, navigation }) {
-    const { meal, date } = route.params;
+function LogFoodScreen({ meal, date, onClose }) {
     const [query, setQuery] = useState('');
     const [selectedFood, setSelectedFood] = useState(null);
     const [servings, setServings] = useState('1');
@@ -475,7 +470,7 @@ function LogFoodScreen({ route, navigation }) {
             timestamp: Date.now(),
             date,
         });
-        navigation.goBack();
+        onClose();
     }
     const preview = selectedFood
         ? {
@@ -488,7 +483,7 @@ function LogFoodScreen({ route, navigation }) {
     return (<SafeAreaView style={logStyles.safe}>
       <KeyboardAvoidingView style={logStyles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={logStyles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={logStyles.backBtn}>
+          <TouchableOpacity onPress={() => onClose()} style={logStyles.backBtn}>
             <Text style={logStyles.backText}>‹ Back</Text>
           </TouchableOpacity>
           <Text style={logStyles.title}>Add to {MEAL_LABELS[meal]}</Text>
@@ -843,34 +838,70 @@ const setStyles = StyleSheet.create({
     hint: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', lineHeight: 18 },
 });
 /* ------------------------------------------------------------------ */
-/* Navigation / App                                                    */
+/* Navigation / App  (state-based tabs + modal, no extra deps)         */
 /* ------------------------------------------------------------------ */
-const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
-function HomeStack() {
-    return (<Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Home" component={HomeScreen}/>
-      <Stack.Screen name="LogFood" component={LogFoodScreen} options={{ presentation: 'modal' }}/>
-    </Stack.Navigator>);
-}
+const TABS = [
+    { key: 'Today', icon: '🏠' },
+    { key: 'History', icon: '📊' },
+    { key: 'Goals', icon: '⚙️' },
+];
+
 export default function App() {
-    return (<GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <Tab.Navigator screenOptions={({ route }) => ({
-            headerShown: false,
-            tabBarActiveTintColor: '#10B981',
-            tabBarInactiveTintColor: '#9CA3AF',
-            tabBarStyle: { backgroundColor: '#fff', borderTopColor: '#F3F4F6', paddingBottom: 8, paddingTop: 6, height: 60 },
-            tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-            tabBarIcon: ({ focused }) => {
-                const icons = { Today: '🏠', History: '📊', Goals: '⚙️' };
-                return <Text style={{ fontSize: focused ? 24 : 20 }}>{icons[route.name] ?? '📋'}</Text>;
-            },
-        })}>
-          <Tab.Screen name="Today" component={HomeStack}/>
-          <Tab.Screen name="History" component={HistoryScreen}/>
-          <Tab.Screen name="Goals" component={SettingsScreen}/>
-        </Tab.Navigator>
-      </NavigationContainer>
-    </GestureHandlerRootView>);
+    const [activeTab, setActiveTab] = useState('Today');
+    const [logTarget, setLogTarget] = useState(null); // { meal, date } | null
+
+    function openLogFood(meal, date) {
+        setLogTarget({ meal, date });
+    }
+    function closeLogFood() {
+        setLogTarget(null);
+    }
+
+    return (<View style={appStyles.root}>
+      <View style={appStyles.screen}>
+        {activeTab === 'Today' && <HomeScreen onAddFood={openLogFood} />}
+        {activeTab === 'History' && <HistoryScreen />}
+        {activeTab === 'Goals' && <SettingsScreen />}
+      </View>
+
+      <View style={appStyles.tabBar}>
+        {TABS.map((tab) => {
+            const focused = activeTab === tab.key;
+            return (<TouchableOpacity
+                key={tab.key}
+                style={appStyles.tabItem}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.7}>
+              <Text style={{ fontSize: focused ? 24 : 20 }}>{tab.icon}</Text>
+              <Text style={[appStyles.tabLabel, { color: focused ? '#10B981' : '#9CA3AF' }]}>
+                {tab.key}
+              </Text>
+            </TouchableOpacity>);
+        })}
+      </View>
+
+      <Modal
+        visible={logTarget !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeLogFood}>
+        {logTarget && (<LogFoodScreen meal={logTarget.meal} date={logTarget.date} onClose={closeLogFood} />)}
+      </Modal>
+    </View>);
 }
+
+const appStyles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: '#F9FAFB' },
+    screen: { flex: 1 },
+    tabBar: {
+        flexDirection: 'row',
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        paddingBottom: 8,
+        paddingTop: 6,
+        height: 60,
+    },
+    tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
+    tabLabel: { fontSize: 11, fontWeight: '600' },
+});

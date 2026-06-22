@@ -12,18 +12,14 @@ Snack's default `App.js` with no file-renaming needed.
 2. In the file list on the left, open `App.js`.
 3. Select all the existing code and delete it.
 4. Open `snack/App.js` from this repo, copy the **entire** file, and paste it in.
-5. Snack auto-detects the imports. If a banner appears asking to add missing
-   packages, click **"Add dependencies"** (or accept the suggested versions).
-   The packages it needs:
+5. In the left sidebar, find the **Dependencies** section and add these three
+   packages (click "Add dependency", type each name, accept the version):
    - `react-native-svg`
    - `zustand`
    - `@react-native-async-storage/async-storage`
-   - `@react-navigation/native`
-   - `@react-navigation/bottom-tabs`
-   - `@react-navigation/stack`
-   - `react-native-screens`
-   - `react-native-safe-area-context`
-   - `react-native-gesture-handler`
+
+   (Navigation is built in with plain React state + Modal, so no React
+   Navigation packages are needed — this avoids Snack bundler errors.)
 6. On the right, choose a preview:
    - **My Device** tab → scan the QR code with **Expo Go** on your iPhone, or
    - **Web** tab → runs instantly in the browser.
