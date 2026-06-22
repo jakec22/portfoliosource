@@ -6,9 +6,41 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Reanimated, {
+  type SharedValue,
+  useAnimatedStyle,
+} from 'react-native-reanimated';
 import { FoodEntry, MealType } from '../types';
 import { useStore, sumMacros } from '../store/useStore';
 import { formatAmount } from '../utils/serving';
+
+const ACTION_WIDTH = 72;
+
+function RightDeleteAction({
+  drag,
+  onDelete,
+}: {
+  drag: SharedValue<number>;
+  onDelete: () => void;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drag.value + ACTION_WIDTH }],
+  }));
+  return (
+    <Reanimated.View style={[styles.deleteAction, animatedStyle]}>
+      <TouchableOpacity
+        style={styles.deleteActionInner}
+        onPress={onDelete}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.deleteActionText}>✕</Text>
+      </TouchableOpacity>
+    </Reanimated.View>
+  );
+}
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -75,30 +107,33 @@ export function MealSection({ meal, date, onAddFood }: Props) {
             <Text style={styles.empty}>No foods logged yet</Text>
           ) : (
             entries.map((entry) => (
-              <View key={entry.id} style={styles.entryRow}>
-                <View style={styles.entryLeft}>
-                  <Text style={styles.entryName}>{entry.food.name}</Text>
-                  <Text style={styles.entryDetail}>{formatAmount(entry)}</Text>
+              <ReanimatedSwipeable
+                key={entry.id}
+                friction={2}
+                rightThreshold={ACTION_WIDTH / 2}
+                renderRightActions={(
+                  _progress: SharedValue<number>,
+                  drag: SharedValue<number>,
+                  _methods: SwipeableMethods
+                ) => <RightDeleteAction drag={drag} onDelete={() => handleDelete(entry)} />}
+              >
+                <View style={styles.entryRow}>
+                  <View style={styles.entryLeft}>
+                    <Text style={styles.entryName}>{entry.food.name}</Text>
+                    <Text style={styles.entryDetail}>{formatAmount(entry)}</Text>
+                  </View>
+                  <View style={styles.entryMacros}>
+                    <Text style={styles.entryCals}>
+                      {Math.round(entry.food.macros.calories * entry.servings)} kcal
+                    </Text>
+                    <Text style={styles.entryMacroDetail}>
+                      P:{Math.round(entry.food.macros.protein * entry.servings)}g
+                      {'  '}C:{Math.round(entry.food.macros.carbs * entry.servings)}g
+                      {'  '}F:{Math.round(entry.food.macros.fat * entry.servings)}g
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.entryMacros}>
-                  <Text style={styles.entryCals}>
-                    {Math.round(entry.food.macros.calories * entry.servings)} kcal
-                  </Text>
-                  <Text style={styles.entryMacroDetail}>
-                    P:{Math.round(entry.food.macros.protein * entry.servings)}g
-                    {'  '}C:{Math.round(entry.food.macros.carbs * entry.servings)}g
-                    {'  '}F:{Math.round(entry.food.macros.fat * entry.servings)}g
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(entry)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  activeOpacity={0.6}
-                >
-                  <Text style={styles.deleteButtonText}>✕</Text>
-                </TouchableOpacity>
-              </View>
+              </ReanimatedSwipeable>
             ))
           )}
           <TouchableOpacity
@@ -196,20 +231,22 @@ const styles = StyleSheet.create({
   entryMacros: {
     alignItems: 'flex-end',
   },
-  deleteButton: {
-    marginLeft: 12,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
+  deleteAction: {
+    width: ACTION_WIDTH,
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
   },
-  deleteButtonText: {
-    fontSize: 13,
+  deleteActionInner: {
+    flex: 1,
+    width: ACTION_WIDTH,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteActionText: {
+    fontSize: 20,
     fontWeight: '700',
-    color: '#EF4444',
-    lineHeight: 16,
+    color: '#fff',
   },
   entryCals: {
     fontSize: 14,
