@@ -98,6 +98,10 @@ function computeResults(
 export function CalculatorScreen() {
   const setGoals = useStore((s) => s.setGoals);
   const setBodyWeight = useStore((s) => s.setBodyWeight);
+  const waterGoal = useStore((s) => s.waterGoal);
+  const setWaterGoal = useStore((s) => s.setWaterGoal);
+  const waterIncrement = useStore((s) => s.waterIncrement);
+  const setWaterIncrement = useStore((s) => s.setWaterIncrement);
 
   const [units, setUnits] = useState<Units>('imperial');
   const [sex, setSex] = useState<Sex>('male');
@@ -307,6 +311,48 @@ export function CalculatorScreen() {
             </Text>
           </>
         )}
+
+        {/* Hydration Settings */}
+        <Text style={styles.sectionTitle}>Hydration Settings</Text>
+        <View style={styles.card}>
+          <View style={styles.hydrationRow}>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              onPress={() => setWaterGoal(waterGoal - waterIncrement)}
+            >
+              <Text style={styles.hydrationBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.hydrationCenter}>
+              <Text style={styles.hydrationLabel}>Daily Goal</Text>
+              <Text style={styles.hydrationValue}>{waterGoal} fl oz</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              onPress={() => setWaterGoal(waterGoal + waterIncrement)}
+            >
+              <Text style={styles.hydrationBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              onPress={() => setWaterIncrement(waterIncrement - 1)}
+            >
+              <Text style={styles.hydrationBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.hydrationCenter}>
+              <Text style={styles.hydrationLabel}>Per Droplet</Text>
+              <Text style={styles.hydrationValue}>{waterIncrement} fl oz</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              onPress={() => setWaterIncrement(waterIncrement + 1)}
+            >
+              <Text style={styles.hydrationBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -427,6 +473,27 @@ const styles = StyleSheet.create({
   disclaimer: {
     fontSize: 11, color: '#9CA3AF', textAlign: 'center',
     marginTop: 8, lineHeight: 16,
+  },
+  hydrationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hydrationBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  hydrationBtnText: {
+    fontSize: 24, fontWeight: '600', color: '#3B82F6', lineHeight: 28,
+  },
+  hydrationCenter: {
+    flex: 1, alignItems: 'center',
+  },
+  hydrationLabel: {
+    fontSize: 11, color: '#9CA3AF',
+  },
+  hydrationValue: {
+    fontSize: 18, fontWeight: '700', color: '#111827',
   },
 });
 
