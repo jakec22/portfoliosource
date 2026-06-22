@@ -19,7 +19,7 @@ const ZERO_MACROS: MacroNutrients = {
   fiber: 0,
 };
 
-function sumMacros(entries: FoodEntry[]): MacroNutrients {
+export function sumMacros(entries: FoodEntry[]): MacroNutrients {
   return entries.reduce((acc, entry) => {
     const { macros } = entry.food;
     const s = entry.servings;

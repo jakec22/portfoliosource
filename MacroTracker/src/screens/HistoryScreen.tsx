@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useStore } from '../store/useStore';
+import { useStore, sumMacros } from '../store/useStore';
 import { getPastDays, displayDate } from '../utils/date';
 
 interface Props {
@@ -21,7 +21,7 @@ const MACRO_COLORS = {
 };
 
 export function HistoryScreen({ navigation }: Props) {
-  const getTotals = useStore((s) => s.getTotalsForDate);
+  const logs = useStore((s) => s.logs);
   const goals = useStore((s) => s.goals);
   const days = getPastDays(14);
 
@@ -54,7 +54,7 @@ export function HistoryScreen({ navigation }: Props) {
         <Text style={styles.subtitle}>Past 14 days</Text>
 
         {days.map((date) => {
-          const totals = getTotals(date);
+          const totals = sumMacros(logs[date] ?? []);
           const hasData = totals.calories > 0;
           const calPct = Math.round((totals.calories / goals.calories) * 100);
 

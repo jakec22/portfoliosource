@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useStore } from '../store/useStore';
+import { useStore, sumMacros } from '../store/useStore';
 import { todayString, displayDate, formatDate } from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
 import { MacroRing } from '../components/MacroRing';
@@ -23,14 +23,14 @@ interface Props {
 export function HomeScreen({ navigation }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayString());
   const goals = useStore((s) => s.goals);
-  const getTotals = useStore((s) => s.getTotalsForDate);
+  const dateEntries = useStore((s) => s.logs[selectedDate] ?? []);
   const waterIntake = useStore((s) => s.waterIntake);
   const setWater = useStore((s) => s.setWater);
   const waterGoal = useStore((s) => s.waterGoal);
   const setWaterGoal = useStore((s) => s.setWaterGoal);
   const bodyWeightLbs = useStore((s) => s.bodyWeightLbs);
 
-  const totals = getTotals(selectedDate);
+  const totals = useMemo(() => sumMacros(dateEntries), [dateEntries]);
   const water = waterIntake[selectedDate] ?? 0;
 
   const OZ_PER_BUBBLE = 8;
