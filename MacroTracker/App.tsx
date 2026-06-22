@@ -2,15 +2,17 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Text } from 'react-native';
+import { Text, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LogFoodScreen } from './src/screens/LogFoodScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { CalculatorScreen } from './src/screens/CalculatorScreen';
+import { AuthScreen } from './src/screens/AuthScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSession } from './src/hooks/useSession';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -28,11 +30,9 @@ function HomeStack() {
   );
 }
 
-export default function App() {
+function MainTabs() {
   return (
-    <SafeAreaProvider>
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
+    <NavigationContainer>
         <Tab.Navigator
           screenOptions={({ route }) => ({
             headerShown: false,
@@ -70,7 +70,32 @@ export default function App() {
           <Tab.Screen name="Goals" component={SettingsScreen} />
         </Tab.Navigator>
       </NavigationContainer>
-    </GestureHandlerRootView>
+  );
+}
+
+export default function App() {
+  const { session, loading } = useSession();
+
+  return (
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        {loading ? (
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#F9FAFB',
+            }}
+          >
+            <ActivityIndicator size="large" color="#10B981" />
+          </View>
+        ) : session ? (
+          <MainTabs />
+        ) : (
+          <AuthScreen />
+        )}
+      </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 }

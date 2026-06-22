@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, DailyGoals, FoodEntry, MacroNutrients, MealType } from '../types';
+import {
+  pushEntry,
+  deleteEntryRemote,
+  pushSettings,
+  type SettingsSnapshot,
+} from '../services/sync';
 
 const DEFAULT_GOALS: DailyGoals = {
   calories: 2000,
@@ -35,7 +41,23 @@ export function sumMacros(entries: FoodEntry[]): MacroNutrients {
 
 export const useStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      // Snapshot of the cloud-synced "settings" fields, pushed after any
+      // change to one of them. Fire-and-forget; no-op until a user is signed in.
+      const syncSettings = () => {
+        const s = get();
+        const snap: SettingsSnapshot = {
+          goals: s.goals,
+          waterGoal: s.waterGoal,
+          waterIncrement: s.waterIncrement,
+          bodyWeightLbs: s.bodyWeightLbs,
+          recentFoods: s.recentFoods,
+          waterIntake: s.waterIntake,
+        };
+        void pushSettings(snap);
+      };
+
+      return {
       goals: DEFAULT_GOALS,
       logs: {},
       waterIntake: {},
@@ -44,17 +66,22 @@ export const useStore = create<AppState>()(
       bodyWeightLbs: undefined,
       recentFoods: [],
 
-      setGoals: (goals) => set({ goals }),
+      setGoals: (goals) => {
+        set({ goals });
+        syncSettings();
+      },
 
-      addRecentFood: (food) =>
+      addRecentFood: (food) => {
         set((state) => ({
           recentFoods: [
             food,
             ...state.recentFoods.filter((f) => f.id !== food.id),
           ].slice(0, 20),
-        })),
+        }));
+        syncSettings();
+      },
 
-      addEntry: (entry) =>
+      addEntry: (entry) => {
         set((state) => {
           const existing = state.logs[entry.date] ?? [];
           return {
@@ -64,9 +91,12 @@ export const useStore = create<AppState>()(
               ...state.recentFoods.filter((f) => f.id !== entry.food.id),
             ].slice(0, 20),
           };
-        }),
+        });
+        void pushEntry(entry);
+        syncSettings(); // recentFoods changed too
+      },
 
-      removeEntry: (date, entryId) =>
+      removeEntry: (date, entryId) => {
         set((state) => {
           const existing = state.logs[date] ?? [];
           return {
@@ -75,9 +105,11 @@ export const useStore = create<AppState>()(
               [date]: existing.filter((e) => e.id !== entryId),
             },
           };
-        }),
+        });
+        void deleteEntryRemote(entryId);
+      },
 
-      updateEntry: (date, entryId, servings) =>
+      updateEntry: (date, entryId, servings) => {
         set((state) => {
           const existing = state.logs[date] ?? [];
           return {
@@ -88,30 +120,45 @@ export const useStore = create<AppState>()(
               ),
             },
           };
-        }),
+        });
+        const updated = (get().logs[date] ?? []).find((e) => e.id === entryId);
+        if (updated) void pushEntry(updated);
+      },
 
-      addWater: (date, oz) =>
+      addWater: (date, oz) => {
         set((state) => ({
           waterIntake: {
             ...state.waterIntake,
             [date]: Math.max(0, (state.waterIntake[date] ?? 0) + oz),
           },
-        })),
+        }));
+        syncSettings();
+      },
 
-      setWater: (date, oz) =>
+      setWater: (date, oz) => {
         set((state) => ({
           waterIntake: {
             ...state.waterIntake,
             [date]: Math.max(0, Math.round(oz)),
           },
-        })),
+        }));
+        syncSettings();
+      },
 
-      setWaterGoal: (oz) => set({ waterGoal: Math.max(8, Math.round(oz)) }),
+      setWaterGoal: (oz) => {
+        set({ waterGoal: Math.max(8, Math.round(oz)) });
+        syncSettings();
+      },
 
-      setWaterIncrement: (oz) =>
-        set({ waterIncrement: Math.min(32, Math.max(1, Math.round(oz))) }),
+      setWaterIncrement: (oz) => {
+        set({ waterIncrement: Math.min(32, Math.max(1, Math.round(oz))) });
+        syncSettings();
+      },
 
-      setBodyWeight: (lbs) => set({ bodyWeightLbs: Math.round(lbs) }),
+      setBodyWeight: (lbs) => {
+        set({ bodyWeightLbs: Math.round(lbs) });
+        syncSettings();
+      },
 
       getEntriesForDate: (date) => get().logs[date] ?? [],
 
@@ -124,7 +171,8 @@ export const useStore = create<AppState>()(
         const entries = (get().logs[date] ?? []).filter((e) => e.meal === meal);
         return sumMacros(entries);
       },
-    }),
+      };
+    },
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),

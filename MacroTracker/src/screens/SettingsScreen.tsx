@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { DailyGoals } from '../types';
+import { supabase } from '../services/supabase';
+import { signOut } from '../services/auth';
 
 type Preset = {
   label: string;
@@ -44,6 +46,18 @@ const PRESETS: Preset[] = [
 export function SettingsScreen() {
   const goals = useStore((s) => s.goals);
   const setGoals = useStore((s) => s.setGoals);
+  const [email, setEmail] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+  }, []);
+
+  function handleSignOut() {
+    Alert.alert('Sign Out', 'Your data stays synced to the cloud.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
+    ]);
+  }
 
   const [form, setForm] = useState({
     calories: String(goals.calories),
@@ -205,6 +219,20 @@ export function SettingsScreen() {
         <Text style={styles.hint}>
           Tip: 1g protein = 4 kcal · 1g carbs = 4 kcal · 1g fat = 9 kcal
         </Text>
+
+        {/* Account */}
+        <Text style={styles.sectionTitle}>Account</Text>
+        <View style={styles.card}>
+          {email && (
+            <View style={styles.accountRow}>
+              <Text style={styles.accountLabel}>Signed in as</Text>
+              <Text style={styles.accountEmail}>{email}</Text>
+            </View>
+          )}
+          <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -383,5 +411,32 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
     lineHeight: 18,
+    marginBottom: 24,
+  },
+  accountRow: {
+    marginBottom: 16,
+  },
+  accountLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 2,
+  },
+  accountEmail: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  signOutBtn: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FEE2E2',
+    backgroundColor: '#FEF2F2',
+  },
+  signOutText: {
+    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
