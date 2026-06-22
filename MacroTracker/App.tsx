@@ -8,6 +8,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { LogFoodScreen } from './src/screens/LogFoodScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { CalculatorScreen } from './src/screens/CalculatorScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -52,6 +53,7 @@ export default function App() {
               const icons: Record<string, string> = {
                 Today: '🏠',
                 History: '📊',
+                Calculator: '🧮',
                 Goals: '⚙️',
               };
               return (
@@ -64,6 +66,7 @@ export default function App() {
         >
           <Tab.Screen name="Today" component={HomeStack} />
           <Tab.Screen name="History" component={HistoryScreen} />
+          <Tab.Screen name="Calculator" component={CalculatorScreen} />
           <Tab.Screen name="Goals" component={SettingsScreen} />
         </Tab.Navigator>
       </NavigationContainer>

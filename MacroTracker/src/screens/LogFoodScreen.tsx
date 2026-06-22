@@ -6,12 +6,12 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   Modal,
   KeyboardAvoidingView,
   Platform,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Food, MealType } from '../types';
 import { useStore } from '../store/useStore';
 import { searchFoods } from '../data/foods';
