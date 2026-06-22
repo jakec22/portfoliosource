@@ -7,7 +7,7 @@ import {
   Alert,
 } from 'react-native';
 import { FoodEntry, MealType } from '../types';
-import { useStore } from '../store/useStore';
+import { useStore, sumMacros } from '../store/useStore';
 import { formatAmount } from '../utils/serving';
 
 const MEAL_LABELS: Record<MealType, string> = {
@@ -15,13 +15,6 @@ const MEAL_LABELS: Record<MealType, string> = {
   lunch: 'Lunch',
   dinner: 'Dinner',
   snacks: 'Snacks',
-};
-
-const MEAL_ICONS: Record<MealType, string> = {
-  breakfast: '🌅',
-  lunch: '☀️',
-  dinner: '🌙',
-  snacks: '🍎',
 };
 
 interface Props {
@@ -39,10 +32,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
   );
   const removeEntry = useStore((s) => s.removeEntry);
 
-  const total = entries.reduce(
-    (acc, e) => acc + e.food.macros.calories * e.servings,
-    0
-  );
+  const totals = useMemo(() => sumMacros(entries), [entries]);
 
   function handleDelete(entry: FoodEntry) {
     Alert.alert(
@@ -67,11 +57,14 @@ export function MealSection({ meal, date, onAddFood }: Props) {
         activeOpacity={0.7}
       >
         <View style={styles.headerLeft}>
-          <Text style={styles.icon}>{MEAL_ICONS[meal]}</Text>
           <Text style={styles.mealName}>{MEAL_LABELS[meal]}</Text>
+          <Text style={styles.mealMacros}>
+            P {Math.round(totals.protein)}g · C {Math.round(totals.carbs)}g · F{' '}
+            {Math.round(totals.fat)}g
+          </Text>
         </View>
         <View style={styles.headerRight}>
-          <Text style={styles.mealCals}>{Math.round(total)} kcal</Text>
+          <Text style={styles.mealCals}>{Math.round(totals.calories)} kcal</Text>
           <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
         </View>
       </TouchableOpacity>
@@ -138,17 +131,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  icon: {
-    fontSize: 18,
+    flex: 1,
   },
   mealName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
+  },
+  mealMacros: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
   },
   headerRight: {
     flexDirection: 'row',
