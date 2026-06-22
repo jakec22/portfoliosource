@@ -43,12 +43,17 @@ export interface DailyLog {
 export interface AppState {
   goals: DailyGoals;
   logs: Record<string, FoodEntry[]>; // date -> entries
-  waterIntake: Record<string, number>; // date -> ml
+  waterIntake: Record<string, number>; // date -> fluid ounces
+  waterGoal: number; // daily target in fluid ounces
+  bodyWeightLbs?: number; // last known body weight, used for hydration calc
   setGoals: (goals: DailyGoals) => void;
   addEntry: (entry: FoodEntry) => void;
   removeEntry: (date: string, entryId: string) => void;
   updateEntry: (date: string, entryId: string, servings: number) => void;
-  addWater: (date: string, ml: number) => void;
+  addWater: (date: string, oz: number) => void;
+  setWater: (date: string, oz: number) => void;
+  setWaterGoal: (oz: number) => void;
+  setBodyWeight: (lbs: number) => void;
   getEntriesForDate: (date: string) => FoodEntry[];
   getTotalsForDate: (date: string) => MacroNutrients;
   getMealTotals: (date: string, meal: MealType) => MacroNutrients;

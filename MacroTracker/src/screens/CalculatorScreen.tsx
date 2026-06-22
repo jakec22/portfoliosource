@@ -97,6 +97,7 @@ function computeResults(
 
 export function CalculatorScreen() {
   const setGoals = useStore((s) => s.setGoals);
+  const setBodyWeight = useStore((s) => s.setBodyWeight);
 
   const [units, setUnits] = useState<Units>('imperial');
   const [sex, setSex] = useState<Sex>('male');
@@ -127,6 +128,10 @@ export function CalculatorScreen() {
     if (!r) {
       Alert.alert('Check your inputs', 'Please enter valid age, height, and weight.');
       return;
+    }
+    // Persist body weight so the water tracker can suggest a hydration goal.
+    if (wKg > 0) {
+      setBodyWeight(wKg * 2.2046);
     }
     setResults(r);
   }

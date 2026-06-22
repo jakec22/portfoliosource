@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
@@ -24,10 +25,42 @@ export function HomeScreen({ navigation }: Props) {
   const goals = useStore((s) => s.goals);
   const getTotals = useStore((s) => s.getTotalsForDate);
   const waterIntake = useStore((s) => s.waterIntake);
-  const addWater = useStore((s) => s.addWater);
+  const setWater = useStore((s) => s.setWater);
+  const waterGoal = useStore((s) => s.waterGoal);
+  const setWaterGoal = useStore((s) => s.setWaterGoal);
+  const bodyWeightLbs = useStore((s) => s.bodyWeightLbs);
 
   const totals = getTotals(selectedDate);
   const water = waterIntake[selectedDate] ?? 0;
+
+  const OZ_PER_BUBBLE = 8;
+  const numBubbles = Math.max(4, Math.round(waterGoal / OZ_PER_BUBBLE));
+  const filledBubbles = Math.round(water / OZ_PER_BUBBLE);
+  const waterPct = Math.min(Math.round((water / waterGoal) * 100), 100);
+
+  function handleBubblePress(index: number) {
+    // Tapping the topmost filled bubble un-fills it (undo accidental tap);
+    // tapping any other bubble fills/empties up to that point.
+    if (index + 1 === filledBubbles) {
+      setWater(selectedDate, index * OZ_PER_BUBBLE);
+    } else {
+      setWater(selectedDate, (index + 1) * OZ_PER_BUBBLE);
+    }
+  }
+
+  function handleAutoGoal() {
+    if (!bodyWeightLbs) {
+      Alert.alert(
+        'Add your weight first',
+        'Enter your weight in the Calculator tab, then tap Auto again to set an optimal hydration goal.'
+      );
+      return;
+    }
+    // Common guideline: ~0.5 fl oz per lb of body weight, rounded to a bubble.
+    const optimal = Math.round((bodyWeightLbs * 0.5) / OZ_PER_BUBBLE) * OZ_PER_BUBBLE;
+    setWaterGoal(optimal);
+    Alert.alert('Hydration Goal Set', `Optimal daily goal: ${optimal} fl oz (based on ${bodyWeightLbs} lbs).`);
+  }
 
   function goDay(offset: number) {
     const current = new Date(selectedDate + 'T12:00:00');
@@ -104,23 +137,56 @@ export function HomeScreen({ navigation }: Props) {
         <View style={styles.card}>
           <View style={styles.waterHeader}>
             <Text style={styles.cardTitle}>💧 Water</Text>
-            <Text style={styles.waterAmount}>{(water / 1000).toFixed(1)}L</Text>
+            <Text style={styles.waterAmount}>
+              {Math.round(water)} / {waterGoal} fl oz
+            </Text>
           </View>
+
+          {/* Progress bar */}
+          <View style={styles.waterBarTrack}>
+            <View style={[styles.waterBarFill, { width: `${waterPct}%` as any }]} />
+          </View>
+          <Text style={styles.waterPctText}>{waterPct}% of daily goal</Text>
+
+          {/* Bubbles */}
           <View style={styles.waterDots}>
-            {[250, 250, 250, 250, 250, 250, 250, 250].map((ml, i) => (
+            {Array.from({ length: numBubbles }).map((_, i) => (
               <TouchableOpacity
                 key={i}
-                onPress={() => addWater(selectedDate, ml)}
-                style={[
-                  styles.waterDot,
-                  water >= ml * (i + 1) && styles.waterDotFilled,
-                ]}
+                onPress={() => handleBubblePress(i)}
+                style={[styles.waterDot, i < filledBubbles && styles.waterDotFilled]}
+                activeOpacity={0.6}
               >
                 <Text style={styles.waterDotText}>💧</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.waterGoal}>Goal: 2L · tap to add 250ml</Text>
+          <Text style={styles.waterGoal}>
+            Tap to fill {OZ_PER_BUBBLE} fl oz · tap the last drop again to undo
+          </Text>
+
+          {/* Goal adjuster */}
+          <View style={styles.waterGoalRow}>
+            <TouchableOpacity
+              style={styles.waterGoalBtn}
+              onPress={() => setWaterGoal(waterGoal - OZ_PER_BUBBLE)}
+            >
+              <Text style={styles.waterGoalBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.waterGoalCenter}>
+              <Text style={styles.waterGoalLabel}>Daily Goal</Text>
+              <Text style={styles.waterGoalValue}>{waterGoal} fl oz</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.waterGoalBtn}
+              onPress={() => setWaterGoal(waterGoal + OZ_PER_BUBBLE)}
+            >
+              <Text style={styles.waterGoalBtnText}>+</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.waterAutoBtn} onPress={handleAutoGoal}>
+              <Text style={styles.waterAutoBtnText}>Auto</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Meal Sections */}
@@ -208,12 +274,30 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   waterAmount: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#3B82F6',
   },
+  waterBarTrack: {
+    height: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  waterBarFill: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#3B82F6',
+  },
+  waterPctText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginBottom: 12,
+  },
   waterDots: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
     marginBottom: 8,
   },
@@ -237,6 +321,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     textAlign: 'center',
+  },
+  waterGoalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  waterGoalBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waterGoalBtnText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#3B82F6',
+    lineHeight: 28,
+  },
+  waterGoalCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  waterGoalLabel: {
+    fontSize: 11,
+    color: '#9CA3AF',
+  },
+  waterGoalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  waterAutoBtn: {
+    paddingHorizontal: 14,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waterAutoBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   mealsHeader: {
     marginBottom: 8,

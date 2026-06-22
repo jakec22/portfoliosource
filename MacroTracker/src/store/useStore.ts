@@ -39,6 +39,8 @@ export const useStore = create<AppState>()(
       goals: DEFAULT_GOALS,
       logs: {},
       waterIntake: {},
+      waterGoal: 64, // default ~8 cups
+      bodyWeightLbs: undefined,
 
       setGoals: (goals) => set({ goals }),
 
@@ -72,13 +74,25 @@ export const useStore = create<AppState>()(
           };
         }),
 
-      addWater: (date, ml) =>
+      addWater: (date, oz) =>
         set((state) => ({
           waterIntake: {
             ...state.waterIntake,
-            [date]: (state.waterIntake[date] ?? 0) + ml,
+            [date]: Math.max(0, (state.waterIntake[date] ?? 0) + oz),
           },
         })),
+
+      setWater: (date, oz) =>
+        set((state) => ({
+          waterIntake: {
+            ...state.waterIntake,
+            [date]: Math.max(0, Math.round(oz)),
+          },
+        })),
+
+      setWaterGoal: (oz) => set({ waterGoal: Math.max(8, Math.round(oz)) }),
+
+      setBodyWeight: (lbs) => set({ bodyWeightLbs: Math.round(lbs) }),
 
       getEntriesForDate: (date) => get().logs[date] ?? [],
 
@@ -95,6 +109,15 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      // v1 switched water from milliliters to fluid ounces; reset stored
+      // water so old ml values aren't misread as oz. Food logs/goals kept.
+      migrate: (persisted: any, version) => {
+        if (version < 1 && persisted) {
+          return { ...persisted, waterIntake: {}, waterGoal: 64 };
+        }
+        return persisted;
+      },
     }
   )
 );
