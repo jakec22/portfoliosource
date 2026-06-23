@@ -2,8 +2,9 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Text, View, ActivityIndicator } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { View, ActivityIndicator } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TabIcon } from './src/components/TabIcon';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LogFoodScreen } from './src/screens/LogFoodScreen';
 import { MealPhotoScreen } from './src/screens/MealPhotoScreen';
@@ -36,6 +37,7 @@ function HomeStack() {
 }
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
   return (
     <NavigationContainer>
         <Tab.Navigator
@@ -46,26 +48,21 @@ function MainTabs() {
             tabBarStyle: {
               backgroundColor: '#fff',
               borderTopColor: '#F3F4F6',
-              paddingBottom: 8,
-              paddingTop: 6,
-              height: 60,
+              paddingBottom: insets.bottom + 10,
+              paddingTop: 10,
+              height: 64 + insets.bottom,
             },
             tabBarLabelStyle: {
               fontSize: 11,
               fontWeight: '600',
             },
-            tabBarIcon: ({ focused, color }) => {
-              const icons: Record<string, string> = {
-                Home: '🏠',
-                History: '📊',
-                Profile: '⚙️',
-              };
-              return (
-                <Text style={{ fontSize: focused ? 24 : 20 }}>
-                  {icons[route.name] ?? '📋'}
-                </Text>
-              );
-            },
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon
+                name={route.name as 'Home' | 'History' | 'Profile'}
+                color={color}
+                size={focused ? 28 : 24}
+              />
+            ),
           })}
         >
           <Tab.Screen name="Home" component={HomeStack} />
