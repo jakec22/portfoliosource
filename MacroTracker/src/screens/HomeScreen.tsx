@@ -28,6 +28,7 @@ export function HomeScreen({ navigation }: Props) {
   const setWater = useStore((s) => s.setWater);
   const waterGoal = useStore((s) => s.waterGoal);
   const waterIncrement = useStore((s) => s.waterIncrement);
+  const showWaterTracker = useStore((s) => s.showWaterTracker);
 
   const totals = useMemo(() => sumMacros(dateEntries ?? []), [dateEntries]);
   const water = waterIntake[selectedDate] ?? 0;
@@ -133,37 +134,39 @@ export function HomeScreen({ navigation }: Props) {
         </View>
 
         {/* Water Tracker */}
-        <View style={styles.card}>
-          <View style={styles.waterHeader}>
-            <Text style={styles.cardTitle}>💧 Water</Text>
-            <Text style={styles.waterAmount}>
-              {Math.round(water)} / {waterGoal} fl oz
+        {showWaterTracker && (
+          <View style={styles.card}>
+            <View style={styles.waterHeader}>
+              <Text style={styles.cardTitle}>💧 Water</Text>
+              <Text style={styles.waterAmount}>
+                {Math.round(water)} / {waterGoal} fl oz
+              </Text>
+            </View>
+
+            {/* Progress bar */}
+            <View style={styles.waterBarTrack}>
+              <View style={[styles.waterBarFill, { width: `${waterPct}%` as any }]} />
+            </View>
+            <Text style={styles.waterPctText}>{waterPct}% of daily goal</Text>
+
+            {/* Bubbles */}
+            <View style={styles.waterDots}>
+              {Array.from({ length: numBubbles }).map((_, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => handleBubblePress(i)}
+                  style={[styles.waterDot, i < filledBubbles && styles.waterDotFilled]}
+                  activeOpacity={0.6}
+                >
+                  <Text style={styles.waterDotText}>💧</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.waterGoal}>
+              Tap to fill {OZ_PER_BUBBLE} fl oz · tap the last drop again to undo
             </Text>
           </View>
-
-          {/* Progress bar */}
-          <View style={styles.waterBarTrack}>
-            <View style={[styles.waterBarFill, { width: `${waterPct}%` as any }]} />
-          </View>
-          <Text style={styles.waterPctText}>{waterPct}% of daily goal</Text>
-
-          {/* Bubbles */}
-          <View style={styles.waterDots}>
-            {Array.from({ length: numBubbles }).map((_, i) => (
-              <TouchableOpacity
-                key={i}
-                onPress={() => handleBubblePress(i)}
-                style={[styles.waterDot, i < filledBubbles && styles.waterDotFilled]}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.waterDotText}>💧</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={styles.waterGoal}>
-            Tap to fill {OZ_PER_BUBBLE} fl oz · tap the last drop again to undo
-          </Text>
-        </View>
+        )}
 
         {/* Snap a Meal */}
         <TouchableOpacity style={styles.snapBtn} onPress={handleSnapMeal} activeOpacity={0.85}>

@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
@@ -105,6 +106,8 @@ export function CalculatorScreen() {
   const setWaterGoal = useStore((s) => s.setWaterGoal);
   const waterIncrement = useStore((s) => s.waterIncrement);
   const setWaterIncrement = useStore((s) => s.setWaterIncrement);
+  const showWaterTracker = useStore((s) => s.showWaterTracker);
+  const setShowWaterTracker = useStore((s) => s.setShowWaterTracker);
 
   // --- Goals editing ---
   const [form, setForm] = useState({
@@ -455,7 +458,16 @@ export function CalculatorScreen() {
         {/* Hydration Settings */}
         <Text style={styles.sectionTitle}>Hydration Settings</Text>
         <View style={styles.card}>
-          <View style={styles.hydrationRow}>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Show Water Tracker</Text>
+            <Switch
+              value={showWaterTracker}
+              onValueChange={setShowWaterTracker}
+              trackColor={{ false: '#E5E7EB', true: '#6EE7B7' }}
+              thumbColor={showWaterTracker ? '#10B981' : '#9CA3AF'}
+            />
+          </View>
+          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
               onPress={() => setWaterGoal(waterGoal - waterIncrement)}
@@ -663,6 +675,13 @@ const styles = StyleSheet.create({
     marginTop: 8, lineHeight: 16,
   },
   // Hydration
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  toggleLabel: { fontSize: 15, fontWeight: '600', color: '#374151' },
   hydrationRow: { flexDirection: 'row', alignItems: 'center' },
   hydrationBtn: {
     width: 40, height: 40, borderRadius: 20,

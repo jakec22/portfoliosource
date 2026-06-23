@@ -52,6 +52,7 @@ export interface AppState {
   waterIntake: Record<string, number>; // date -> fluid ounces
   waterGoal: number; // daily target in fluid ounces
   waterIncrement: number; // fl oz added per water droplet tap
+  showWaterTracker: boolean;
   bodyWeightLbs?: number; // last known body weight, used for hydration calc
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
   setGoals: (goals: DailyGoals) => void;
@@ -63,6 +64,7 @@ export interface AppState {
   setWater: (date: string, oz: number) => void;
   setWaterGoal: (oz: number) => void;
   setWaterIncrement: (oz: number) => void;
+  setShowWaterTracker: (show: boolean) => void;
   setBodyWeight: (lbs: number) => void;
   getEntriesForDate: (date: string) => FoodEntry[];
   getTotalsForDate: (date: string) => MacroNutrients;

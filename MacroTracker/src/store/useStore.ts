@@ -63,6 +63,7 @@ export const useStore = create<AppState>()(
       waterIntake: {},
       waterGoal: 64, // default ~8 cups
       waterIncrement: 8, // fl oz per droplet tap
+      showWaterTracker: true,
       bodyWeightLbs: undefined,
       recentFoods: [],
 
@@ -153,6 +154,10 @@ export const useStore = create<AppState>()(
       setWaterIncrement: (oz) => {
         set({ waterIncrement: Math.min(40, Math.max(1, Math.round(oz))) });
         syncSettings();
+      },
+
+      setShowWaterTracker: (show) => {
+        set({ showWaterTracker: show });
       },
 
       setBodyWeight: (lbs) => {
