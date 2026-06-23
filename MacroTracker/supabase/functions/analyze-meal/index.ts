@@ -62,32 +62,46 @@ Deno.serve(async (req: Request) => {
     const { image, mimeType } = await req.json();
     if (!image) return json({ error: 'Missing image' }, 400);
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: PROMPT },
-                { inline_data: { mime_type: mimeType ?? 'image/jpeg', data: image } },
-              ],
-            },
+    const body = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            { text: PROMPT },
+            { inline_data: { mime_type: mimeType ?? 'image/jpeg', data: image } },
           ],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            responseSchema,
-            temperature: 0.2,
-          },
-        }),
+        },
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema,
+        temperature: 0.2,
       },
-    );
+    });
 
-    if (!geminiRes.ok) {
-      const msg = await geminiRes.text();
-      return json({ error: `Gemini ${geminiRes.status}: ${msg}` }, 502);
+    // New-style Gemini keys (AQ. prefix) must be sent in the x-goog-api-key
+    // header; the legacy ?key= query parameter only works for old AIza keys.
+    // gemini-2.5-flash can return 503 (high demand) on the free tier, so retry
+    // a couple of times with a short backoff before giving up.
+    let geminiRes: Response | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': GEMINI_API_KEY,
+          },
+          body,
+        },
+      );
+      if (geminiRes.status !== 503 && geminiRes.status !== 429) break;
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    }
+
+    if (!geminiRes || !geminiRes.ok) {
+      const msg = geminiRes ? await geminiRes.text() : 'no response';
+      return json({ error: `Gemini ${geminiRes?.status ?? 0}: ${msg}` }, 502);
     }
 
     const data = await geminiRes.json();
