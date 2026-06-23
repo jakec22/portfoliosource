@@ -13,6 +13,7 @@ import { CalculatorScreen } from './src/screens/CalculatorScreen';
 import { ExerciseScreen } from './src/screens/ExerciseScreen';
 import { WorkoutTemplateScreen } from './src/screens/WorkoutTemplateScreen';
 import { ActiveWorkoutScreen } from './src/screens/ActiveWorkoutScreen';
+import { WorkoutSummaryScreen } from './src/screens/WorkoutSummaryScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -49,6 +50,7 @@ function ExerciseStack() {
         options={{ presentation: 'modal' }}
       />
       <Stack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen as any} />
+      <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
     </Stack.Navigator>
   );
 }

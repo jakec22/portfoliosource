@@ -350,6 +350,20 @@ export const useStore = create<AppState>()(
         });
       },
 
+      reorderWorkoutExercise: (exerciseId, direction) => {
+        set((state) => {
+          if (!state.activeWorkout) return {};
+          const exs = state.activeWorkout.exercises;
+          const idx = exs.findIndex((e) => e.id === exerciseId);
+          if (idx === -1) return {};
+          const swap = direction === 'up' ? idx - 1 : idx + 1;
+          if (swap < 0 || swap >= exs.length) return {};
+          const next = [...exs];
+          [next[idx], next[swap]] = [next[swap], next[idx]];
+          return { activeWorkout: { ...state.activeWorkout, exercises: next } };
+        });
+      },
+
       getEntriesForDate: (date) => get().logs[date] ?? [],
 
       getTotalsForDate: (date) => {

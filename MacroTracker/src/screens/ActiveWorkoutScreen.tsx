@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
+import { formatDuration } from '../utils/date';
+import { RestTimer } from '../components/RestTimer';
 
 interface Props {
   navigation: any;
@@ -25,8 +27,18 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   const updateWorkoutSet = useStore((s) => s.updateWorkoutSet);
   const toggleWorkoutSet = useStore((s) => s.toggleWorkoutSet);
   const removeWorkoutSet = useStore((s) => s.removeWorkoutSet);
+  const reorderWorkoutExercise = useStore((s) => s.reorderWorkoutExercise);
   const finishWorkout = useStore((s) => s.finishWorkout);
   const cancelWorkout = useStore((s) => s.cancelWorkout);
+
+  // Elapsed workout timer, ticking every second from the session start.
+  const startedAt = workout?.startedAt;
+  const [elapsed, setElapsed] = useState(startedAt ? Date.now() - startedAt : 0);
+  useEffect(() => {
+    if (!startedAt) return;
+    const id = setInterval(() => setElapsed(Date.now() - startedAt), 1000);
+    return () => clearInterval(id);
+  }, [startedAt]);
 
   if (!workout) {
     // Nothing in progress (e.g. just finished) — bounce back to the list.
@@ -71,8 +83,10 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
       {
         text: 'Finish',
         onPress: () => {
+          const id = workout?.id;
           finishWorkout();
-          navigation.goBack();
+          if (id) navigation.replace('WorkoutSummary', { sessionId: id });
+          else navigation.goBack();
         },
       },
     ]);
@@ -99,11 +113,9 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
           <Text style={styles.cancel}>Cancel</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title} numberOfLines={1}>
-            {workout.name}
-          </Text>
+          <Text style={styles.timer}>{formatDuration(elapsed)}</Text>
           <Text style={styles.progress}>
-            {doneSets}/{totalSets} sets
+            {doneSets}/{totalSets} sets · {workout.name}
           </Text>
         </View>
         <TouchableOpacity onPress={handleFinish}>
@@ -125,13 +137,38 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
             </View>
           )}
 
-          {workout.exercises.map((ex) => (
+          {workout.exercises.map((ex, exIdx) => (
             <View key={ex.id} style={styles.exCard}>
               <View style={styles.exHeader}>
-                <Text style={styles.exName}>{ex.name}</Text>
-                <TouchableOpacity onPress={() => removeWorkoutExercise(ex.id)}>
-                  <Text style={styles.exRemove}>Remove</Text>
-                </TouchableOpacity>
+                <Text style={styles.exName} numberOfLines={1}>
+                  {ex.name}
+                </Text>
+                <View style={styles.exHeaderActions}>
+                  <TouchableOpacity
+                    onPress={() => reorderWorkoutExercise(ex.id, 'up')}
+                    disabled={exIdx === 0}
+                    style={styles.reorderBtn}
+                  >
+                    <Text style={[styles.reorderText, exIdx === 0 && styles.reorderDisabled]}>↑</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => reorderWorkoutExercise(ex.id, 'down')}
+                    disabled={exIdx === workout.exercises.length - 1}
+                    style={styles.reorderBtn}
+                  >
+                    <Text
+                      style={[
+                        styles.reorderText,
+                        exIdx === workout.exercises.length - 1 && styles.reorderDisabled,
+                      ]}
+                    >
+                      ↓
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => removeWorkoutExercise(ex.id)}>
+                    <Text style={styles.exRemove}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Column labels */}
@@ -203,6 +240,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
             <Text style={styles.addExText}>+ Add Exercise</Text>
           </TouchableOpacity>
         </ScrollView>
+        <RestTimer />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -224,7 +262,8 @@ const styles = StyleSheet.create({
   cancel: { fontSize: 16, color: '#EF4444' },
   save: { fontSize: 16, color: '#10B981', fontWeight: '700' },
   title: { fontSize: 16, fontWeight: '700', color: '#111827', maxWidth: 180 },
-  progress: { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
+  timer: { fontSize: 18, fontWeight: '800', color: '#111827', fontVariant: ['tabular-nums'] },
+  progress: { fontSize: 12, color: '#9CA3AF', marginTop: 1, maxWidth: 220 },
   content: { padding: 16, paddingBottom: 40 },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
@@ -250,6 +289,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   exName: { fontSize: 16, fontWeight: '700', color: '#111827', flex: 1 },
+  exHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  reorderBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderText: { fontSize: 16, fontWeight: '800', color: '#6B7280' },
+  reorderDisabled: { color: '#D1D5DB' },
   exRemove: { fontSize: 13, color: '#EF4444', fontWeight: '600' },
 
   setRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 },
