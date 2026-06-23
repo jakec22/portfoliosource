@@ -132,12 +132,16 @@ const USDA_TYPE_RANK: Record<string, number> = {
 };
 
 async function searchUsda(q: string, signal?: AbortSignal): Promise<Food[]> {
+  // Each dataType must be its own param — joining them with commas inside one
+  // encoded value collapses them into a single malformed type and USDA then
+  // returns nothing (or ignores the filter).
+  const dataTypes = ['Foundation', 'SR Legacy', 'Survey (FNDDS)', 'Branded'];
   const url =
     `https://api.nal.usda.gov/fdc/v1/foods/search` +
     `?api_key=${USDA_API_KEY}` +
     `&query=${encodeURIComponent(q)}` +
     `&pageSize=50` +
-    `&dataType=${encodeURIComponent('Foundation,SR Legacy,Survey (FNDDS),Branded')}`;
+    dataTypes.map((t) => `&dataType=${encodeURIComponent(t)}`).join('');
 
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`USDA ${res.status}`);
@@ -264,6 +268,15 @@ export async function searchFoodsApi(
     off.reason?.name === 'AbortError'
   ) {
     throw usda.reason;
+  }
+
+  // Surface source failures in the dev console so a sparse result set is
+  // diagnosable (e.g. a rate-limited USDA key vs. a flaky OFF endpoint).
+  if (usda.status === 'rejected' && usda.reason?.name !== 'AbortError') {
+    console.warn('[foodApi] USDA search failed:', usda.reason?.message ?? usda.reason);
+  }
+  if (off.status === 'rejected' && off.reason?.name !== 'AbortError') {
+    console.warn('[foodApi] Open Food Facts search failed:', off.reason?.message ?? off.reason);
   }
 
   const usdaFoods = usda.status === 'fulfilled' ? usda.value : [];
