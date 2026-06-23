@@ -303,11 +303,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#0284C7',
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
-    shadowColor: '#8B5CF6',
+    shadowColor: '#0284C7',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   snapSub: {
     fontSize: 12,
-    color: '#DDD6FE',
+    color: '#BAE6FD',
     marginTop: 2,
   },
   mealsHeader: {
