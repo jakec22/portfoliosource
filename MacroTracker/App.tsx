@@ -10,6 +10,9 @@ import { LogFoodScreen } from './src/screens/LogFoodScreen';
 import { MealPhotoScreen } from './src/screens/MealPhotoScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { CalculatorScreen } from './src/screens/CalculatorScreen';
+import { ExerciseScreen } from './src/screens/ExerciseScreen';
+import { WorkoutTemplateScreen } from './src/screens/WorkoutTemplateScreen';
+import { ActiveWorkoutScreen } from './src/screens/ActiveWorkoutScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -36,6 +39,20 @@ function HomeStack() {
   );
 }
 
+function ExerciseStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ExerciseHome" component={ExerciseScreen as any} />
+      <Stack.Screen
+        name="WorkoutTemplate"
+        component={WorkoutTemplateScreen as any}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen as any} />
+    </Stack.Navigator>
+  );
+}
+
 function MainTabs() {
   const insets = useSafeAreaInsets();
   return (
@@ -58,7 +75,7 @@ function MainTabs() {
             },
             tabBarIcon: ({ focused, color }) => (
               <TabIcon
-                name={route.name as 'Home' | 'History' | 'Profile'}
+                name={route.name as 'Home' | 'Exercise' | 'History' | 'Profile'}
                 color={color}
                 size={focused ? 28 : 24}
               />
@@ -66,6 +83,7 @@ function MainTabs() {
           })}
         >
           <Tab.Screen name="Home" component={HomeStack} />
+          <Tab.Screen name="Exercise" component={ExerciseStack} />
           <Tab.Screen name="History" component={HistoryScreen} />
           <Tab.Screen name="Profile" component={CalculatorScreen} />
         </Tab.Navigator>

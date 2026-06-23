@@ -46,6 +46,50 @@ export interface DailyLog {
   entries: FoodEntry[];
 }
 
+// ----- Workouts / Exercise -----
+
+// A single performed set: a weight × reps pair with a done checkbox.
+export interface WorkoutSet {
+  id: string;
+  weight: number; // lbs
+  reps: number;
+  completed: boolean;
+}
+
+// An exercise within an active/logged workout, holding its performed sets.
+export interface WorkoutExercise {
+  id: string;
+  name: string;
+  sets: WorkoutSet[];
+}
+
+// A reusable plan the user builds once and can start workouts from.
+export interface TemplateExercise {
+  id: string;
+  name: string;
+  targetSets: number;
+  targetReps: number;
+  targetWeight: number; // lbs, 0 if unspecified
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  exercises: TemplateExercise[];
+  createdAt: number;
+}
+
+// A workout session — in progress (activeWorkout) or finished (history).
+export interface WorkoutSession {
+  id: string;
+  name: string;
+  templateId?: string;
+  date: string; // YYYY-MM-DD
+  startedAt: number;
+  completedAt?: number;
+  exercises: WorkoutExercise[];
+}
+
 export interface AppState {
   goals: DailyGoals;
   logs: Record<string, FoodEntry[]>; // date -> entries
@@ -55,6 +99,9 @@ export interface AppState {
   showWaterTracker: boolean;
   bodyWeightLbs?: number; // last known body weight, used for hydration calc
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
+  workoutTemplates: WorkoutTemplate[];
+  activeWorkout: WorkoutSession | null;
+  workoutHistory: WorkoutSession[]; // completed sessions, newest first
   setGoals: (goals: DailyGoals) => void;
   addEntry: (entry: FoodEntry) => void;
   addRecentFood: (food: Food) => void;
@@ -69,4 +116,21 @@ export interface AppState {
   getEntriesForDate: (date: string) => FoodEntry[];
   getTotalsForDate: (date: string) => MacroNutrients;
   getMealTotals: (date: string, meal: MealType) => MacroNutrients;
+  // Workout templates
+  saveTemplate: (template: WorkoutTemplate) => void;
+  deleteTemplate: (id: string) => void;
+  // Active workout lifecycle
+  startWorkout: (template?: WorkoutTemplate) => void;
+  cancelWorkout: () => void;
+  finishWorkout: () => void;
+  addWorkoutExercise: (name: string) => void;
+  removeWorkoutExercise: (exerciseId: string) => void;
+  addWorkoutSet: (exerciseId: string) => void;
+  updateWorkoutSet: (
+    exerciseId: string,
+    setId: string,
+    patch: Partial<Pick<WorkoutSet, 'weight' | 'reps'>>
+  ) => void;
+  toggleWorkoutSet: (exerciseId: string, setId: string) => void;
+  removeWorkoutSet: (exerciseId: string, setId: string) => void;
 }

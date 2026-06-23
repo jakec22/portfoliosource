@@ -458,8 +458,8 @@ export function CalculatorScreen() {
         {/* Hydration Settings */}
         <Text style={styles.sectionTitle}>Hydration Settings</Text>
         <View style={styles.card}>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Show Water Tracker</Text>
+          <View style={styles.waterToggleRow}>
+            <Text style={styles.waterToggleLabel}>Show Water Tracker</Text>
             <Switch
               value={showWaterTracker}
               onValueChange={setShowWaterTracker}
@@ -675,13 +675,13 @@ const styles = StyleSheet.create({
     marginTop: 8, lineHeight: 16,
   },
   // Hydration
-  toggleRow: {
+  waterToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 4,
   },
-  toggleLabel: { fontSize: 15, fontWeight: '600', color: '#374151' },
+  waterToggleLabel: { fontSize: 15, fontWeight: '600', color: '#374151' },
   hydrationRow: { flexDirection: 'row', alignItems: 'center' },
   hydrationBtn: {
     width: 40, height: 40, borderRadius: 20,
