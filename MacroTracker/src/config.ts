@@ -13,11 +13,3 @@ export const SUPABASE_URL =
 export const SUPABASE_ANON_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
   'sb_publishable_jqBzGgPboooHWKv_JJ_tCw_PoqcgOWU';
-
-// FatSecret Platform API — large branded + restaurant + generic food database.
-// Sign up free at https://platform.fatsecret.com/api, create an app, then
-// set these in your .env. When unset, FatSecret is simply skipped.
-// Note: the client_secret is bundled in the app (EXPO_PUBLIC_*). This is
-// acceptable for a personal app but know it is visible in the binary.
-export const FATSECRET_CLIENT_ID = process.env.EXPO_PUBLIC_FATSECRET_CLIENT_ID ?? '';
-export const FATSECRET_CLIENT_SECRET = process.env.EXPO_PUBLIC_FATSECRET_CLIENT_SECRET ?? '';
