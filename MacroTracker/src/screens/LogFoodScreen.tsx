@@ -174,6 +174,13 @@ export function LogFoodScreen({ route, navigation }: Props) {
           >
             <Text style={styles.scanBtnIcon}>📷</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.photoBtn}
+            onPress={() => navigation.navigate('MealPhoto', { meal, date })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.scanBtnIcon}>✨</Text>
+          </TouchableOpacity>
         </View>
 
         <FlatList
@@ -422,6 +429,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  photoBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#8B5CF6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,

@@ -6,6 +6,7 @@ import { Text, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LogFoodScreen } from './src/screens/LogFoodScreen';
+import { MealPhotoScreen } from './src/screens/MealPhotoScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { CalculatorScreen } from './src/screens/CalculatorScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -23,6 +24,11 @@ function HomeStack() {
       <Stack.Screen
         name="LogFood"
         component={LogFoodScreen as any}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="MealPhoto"
+        component={MealPhotoScreen as any}
         options={{ presentation: 'modal' }}
       />
     </Stack.Navigator>
