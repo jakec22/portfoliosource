@@ -1,4 +1,4 @@
-import { Food } from '../types';
+import { Food, MacroNutrients } from '../types';
 import { USDA_API_KEY } from '../config';
 import { searchFoods as searchLocalFoods } from '../data/foods';
 
@@ -10,6 +10,48 @@ function titleCase(s: string): string {
 
 function num(v: number | undefined): number {
   return v ? Math.round(v * 10) / 10 : 0;
+}
+
+// A real-world serving for a food, in grams or millilitres.
+interface Portion {
+  size: number;
+  unit: string;
+}
+
+// Sources report macros per 100 g/ml. Validate a candidate serving so we don't
+// pick up garbage values (0, negatives, or absurdly large/odd-unit entries).
+function validPortion(size: number | undefined, unit: string | undefined): Portion | null {
+  if (!size || size <= 0 || size > 2000) return null;
+  const u = (unit ?? 'g').toLowerCase();
+  if (u !== 'g' && u !== 'ml') return null;
+  return { size: Math.round(size * 10) / 10, unit: u };
+}
+
+function scaleMacros(per100: MacroNutrients, factor: number): MacroNutrients {
+  const r = (x: number | undefined) => Math.round((x ?? 0) * factor * 10) / 10;
+  return {
+    calories: r(per100.calories),
+    protein: r(per100.protein),
+    carbs: r(per100.carbs),
+    fat: r(per100.fat),
+    fiber: r(per100.fiber),
+    sugar: r(per100.sugar),
+  };
+}
+
+// Turn per-100 macros + an optional real serving into the stored shape, where
+// `macros` always represent exactly one `serving_size`. Falls back to 100 g
+// when no trustworthy serving is available.
+function applyPortion(
+  per100: MacroNutrients,
+  portion: Portion | null,
+): Pick<Food, 'serving_size' | 'serving_unit' | 'macros'> {
+  if (!portion) return { serving_size: 100, serving_unit: 'g', macros: per100 };
+  return {
+    serving_size: portion.size,
+    serving_unit: portion.unit,
+    macros: scaleMacros(per100, portion.size / 100),
+  };
 }
 
 // Remove duplicates across sources keyed by normalized name + brand.
@@ -47,6 +89,8 @@ interface UsdaFood {
   brandName?: string;
   brandOwner?: string;
   dataType?: string;
+  servingSize?: number;
+  servingSizeUnit?: string;
   foodNutrients?: UsdaNutrient[];
 }
 
@@ -58,21 +102,23 @@ function pickNutrient(nutrients: UsdaNutrient[] | undefined, number: string): nu
 
 function usdaToFood(item: UsdaFood): Food {
   const n = item.foodNutrients;
+  // USDA search nutrients are reported per 100 g.
+  const per100: MacroNutrients = {
+    calories: pickNutrient(n, USDA_NUTRIENT.calories),
+    protein: pickNutrient(n, USDA_NUTRIENT.protein),
+    carbs: pickNutrient(n, USDA_NUTRIENT.carbs),
+    fat: pickNutrient(n, USDA_NUTRIENT.fat),
+    fiber: pickNutrient(n, USDA_NUTRIENT.fiber),
+    sugar: pickNutrient(n, USDA_NUTRIENT.sugar),
+  };
+  // Branded items carry a label serving size; whole foods don't, so they keep
+  // the 100 g reference.
+  const portion = validPortion(item.servingSize, item.servingSizeUnit);
   return {
     id: `usda-${item.fdcId}`,
     name: titleCase(item.description),
     brand: item.brandName || item.brandOwner || 'USDA',
-    // USDA search nutrients are per 100 g.
-    serving_size: 100,
-    serving_unit: 'g',
-    macros: {
-      calories: pickNutrient(n, USDA_NUTRIENT.calories),
-      protein: pickNutrient(n, USDA_NUTRIENT.protein),
-      carbs: pickNutrient(n, USDA_NUTRIENT.carbs),
-      fat: pickNutrient(n, USDA_NUTRIENT.fat),
-      fiber: pickNutrient(n, USDA_NUTRIENT.fiber),
-      sugar: pickNutrient(n, USDA_NUTRIENT.sugar),
-    },
+    ...applyPortion(per100, portion),
   };
 }
 
@@ -131,6 +177,7 @@ interface OffProduct {
   product_name?: string;
   brands?: string;
   countries_tags?: string[];
+  serving_quantity?: number | string;
   nutriments?: OffNutriments;
 }
 
@@ -140,22 +187,27 @@ function isUsProduct(p: OffProduct): boolean {
 
 function offToFood(p: OffProduct): Food | null {
   const nut: OffNutriments = p.nutriments ?? {};
-  const calories = num(nut['energy-kcal_100g']);
-  if (!p.product_name || calories === 0) return null;
+  // OFF nutrients are reported per 100 g/ml.
+  const per100: MacroNutrients = {
+    calories: num(nut['energy-kcal_100g']),
+    protein: num(nut.proteins_100g),
+    carbs: num(nut.carbohydrates_100g),
+    fat: num(nut.fat_100g),
+    fiber: num(nut.fiber_100g),
+    sugar: num(nut.sugars_100g),
+  };
+  if (!p.product_name || per100.calories === 0) return null;
+  // Use the label serving (grams) when present, else the 100 g reference.
+  const qty =
+    typeof p.serving_quantity === 'string'
+      ? parseFloat(p.serving_quantity)
+      : p.serving_quantity;
+  const portion = validPortion(qty, 'g');
   return {
     id: `off-${p.id ?? p.product_name}`,
     name: titleCase(p.product_name),
     brand: p.brands ? p.brands.split(',')[0].trim() : 'Unknown',
-    serving_size: 100,
-    serving_unit: 'g',
-    macros: {
-      calories,
-      protein: num(nut.proteins_100g),
-      carbs: num(nut.carbohydrates_100g),
-      fat: num(nut.fat_100g),
-      fiber: num(nut.fiber_100g),
-      sugar: num(nut.sugars_100g),
-    },
+    ...applyPortion(per100, portion),
   };
 }
 
@@ -164,7 +216,7 @@ async function searchOpenFoodFacts(q: string, signal?: AbortSignal): Promise<Foo
     `https://world.openfoodfacts.org/cgi/search.pl` +
     `?search_terms=${encodeURIComponent(q)}` +
     `&json=1&page_size=40` +
-    `&fields=id,product_name,brands,countries_tags,nutriments`;
+    `&fields=id,product_name,brands,countries_tags,serving_quantity,nutriments`;
 
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`OFF ${res.status}`);
@@ -235,7 +287,7 @@ export async function lookupBarcode(
   try {
     const url =
       `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}` +
-      `.json?fields=product_name,brands,nutriments`;
+      `.json?fields=product_name,brands,serving_quantity,nutriments`;
     const res = await fetch(url, { signal });
     if (!res.ok) return null;
     const json = await res.json();
