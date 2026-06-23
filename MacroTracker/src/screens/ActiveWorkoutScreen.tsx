@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
+  InputAccessoryView,
   Platform,
   Alert,
 } from 'react-native';
@@ -30,6 +31,27 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   const reorderWorkoutExercise = useStore((s) => s.reorderWorkoutExercise);
   const finishWorkout = useStore((s) => s.finishWorkout);
   const cancelWorkout = useStore((s) => s.cancelWorkout);
+
+  // Tracks which set + field is currently focused for the fill-all toolbar.
+  const [focusCtx, setFocusCtx] = useState<{
+    exId: string;
+    setId: string;
+    field: 'weight' | 'reps';
+  } | null>(null);
+
+  function fillAll() {
+    if (!focusCtx || !workout) return;
+    const ex = workout.exercises.find((e) => e.id === focusCtx.exId);
+    if (!ex) return;
+    const src = ex.sets.find((s) => s.id === focusCtx.setId);
+    if (!src) return;
+    const value = src[focusCtx.field];
+    ex.sets.forEach((s) => {
+      if (s.id !== focusCtx.setId) {
+        updateWorkoutSet(focusCtx.exId, s.id, { [focusCtx.field]: value });
+      }
+    });
+  }
 
   // Elapsed workout timer, ticking every second from the session start.
   const startedAt = workout?.startedAt;
@@ -193,9 +215,11 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       const n = parseFloat(v.replace(/[^0-9.]/g, ''));
                       updateWorkoutSet(ex.id, set.id, { weight: Number.isNaN(n) ? 0 : n });
                     }}
+                    onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'weight' })}
                     keyboardType="decimal-pad"
                     placeholder="0"
                     placeholderTextColor="#D1D5DB"
+                    inputAccessoryViewID="workout-fill-bar"
                   />
                   <TextInput
                     style={[styles.colNum, styles.setInput]}
@@ -204,9 +228,11 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
                       updateWorkoutSet(ex.id, set.id, { reps: Number.isNaN(n) ? 0 : n });
                     }}
+                    onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'reps' })}
                     keyboardType="number-pad"
                     placeholder="0"
                     placeholderTextColor="#D1D5DB"
+                    inputAccessoryViewID="workout-fill-bar"
                   />
                   <TouchableOpacity
                     style={styles.colCheck}
@@ -242,6 +268,19 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
         </ScrollView>
         <RestTimer />
       </KeyboardAvoidingView>
+
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID="workout-fill-bar">
+          <View style={styles.fillBar}>
+            <Text style={styles.fillBarLabel}>
+              {focusCtx?.field === 'weight' ? 'Fill lbs to all sets' : 'Fill reps to all sets'}
+            </Text>
+            <TouchableOpacity style={styles.fillBtn} onPress={fillAll}>
+              <Text style={styles.fillBtnText}>Fill all</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </SafeAreaView>
   );
 }
@@ -349,4 +388,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   addExText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+
+  fillBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#F3F4F6',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  fillBarLabel: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
+  fillBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    backgroundColor: '#10B981',
+    borderRadius: 10,
+  },
+  fillBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

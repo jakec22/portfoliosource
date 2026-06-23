@@ -122,14 +122,14 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                   onChange={(n) => updateExercise(e.id, { targetSets: n })}
                 />
                 <NumField
-                  label="Reps"
-                  value={e.targetReps}
-                  onChange={(n) => updateExercise(e.id, { targetReps: n })}
-                />
-                <NumField
                   label="Weight (lb)"
                   value={e.targetWeight}
                   onChange={(n) => updateExercise(e.id, { targetWeight: n })}
+                />
+                <NumField
+                  label="Reps"
+                  value={e.targetReps}
+                  onChange={(n) => updateExercise(e.id, { targetReps: n })}
                 />
               </View>
             </View>
