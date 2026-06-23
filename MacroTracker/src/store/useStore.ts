@@ -73,6 +73,9 @@ export const useStore = create<AppState>()(
       waterGoal: 64, // default ~8 cups
       waterIncrement: 8, // fl oz per droplet tap
       showWaterTracker: true,
+      autoRestTimer: true,
+      restDurationSeconds: 90,
+      restTrigger: 0,
       bodyWeightLbs: undefined,
       recentFoods: [],
       workoutTemplates: [],
@@ -170,6 +173,14 @@ export const useStore = create<AppState>()(
 
       setShowWaterTracker: (show) => {
         set({ showWaterTracker: show });
+      },
+
+      setAutoRestTimer: (on) => {
+        set({ autoRestTimer: on });
+      },
+
+      setRestDuration: (seconds) => {
+        set({ restDurationSeconds: Math.max(5, Math.round(seconds)) });
       },
 
       setBodyWeight: (lbs) => {
@@ -316,21 +327,27 @@ export const useStore = create<AppState>()(
       toggleWorkoutSet: (exerciseId, setId) => {
         set((state) => {
           if (!state.activeWorkout) return {};
-          return {
-            activeWorkout: {
-              ...state.activeWorkout,
-              exercises: state.activeWorkout.exercises.map((e) =>
-                e.id !== exerciseId
-                  ? e
-                  : {
-                      ...e,
-                      sets: e.sets.map((s) =>
-                        s.id === setId ? { ...s, completed: !s.completed } : s
-                      ),
-                    }
-              ),
-            },
+          let becameComplete = false;
+          const exercises = state.activeWorkout.exercises.map((e) =>
+            e.id !== exerciseId
+              ? e
+              : {
+                  ...e,
+                  sets: e.sets.map((s) => {
+                    if (s.id !== setId) return s;
+                    becameComplete = !s.completed; // toggling on, not off
+                    return { ...s, completed: !s.completed };
+                  }),
+                }
+          );
+          const patch: Partial<AppState> = {
+            activeWorkout: { ...state.activeWorkout, exercises },
           };
+          // Signal the rest timer to auto-start only when checking a set ON.
+          if (becameComplete && state.autoRestTimer) {
+            patch.restTrigger = state.restTrigger + 1;
+          }
+          return patch;
         });
       },
 

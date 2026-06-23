@@ -108,6 +108,8 @@ export function CalculatorScreen() {
   const setWaterIncrement = useStore((s) => s.setWaterIncrement);
   const showWaterTracker = useStore((s) => s.showWaterTracker);
   const setShowWaterTracker = useStore((s) => s.setShowWaterTracker);
+  const autoRestTimer = useStore((s) => s.autoRestTimer);
+  const setAutoRestTimer = useStore((s) => s.setAutoRestTimer);
 
   // --- Goals editing ---
   const [form, setForm] = useState({
@@ -506,6 +508,25 @@ export function CalculatorScreen() {
           </View>
         </View>
 
+        {/* Workout Settings */}
+        <Text style={styles.sectionTitle}>Workout Settings</Text>
+        <View style={styles.card}>
+          <View style={styles.waterToggleRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.waterToggleLabel}>Auto-start rest timer</Text>
+              <Text style={styles.settingHint}>
+                Starts the rest countdown automatically when you check off a set.
+              </Text>
+            </View>
+            <Switch
+              value={autoRestTimer}
+              onValueChange={setAutoRestTimer}
+              trackColor={{ false: '#E5E7EB', true: '#6EE7B7' }}
+              thumbColor={autoRestTimer ? '#10B981' : '#9CA3AF'}
+            />
+          </View>
+        </View>
+
         {/* Account */}
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
@@ -682,6 +703,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   waterToggleLabel: { fontSize: 15, fontWeight: '600', color: '#374151' },
+  settingHint: { fontSize: 12, color: '#9CA3AF', marginTop: 3, lineHeight: 16 },
   hydrationRow: { flexDirection: 'row', alignItems: 'center' },
   hydrationBtn: {
     width: 40, height: 40, borderRadius: 20,

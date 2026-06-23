@@ -1,15 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Vibration } from 'react-native';
 import { formatDuration } from '../utils/date';
+import { useStore } from '../store/useStore';
 
 const PRESETS = [60, 90, 120, 180]; // seconds
 
 // A sticky rest-timer bar. Collapsed it shows quick-start presets; running it
-// counts down with +30s and Skip, and buzzes when it hits zero.
+// counts down with +30s and Skip, and buzzes when it hits zero. Auto-starts
+// (using the last-used duration) when a set is completed, if enabled in Profile.
 export function RestTimer() {
   const [endAt, setEndAt] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const restTrigger = useStore((s) => s.restTrigger);
+  const restDuration = useStore((s) => s.restDurationSeconds);
+  const setRestDuration = useStore((s) => s.setRestDuration);
+  // Ignore the trigger value present at mount; only react to later bumps.
+  const lastTrigger = useRef(restTrigger);
 
   useEffect(() => {
     if (endAt == null) return;
@@ -30,7 +38,15 @@ export function RestTimer() {
     };
   }, [endAt]);
 
+  // Auto-start when a set is completed (store bumps restTrigger).
+  useEffect(() => {
+    if (restTrigger === lastTrigger.current) return;
+    lastTrigger.current = restTrigger;
+    setEndAt(Date.now() + restDuration * 1000);
+  }, [restTrigger, restDuration]);
+
   function start(seconds: number) {
+    setRestDuration(seconds); // remember this length for the next auto-start
     setEndAt(Date.now() + seconds * 1000);
   }
 
