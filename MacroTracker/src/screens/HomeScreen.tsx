@@ -59,6 +59,13 @@ export function HomeScreen({ navigation }: Props) {
     navigation.navigate('LogFood', { meal, date: selectedDate });
   }
 
+  function handleSnapMeal() {
+    const hour = new Date().getHours();
+    const meal: MealType =
+      hour < 11 ? 'breakfast' : hour < 15 ? 'lunch' : hour < 20 ? 'dinner' : 'snacks';
+    navigation.navigate('MealPhoto', { meal, date: selectedDate });
+  }
+
   const isToday = selectedDate === todayString();
 
   return (
@@ -149,6 +156,15 @@ export function HomeScreen({ navigation }: Props) {
             Tap to fill {OZ_PER_BUBBLE} fl oz · tap the last drop again to undo
           </Text>
         </View>
+
+        {/* Snap a Meal */}
+        <TouchableOpacity style={styles.snapBtn} onPress={handleSnapMeal} activeOpacity={0.85}>
+          <Text style={styles.snapIcon}>📸</Text>
+          <View>
+            <Text style={styles.snapTitle}>Snap a Meal</Text>
+            <Text style={styles.snapSub}>AI identifies foods & estimates macros</Text>
+          </View>
+        </TouchableOpacity>
 
         {/* Meal Sections */}
         <View style={styles.mealsHeader}>
@@ -282,6 +298,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     textAlign: 'center',
+  },
+  snapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#8B5CF6',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  snapIcon: {
+    fontSize: 32,
+  },
+  snapTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  snapSub: {
+    fontSize: 12,
+    color: '#DDD6FE',
+    marginTop: 2,
   },
   mealsHeader: {
     marginBottom: 8,
