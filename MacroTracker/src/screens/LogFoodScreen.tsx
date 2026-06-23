@@ -18,6 +18,7 @@ import { useStore } from '../store/useStore';
 import { searchFoods } from '../data/foods';
 import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import Svg, { Rect } from 'react-native-svg';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 
 const MEAL_LABELS: Record<MealType, string> = {
@@ -30,6 +31,27 @@ const MEAL_LABELS: Record<MealType, string> = {
 interface Props {
   route: { params: { meal: MealType; date: string } };
   navigation: any;
+}
+
+// Simple barcode icon drawn with react-native-svg (already a project dep).
+// 7 alternating narrow/wide bars to suggest a barcode at small sizes.
+function BarcodeIcon({ size = 22, color = '#fff' }: { size?: number; color?: string }) {
+  const h = size;
+  const bars = [2, 1, 3, 1, 2, 1, 3, 1, 2];
+  let x = 0;
+  const totalW = bars.reduce((a, b) => a + b, 0) + bars.length - 1;
+  const scale = size / totalW;
+  return (
+    <Svg width={size} height={h} viewBox={`0 0 ${totalW} ${h}`}>
+      {bars.map((w, i) => {
+        const rx = x;
+        x += w + 1;
+        return i % 2 === 0 ? (
+          <Rect key={i} x={rx} y={0} width={w} height={h} fill={color} />
+        ) : null;
+      })}
+    </Svg>
+  );
 }
 
 export function LogFoodScreen({ route, navigation }: Props) {
@@ -172,14 +194,14 @@ export function LogFoodScreen({ route, navigation }: Props) {
             onPress={() => setScannerVisible(true)}
             activeOpacity={0.8}
           >
-            <Text style={styles.scanBtnIcon}>📷</Text>
+            <BarcodeIcon size={22} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.photoBtn}
             onPress={() => navigation.navigate('MealPhoto', { meal, date })}
             activeOpacity={0.8}
           >
-            <Text style={styles.scanBtnIcon}>✨</Text>
+            <Text style={styles.scanBtnIcon}>📷</Text>
           </TouchableOpacity>
         </View>
 

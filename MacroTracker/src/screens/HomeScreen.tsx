@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
@@ -60,10 +61,17 @@ export function HomeScreen({ navigation }: Props) {
   }
 
   function handleSnapMeal() {
-    const hour = new Date().getHours();
-    const meal: MealType =
-      hour < 11 ? 'breakfast' : hour < 15 ? 'lunch' : hour < 20 ? 'dinner' : 'snacks';
-    navigation.navigate('MealPhoto', { meal, date: selectedDate });
+    const meals: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', 'Breakfast', 'Lunch', 'Dinner', 'Snacks'],
+        cancelButtonIndex: 0,
+      },
+      (index) => {
+        if (index === 0) return;
+        navigation.navigate('MealPhoto', { meal: meals[index - 1], date: selectedDate });
+      },
+    );
   }
 
   const isToday = selectedDate === todayString();
