@@ -122,7 +122,7 @@ export interface AppState {
   addEntry: (entry: FoodEntry) => void;
   addRecentFood: (food: Food) => void;
   removeEntry: (date: string, entryId: string) => void;
-  updateEntry: (date: string, entryId: string, servings: number) => void;
+  updateEntry: (date: string, entryId: string, patch: { servings: number; amount?: number; unit?: ServingUnit }) => void;
   addWater: (date: string, oz: number) => void;
   setWater: (date: string, oz: number) => void;
   setWaterGoal: (oz: number) => void;

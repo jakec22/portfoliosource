@@ -125,14 +125,14 @@ export const useStore = create<AppState>()(
         void deleteEntryRemote(entryId);
       },
 
-      updateEntry: (date, entryId, servings) => {
+      updateEntry: (date, entryId, patch) => {
         set((state) => {
           const existing = state.logs[date] ?? [];
           return {
             logs: {
               ...state.logs,
               [date]: existing.map((e) =>
-                e.id === entryId ? { ...e, servings } : e
+                e.id === entryId ? { ...e, ...patch } : e
               ),
             },
           };
