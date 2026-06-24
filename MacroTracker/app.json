@@ -1,31 +1,31 @@
 {
   "expo": {
-    "name": "MacroTracker",
-    "slug": "MacroTracker",
+    "name": "HolyMacro",
+    "slug": "HolyMacro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "macrotracker",
+    "scheme": "holymacro",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "plugins": [
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow MacroTracker to use the camera to scan food barcodes."
+          "cameraPermission": "Allow HolyMacro to use the camera to scan food barcodes."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow MacroTracker to access your photos to analyze meals.",
-          "cameraPermission": "Allow MacroTracker to use the camera to photograph meals."
+          "photosPermission": "Allow HolyMacro to access your photos to analyze meals.",
+          "cameraPermission": "Allow HolyMacro to use the camera to photograph meals."
         }
       ],
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "MacroTracker reads your heart rate from Apple Health to display and chart it during workouts.",
+          "NSHealthShareUsageDescription": "HolyMacro reads your heart rate from Apple Health to display and chart it during workouts.",
           "NSHealthUpdateUsageDescription": false,
           "background": false
         }

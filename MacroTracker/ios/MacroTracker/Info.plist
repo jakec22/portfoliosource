@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>MacroTracker</string>
+    <string>HolyMacro</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -27,8 +27,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>macrotracker</string>
-          <string>com.macrotracker.app</string>
+          <string>holymacro</string>
+          <string>com.jacobclover.macrotracker</string>
         </array>
       </dict>
     </array>
@@ -48,9 +48,9 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Allow MacroTracker to use the camera to scan food barcodes.</string>
+    <string>Allow HolyMacro to use the camera to scan food barcodes.</string>
     <key>NSHealthShareUsageDescription</key>
-    <string>MacroTracker reads your heart rate from Apple Health to display and chart it during workouts.</string>
+    <string>HolyMacro reads your heart rate from Apple Health to display and chart it during workouts.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>UILaunchStoryboardName</key>
