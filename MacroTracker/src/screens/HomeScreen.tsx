@@ -14,6 +14,7 @@ import { todayString, displayDate, formatDate } from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
 import { MacroRing } from '../components/MacroRing';
 import { MealSection } from '../components/MealSection';
+import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { MealType } from '../types';
 
 interface Props {
@@ -24,7 +25,14 @@ export function HomeScreen({ navigation }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayString());
   const goals = useStore((s) => s.goals);
   const dateEntries = useStore((s) => s.logs[selectedDate]);
+  const workoutHistory = useStore((s) => s.workoutHistory);
+  const deleteWorkout = useStore((s) => s.deleteWorkout);
   const waterIntake = useStore((s) => s.waterIntake);
+
+  const dayWorkouts = useMemo(
+    () => workoutHistory.filter((w) => w.date === selectedDate),
+    [workoutHistory, selectedDate]
+  );
   const setWater = useStore((s) => s.setWater);
   const waterGoal = useStore((s) => s.waterGoal);
   const waterIncrement = useStore((s) => s.waterIncrement);
@@ -189,6 +197,26 @@ export function HomeScreen({ navigation }: Props) {
             onAddFood={handleAddFood}
           />
         ))}
+
+        {dayWorkouts.length > 0 && (
+          <View style={styles.workoutsSection}>
+            <Text style={styles.workoutsTitle}>Workouts</Text>
+            {dayWorkouts.map((w) => (
+              <WorkoutHistoryItem
+                key={w.id}
+                session={w}
+                showDate={false}
+                onPress={() =>
+                  navigation.navigate('WorkoutSummary', {
+                    sessionId: w.id,
+                    viewOnly: true,
+                  })
+                }
+                onDelete={() => deleteWorkout(w.id)}
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -344,5 +372,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
+  },
+  workoutsSection: {
+    marginTop: 8,
+  },
+  workoutsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 10,
   },
 });

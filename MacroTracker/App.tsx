@@ -37,6 +37,7 @@ function HomeStack() {
         component={MealPhotoScreen as any}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
     </Stack.Navigator>
   );
 }
