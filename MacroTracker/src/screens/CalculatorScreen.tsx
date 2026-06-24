@@ -144,31 +144,40 @@ function MacroSlider({
   color: string;
   onChange: (v: number) => void;
 }) {
+  const viewRef = useRef<View>(null);
   const widthRef = useRef(0);
+  const pageXRef = useRef(0);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
+  // gestureState.moveX is the absolute page X — subtract the track's pageX
+  // so the value is correct no matter where the slider sits on screen.
   const responder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => emit(e.nativeEvent.locationX),
-      onPanResponderMove: (e) => emit(e.nativeEvent.locationX),
+      onPanResponderGrant: (_, gs) => emit(gs.x0),
+      onPanResponderMove: (_, gs) => emit(gs.moveX),
     })
   ).current;
 
-  function emit(locationX: number) {
+  function emit(pageX: number) {
     const w = widthRef.current;
+    const ox = pageXRef.current;
     if (w <= 0) return;
-    const x = Math.max(0, Math.min(w, locationX));
+    const x = Math.max(0, Math.min(w, pageX - ox));
     onChangeRef.current(Math.round((x / w) * 100));
   }
 
   return (
     <View
+      ref={viewRef}
       style={sliderStyles.touch}
-      onLayout={(e) => {
-        widthRef.current = e.nativeEvent.layout.width;
+      onLayout={() => {
+        viewRef.current?.measure((_x, _y, w, _h, px) => {
+          widthRef.current = w;
+          pageXRef.current = px;
+        });
       }}
       {...responder.panHandlers}
     >
