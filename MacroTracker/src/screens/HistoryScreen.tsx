@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -22,12 +22,15 @@ const MACRO_COLORS = {
   fat: '#EF4444',
 };
 
+const PAGE = 14;
+
 export function HistoryScreen({ navigation }: Props) {
   const logs = useStore((s) => s.logs);
   const goals = useStore((s) => s.goals);
   const workoutHistory = useStore((s) => s.workoutHistory);
   const deleteWorkout = useStore((s) => s.deleteWorkout);
-  const days = getPastDays(14);
+  const [visibleDays, setVisibleDays] = useState(PAGE);
+  const days = getPastDays(visibleDays);
 
   // Group completed workouts by their date so each day card can list them.
   const workoutsByDate = useMemo(() => {
@@ -64,7 +67,7 @@ export function HistoryScreen({ navigation }: Props) {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>History</Text>
-        <Text style={styles.subtitle}>Past 14 days</Text>
+        <Text style={styles.subtitle}>Past {visibleDays} days</Text>
 
         {days.map((date) => {
           const totals = sumMacros(logs[date] ?? []);
@@ -182,6 +185,14 @@ export function HistoryScreen({ navigation }: Props) {
             </View>
           );
         })}
+
+        <TouchableOpacity
+          style={styles.loadMoreBtn}
+          onPress={() => setVisibleDays((d) => d + PAGE)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.loadMoreText}>Load {PAGE} more days</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -305,5 +316,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#9CA3AF',
     marginTop: 4,
+  },
+  loadMoreBtn: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
   },
 });
