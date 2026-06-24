@@ -6,6 +6,7 @@ import {
   pushEntries,
   pushSettings,
   pushWorkouts,
+  reportSyncError,
   type SettingsSnapshot,
 } from './sync';
 import type { FoodEntry, WorkoutSession } from '../types';
@@ -66,10 +67,10 @@ export async function syncOnLogin(userId: string): Promise<void> {
       supabase.from('workouts').select('*').eq('user_id', userId),
     ]);
     if (error) {
-      console.warn('[sync] login fetch failed:', error.message);
+      reportSyncError('login fetch', error.message);
     }
     if (workoutErr) {
-      console.warn('[sync] login workout fetch failed:', workoutErr.message);
+      reportSyncError('login workout fetch', workoutErr.message);
     }
 
     const remoteEmpty =

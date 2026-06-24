@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import { supabase } from './supabase';
 import type {
   DailyGoals,
@@ -6,6 +7,26 @@ import type {
   WorkoutSession,
   WorkoutTemplate,
 } from '../types';
+
+// Surface sync failures once per app session. A persistent problem (tables not
+// created, offline, RLS misconfigured) would otherwise fail on every push, so
+// we alert the user a single time while still logging every occurrence. The
+// flag resets only on app restart.
+let syncErrorAlerted = false;
+
+export function reportSyncError(context: string, message?: string): void {
+  console.warn(`[sync] ${context} failed:`, message ?? '');
+  if (syncErrorAlerted) return;
+  syncErrorAlerted = true;
+  Alert.alert(
+    'Cloud sync problem',
+    "Your changes are saved on this device, but couldn't be backed up to the " +
+      'cloud. They may not sync to your other devices or survive reinstalling ' +
+      'the app until this is resolved. Check your connection, or contact support ' +
+      'if it keeps happening.',
+    [{ text: 'OK' }]
+  );
+}
 
 // While hydrating from the cloud we suspend pushes so writing the freshly
 // pulled state back into the store doesn't echo straight back to the server.
@@ -55,7 +76,7 @@ function entryRow(entry: FoodEntry) {
 export async function pushEntry(entry: FoodEntry): Promise<void> {
   if (!enabled()) return;
   const { error } = await supabase.from('food_entries').upsert(entryRow(entry));
-  if (error) console.warn('[sync] pushEntry failed:', error.message);
+  if (error) reportSyncError('pushEntry', error.message);
 }
 
 export async function pushEntries(entries: FoodEntry[]): Promise<void> {
@@ -63,7 +84,7 @@ export async function pushEntries(entries: FoodEntry[]): Promise<void> {
   const { error } = await supabase
     .from('food_entries')
     .upsert(entries.map(entryRow));
-  if (error) console.warn('[sync] pushEntries failed:', error.message);
+  if (error) reportSyncError('pushEntries', error.message);
 }
 
 export async function deleteEntryRemote(entryId: string): Promise<void> {
@@ -73,7 +94,7 @@ export async function deleteEntryRemote(entryId: string): Promise<void> {
     .delete()
     .eq('id', entryId)
     .eq('user_id', userId as string);
-  if (error) console.warn('[sync] deleteEntry failed:', error.message);
+  if (error) reportSyncError('deleteEntry', error.message);
 }
 
 export async function pushSettings(s: SettingsSnapshot): Promise<void> {
@@ -92,7 +113,7 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     workout_templates: s.workoutTemplates,
     updated_at: new Date().toISOString(),
   });
-  if (error) console.warn('[sync] pushSettings failed:', error.message);
+  if (error) reportSyncError('pushSettings', error.message);
 }
 
 // ── Workout history ─────────────────────────────────────────────────────────
@@ -117,13 +138,13 @@ function workoutRow(w: WorkoutSession) {
 export async function pushWorkout(w: WorkoutSession): Promise<void> {
   if (!enabled()) return;
   const { error } = await supabase.from('workouts').upsert(workoutRow(w));
-  if (error) console.warn('[sync] pushWorkout failed:', error.message);
+  if (error) reportSyncError('pushWorkout', error.message);
 }
 
 export async function pushWorkouts(list: WorkoutSession[]): Promise<void> {
   if (!enabled() || list.length === 0) return;
   const { error } = await supabase.from('workouts').upsert(list.map(workoutRow));
-  if (error) console.warn('[sync] pushWorkouts failed:', error.message);
+  if (error) reportSyncError('pushWorkouts', error.message);
 }
 
 export async function deleteWorkoutRemote(id: string): Promise<void> {
@@ -133,5 +154,5 @@ export async function deleteWorkoutRemote(id: string): Promise<void> {
     .delete()
     .eq('id', id)
     .eq('user_id', userId as string);
-  if (error) console.warn('[sync] deleteWorkout failed:', error.message);
+  if (error) reportSyncError('deleteWorkout', error.message);
 }
