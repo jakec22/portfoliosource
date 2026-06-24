@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { formatDuration, displayDate } from '../utils/date';
+import { HeartRateGraph } from '../components/HeartRateGraph';
 
 interface Props {
   route: { params: { sessionId: string; viewOnly?: boolean } };
@@ -63,6 +64,20 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
           <Stat label="Sets done" value={`${completedSets}/${totalSets}`} />
           <Stat label="Volume" value={`${Math.round(totalVolume).toLocaleString()} lb`} />
         </View>
+
+        {/* Heart rate (only when samples were captured) */}
+        {session.heartRateSamples && session.heartRateSamples.length >= 2 && (
+          <>
+            <Text style={styles.sectionTitle}>Heart Rate</Text>
+            <View style={styles.hrCard}>
+              <HeartRateGraph
+                samples={session.heartRateSamples}
+                startMs={session.startedAt}
+                endMs={session.completedAt ?? session.startedAt}
+              />
+            </View>
+          </>
+        )}
 
         {/* Per-exercise breakdown */}
         <Text style={styles.sectionTitle}>Breakdown</Text>
@@ -138,6 +153,17 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
 
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginTop: 16, marginBottom: 10 },
+  hrCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   exRow: {
     backgroundColor: '#fff',
     borderRadius: 14,

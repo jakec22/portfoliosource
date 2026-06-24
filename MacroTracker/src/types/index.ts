@@ -92,6 +92,12 @@ export interface WorkoutTemplate {
   createdAt: number;
 }
 
+// A single heart-rate reading captured during a workout.
+export interface HeartRateSample {
+  timestamp: number; // ms epoch
+  bpm: number;
+}
+
 // A workout session — in progress (activeWorkout) or finished (history).
 export interface WorkoutSession {
   id: string;
@@ -101,6 +107,7 @@ export interface WorkoutSession {
   startedAt: number;
   completedAt?: number;
   exercises: WorkoutExercise[];
+  heartRateSamples?: HeartRateSample[]; // captured over the session, set on finish
 }
 
 export interface AppState {
@@ -111,7 +118,7 @@ export interface AppState {
   waterIncrement: number; // fl oz added per water droplet tap
   showWaterTracker: boolean;
   autoRestTimer: boolean; // auto-start rest timer when a set is completed
-  restDurationSeconds: number; // default/last-used rest length
+  defaultRestSeconds: number; // user's default rest length (configured in Profile)
   restTrigger: number; // bumped to signal the rest timer to auto-start
   bodyWeightLbs?: number; // last known body weight, used for hydration calc
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
@@ -129,7 +136,7 @@ export interface AppState {
   setWaterIncrement: (oz: number) => void;
   setShowWaterTracker: (show: boolean) => void;
   setAutoRestTimer: (on: boolean) => void;
-  setRestDuration: (seconds: number) => void;
+  setDefaultRestSeconds: (seconds: number) => void;
   setBodyWeight: (lbs: number) => void;
   getEntriesForDate: (date: string) => FoodEntry[];
   getTotalsForDate: (date: string) => MacroNutrients;
@@ -141,6 +148,7 @@ export interface AppState {
   startWorkout: (template?: WorkoutTemplate) => void;
   cancelWorkout: () => void;
   finishWorkout: () => void;
+  attachWorkoutHeartRate: (id: string, samples: HeartRateSample[]) => void;
   deleteWorkout: (id: string) => void;
   addWorkoutExercise: (name: string) => void;
   removeWorkoutExercise: (exerciseId: string) => void;

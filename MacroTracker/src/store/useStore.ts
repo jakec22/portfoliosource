@@ -74,7 +74,7 @@ export const useStore = create<AppState>()(
       waterIncrement: 8, // fl oz per droplet tap
       showWaterTracker: true,
       autoRestTimer: true,
-      restDurationSeconds: 90,
+      defaultRestSeconds: 120,
       restTrigger: 0,
       bodyWeightLbs: undefined,
       recentFoods: [],
@@ -179,8 +179,8 @@ export const useStore = create<AppState>()(
         set({ autoRestTimer: on });
       },
 
-      setRestDuration: (seconds) => {
-        set({ restDurationSeconds: Math.max(5, Math.round(seconds)) });
+      setDefaultRestSeconds: (seconds) => {
+        set({ defaultRestSeconds: Math.min(600, Math.max(15, Math.round(seconds))) });
       },
 
       setBodyWeight: (lbs) => {
@@ -240,6 +240,14 @@ export const useStore = create<AppState>()(
       deleteWorkout: (id) => {
         set((state) => ({
           workoutHistory: state.workoutHistory.filter((w) => w.id !== id),
+        }));
+      },
+
+      attachWorkoutHeartRate: (id, samples) => {
+        set((state) => ({
+          workoutHistory: state.workoutHistory.map((w) =>
+            w.id === id ? { ...w, heartRateSamples: samples } : w
+          ),
         }));
       },
 

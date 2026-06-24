@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -16,9 +16,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
-import type { SetType } from '../types';
+import type { SetType, HeartRateSample } from '../types';
 import { formatDuration } from '../utils/date';
-import { RestTimer } from '../components/RestTimer';
+import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
+import { getHeartRateMonitor } from '../services/heartRate';
 
 interface Props {
   navigation: any;
@@ -50,6 +51,31 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   const reorderWorkoutExercise = useStore((s) => s.reorderWorkoutExercise);
   const finishWorkout = useStore((s) => s.finishWorkout);
   const cancelWorkout = useStore((s) => s.cancelWorkout);
+  const attachWorkoutHeartRate = useStore((s) => s.attachWorkoutHeartRate);
+
+  // Live heart rate from the Apple Watch (via HealthKit) during the workout.
+  const [liveBpm, setLiveBpm] = useState<number | null>(null);
+  const hrSamplesRef = useRef<HeartRateSample[]>([]);
+  const monitorRef = useRef(getHeartRateMonitor());
+  const workoutId = workout?.id;
+
+  useEffect(() => {
+    if (!workoutId) return;
+    const monitor = monitorRef.current;
+    let active = true;
+    (async () => {
+      await monitor.requestPermissions();
+      if (!active) return;
+      monitor.start((sample) => {
+        hrSamplesRef.current.push(sample);
+        setLiveBpm(sample.bpm);
+      });
+    })();
+    return () => {
+      active = false;
+      monitor.stop();
+    };
+  }, [workoutId]);
 
   // Tracks which set + field is currently focused for the fill-all toolbar.
   const [focusCtx, setFocusCtx] = useState<{
@@ -143,11 +169,29 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
       { text: 'Keep going', style: 'cancel' },
       {
         text: 'Finish',
-        onPress: () => {
+        onPress: async () => {
           const id = workout?.id;
+          const startedAt = workout?.startedAt ?? Date.now();
+          // Stop live tracking — heart-rate capture ends with the workout.
+          const monitor = monitorRef.current;
+          monitor.stop();
           finishWorkout();
-          if (id) navigation.replace('WorkoutSummary', { sessionId: id });
-          else navigation.goBack();
+          if (id) {
+            try {
+              // Prefer the dense end-of-workout batch query (HealthKit);
+              // fall back to the samples gathered live (e.g. simulator).
+              const queried = await monitor.query(startedAt, Date.now());
+              const samples = queried.length ? queried : hrSamplesRef.current;
+              if (samples.length) attachWorkoutHeartRate(id, samples);
+            } catch {
+              if (hrSamplesRef.current.length) {
+                attachWorkoutHeartRate(id, hrSamplesRef.current);
+              }
+            }
+            navigation.replace('WorkoutSummary', { sessionId: id });
+          } else {
+            navigation.goBack();
+          }
         },
       },
     ]);
@@ -322,7 +366,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
             <Text style={styles.addExText}>+ Add Exercise</Text>
           </TouchableOpacity>
         </ScrollView>
-        <RestTimer />
+        <WorkoutStatusBar bpm={liveBpm} />
       </KeyboardAvoidingView>
 
       {Platform.OS === 'ios' && (

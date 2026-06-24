@@ -19,6 +19,13 @@ import { signOut } from '../services/auth';
 type Sex = 'male' | 'female';
 type Units = 'imperial' | 'metric';
 
+// mm:ss for the rest-time stepper (e.g. 120 -> "2:00", 90 -> "1:30").
+function formatRest(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 const ACTIVITY_LEVELS = [
   { label: 'Not Active', description: 'Desk job, little exercise', multiplier: 1.2 },
   { label: 'Light', description: '1–3 workouts/week', multiplier: 1.375 },
@@ -203,6 +210,8 @@ export function CalculatorScreen() {
   const setShowWaterTracker = useStore((s) => s.setShowWaterTracker);
   const autoRestTimer = useStore((s) => s.autoRestTimer);
   const setAutoRestTimer = useStore((s) => s.setAutoRestTimer);
+  const defaultRestSeconds = useStore((s) => s.defaultRestSeconds);
+  const setDefaultRestSeconds = useStore((s) => s.setDefaultRestSeconds);
 
   // --- Goals editing ---
   const [form, setForm] = useState({
@@ -646,6 +655,29 @@ export function CalculatorScreen() {
               thumbColor={autoRestTimer ? '#10B981' : '#9CA3AF'}
             />
           </View>
+
+          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              onPress={() => setDefaultRestSeconds(defaultRestSeconds - 15)}
+            >
+              <Text style={styles.hydrationBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.hydrationCenter}>
+              <Text style={styles.hydrationLabel}>Default Rest Time</Text>
+              <Text style={styles.hydrationValue}>{formatRest(defaultRestSeconds)}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              onPress={() => setDefaultRestSeconds(defaultRestSeconds + 15)}
+            >
+              <Text style={styles.hydrationBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.settingHint, { marginTop: 8 }]}>
+            Used for the rest countdown during a workout. Adjust in 15-second steps
+            (you can still tap +30s or Skip mid-workout).
+          </Text>
         </View>
 
         {/* Account */}
