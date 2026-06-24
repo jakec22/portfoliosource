@@ -1,19 +1,57 @@
--- Cloud sync for workouts + the remaining preferences/templates.
+-- Full cloud-sync schema: user settings, food entries, and workout history.
 --
 -- Run this once in the Supabase SQL editor (Dashboard → SQL Editor → New query).
--- It is additive and idempotent: existing data in `user_settings` and
--- `food_entries` is untouched, and re-running it is safe.
+-- It is idempotent and additive: it creates any missing tables/columns/policies
+-- and leaves existing data untouched, so it's safe to (re)run at any time.
+--
+-- NOTE: an earlier version of this file assumed `user_settings` already existed
+-- and only ALTERed it. If you hit "relation public.user_settings does not exist",
+-- this version is the fix — it creates every table from scratch.
 
--- ── 1. New preference + template columns on user_settings ────────────────────
--- These previously lived only in the device's local store and were lost on
--- reinstall. They now round-trip through the cloud like the other settings.
+-- ── user_settings ────────────────────────────────────────────────────────────
+-- One row per user holding all the singleton "settings" state: goals, water
+-- config + intake, body weight, recent foods, preferences, and workout
+-- templates. Pushed as a whole-row upsert whenever any of these change.
+create table if not exists public.user_settings (
+  user_id              uuid primary key references auth.users on delete cascade,
+  goals                jsonb,
+  water_goal           numeric,
+  water_increment      numeric,
+  show_water_tracker   boolean,
+  auto_rest_timer      boolean,
+  default_rest_seconds integer,
+  body_weight_lbs      numeric,
+  recent_foods         jsonb,
+  water_intake         jsonb,
+  workout_templates    jsonb,
+  updated_at           timestamptz not null default now()
+);
+
+-- Backfill columns onto a user_settings table that predates this schema.
 alter table public.user_settings
-  add column if not exists show_water_tracker  boolean,
-  add column if not exists auto_rest_timer      boolean,
-  add column if not exists default_rest_seconds integer,
-  add column if not exists workout_templates    jsonb;
+  add column if not exists show_water_tracker   boolean,
+  add column if not exists auto_rest_timer       boolean,
+  add column if not exists default_rest_seconds  integer,
+  add column if not exists workout_templates     jsonb;
 
--- ── 2. Workout history table ─────────────────────────────────────────────────
+-- ── food_entries ─────────────────────────────────────────────────────────────
+-- One row per logged food item, upserted/deleted individually.
+create table if not exists public.food_entries (
+  id           text primary key,
+  user_id      uuid not null references auth.users on delete cascade,
+  date         text,
+  meal         text,
+  food         jsonb,
+  servings     numeric,
+  amount       numeric,
+  unit         text,
+  timestamp_ms bigint,
+  updated_at   timestamptz not null default now()
+);
+
+create index if not exists food_entries_user_id_idx on public.food_entries (user_id);
+
+-- ── workouts ─────────────────────────────────────────────────────────────────
 -- One row per completed session, mirroring how food_entries stores logs so a
 -- session can be upserted or deleted individually.
 create table if not exists public.workouts (
@@ -31,21 +69,28 @@ create table if not exists public.workouts (
 
 create index if not exists workouts_user_id_idx on public.workouts (user_id);
 
--- ── 3. Row-level security: a user can only see/modify their own workouts ──────
-alter table public.workouts enable row level security;
+-- ── Row-level security ───────────────────────────────────────────────────────
+-- Each user can only see/modify rows tied to their own auth.uid().
+alter table public.user_settings enable row level security;
+alter table public.food_entries  enable row level security;
+alter table public.workouts      enable row level security;
 
 do $$
+declare
+  t text;
 begin
-  if not exists (
-    select 1 from pg_policies
-    where schemaname = 'public'
-      and tablename = 'workouts'
-      and policyname = 'Users manage own workouts'
-  ) then
-    create policy "Users manage own workouts"
-      on public.workouts
-      for all
-      using (auth.uid() = user_id)
-      with check (auth.uid() = user_id);
-  end if;
+  foreach t in array array['user_settings', 'food_entries', 'workouts']
+  loop
+    if not exists (
+      select 1 from pg_policies
+      where schemaname = 'public' and tablename = t
+        and policyname = 'Users manage own rows'
+    ) then
+      execute format(
+        'create policy "Users manage own rows" on public.%I
+           for all using (auth.uid() = user_id) with check (auth.uid() = user_id)',
+        t
+      );
+    end if;
+  end loop;
 end $$;
