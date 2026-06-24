@@ -34,7 +34,7 @@ import type { HeartRateSample } from '../types';
  * Switch sources with the single constant below.
  */
 export type HeartRateSource = 'simulated' | 'healthkit' | 'off';
-export const HR_SOURCE: HeartRateSource = 'healthkit';
+export const HR_SOURCE: HeartRateSource = 'off';
 
 // HealthKit identifiers/units (string constants — see the library's typings).
 const HR_IDENTIFIER = 'HKQuantityTypeIdentifierHeartRate' as const;

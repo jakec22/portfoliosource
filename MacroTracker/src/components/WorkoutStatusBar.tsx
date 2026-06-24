@@ -77,28 +77,21 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
 
   return (
     <View style={[styles.bar, running && styles.barRunning]}>
-      {/* Heart rate */}
-      <View style={styles.hrSide}>
-        {hasHeart ? (
-          <>
-            <AnimatedHeart bpm={bpm} size={22} />
-            <View style={styles.hrText}>
-              <Text style={[styles.hrValue, { color: zoneColor(bpm!) }]}>
-                {bpm}
-                <Text style={styles.hrUnit}> bpm</Text>
-              </Text>
-              <Text style={styles.hrLabel}>
-                {bpmUpdatedAt ? ageLabel(bpmUpdatedAt) : 'Heart rate'}
-              </Text>
-            </View>
-          </>
-        ) : (
+      {/* Heart rate — only rendered when live data is available */}
+      {hasHeart && (
+        <View style={styles.hrSide}>
+          <AnimatedHeart bpm={bpm} size={22} />
           <View style={styles.hrText}>
-            <Text style={styles.hrIdle}>♡ ‑‑ bpm</Text>
-            <Text style={styles.hrLabel}>No Watch data</Text>
+            <Text style={[styles.hrValue, { color: zoneColor(bpm!) }]}>
+              {bpm}
+              <Text style={styles.hrUnit}> bpm</Text>
+            </Text>
+            <Text style={styles.hrLabel}>
+              {bpmUpdatedAt ? ageLabel(bpmUpdatedAt) : 'Heart rate'}
+            </Text>
           </View>
-        )}
-      </View>
+        </View>
+      )}
 
       {/* Rest timer */}
       <View style={styles.restSide}>
