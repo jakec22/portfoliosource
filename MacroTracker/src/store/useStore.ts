@@ -215,16 +215,22 @@ export const useStore = create<AppState>()(
           templateId: template?.id,
           date: todayString(),
           startedAt: now,
-          exercises: (template?.exercises ?? []).map((te, i) => ({
-            id: `we-${now}-${i}-${Math.random()}`,
-            name: te.name,
-            sets: Array.from({ length: Math.max(1, te.targetSets) }).map((_, si) => ({
-              id: `ws-${now}-${i}-${si}-${Math.random()}`,
-              weight: te.targetWeight,
-              reps: te.targetReps,
-              completed: false,
-            })),
-          })),
+          exercises: (template?.exercises ?? []).map((te, i) => {
+            const planned = te.sets.length
+              ? te.sets
+              : [{ weight: 0, reps: 0, type: undefined }];
+            return {
+              id: `we-${now}-${i}-${Math.random()}`,
+              name: te.name,
+              sets: planned.map((ts, si) => ({
+                id: `ws-${now}-${i}-${si}-${Math.random()}`,
+                weight: ts.weight,
+                reps: ts.reps,
+                type: ts.type,
+                completed: false,
+              })),
+            };
+          }),
         };
         set({ activeWorkout: session });
       },
@@ -397,14 +403,36 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
+      // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
+      // an explicit per-set list; expand the old scalars into a sets array.
       migrate: (persisted: any, version) => {
-        if (version < 1 && persisted) {
-          return { ...persisted, waterIntake: {}, waterGoal: 64 };
+        let state = persisted;
+        if (version < 1 && state) {
+          state = { ...state, waterIntake: {}, waterGoal: 64 };
         }
-        return persisted;
+        if (version < 2 && state && Array.isArray(state.workoutTemplates)) {
+          state = {
+            ...state,
+            workoutTemplates: state.workoutTemplates.map((t: any) => ({
+              ...t,
+              exercises: (t.exercises ?? []).map((e: any) => {
+                if (Array.isArray(e.sets)) return e; // already migrated
+                const count = Math.max(1, e.targetSets ?? 1);
+                const sets = Array.from({ length: count }).map((_, i) => ({
+                  id: `ts-${t.id}-${e.id}-${i}`,
+                  weight: e.targetWeight ?? 0,
+                  reps: e.targetReps ?? 0,
+                }));
+                const { targetSets, targetReps, targetWeight, ...rest } = e;
+                return { ...rest, sets };
+              }),
+            })),
+          };
+        }
+        return state;
       },
     }
   )

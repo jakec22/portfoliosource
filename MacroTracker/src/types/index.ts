@@ -68,13 +68,21 @@ export interface WorkoutExercise {
   sets: WorkoutSet[];
 }
 
-// A reusable plan the user builds once and can start workouts from.
+// A single planned set inside a template — like a WorkoutSet but with no
+// completed flag (it hasn't been performed yet).
+export interface TemplateSet {
+  id: string;
+  weight: number; // lbs, 0 if unspecified
+  reps: number;
+  type?: SetType; // undefined === 'normal'
+}
+
+// A reusable plan the user builds once and can start workouts from. Each
+// exercise now holds individually-defined sets (type / weight / reps).
 export interface TemplateExercise {
   id: string;
   name: string;
-  targetSets: number;
-  targetReps: number;
-  targetWeight: number; // lbs, 0 if unspecified
+  sets: TemplateSet[];
 }
 
 export interface WorkoutTemplate {
