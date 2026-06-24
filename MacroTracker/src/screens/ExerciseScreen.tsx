@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Alert,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
@@ -52,6 +53,25 @@ export function ExerciseScreen({ navigation }: Props) {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteTemplate(t.id) },
     ]);
+  }
+
+  function handleShareTemplate(t: WorkoutTemplate) {
+    const typeLabel: Record<string, string> = {
+      warmup: ' (Warm-up)',
+      failure: ' (Failure)',
+      dropset: ' (Drop set)',
+    };
+    const lines: string[] = [`🏋️ ${t.name}`, ''];
+    for (const ex of t.exercises) {
+      lines.push(ex.name || 'Exercise');
+      ex.sets.forEach((s, i) => {
+        const weight = s.weight ? `${s.weight} lbs` : 'BW';
+        const tag = s.type && s.type !== 'normal' ? typeLabel[s.type] ?? '' : '';
+        lines.push(`  ${i + 1}. ${weight} × ${s.reps} rep${s.reps === 1 ? '' : 's'}${tag}`);
+      });
+      lines.push('');
+    }
+    Share.share({ message: lines.join('\n').trim() });
   }
 
   return (
@@ -123,6 +143,12 @@ export function ExerciseScreen({ navigation }: Props) {
                   style={styles.templateActionBtn}
                 >
                   <Text style={styles.editText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleShareTemplate(t)}
+                  style={styles.templateActionBtn}
+                >
+                  <Text style={styles.shareText}>Share</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => handleDeleteTemplate(t)}
@@ -239,5 +265,6 @@ const styles = StyleSheet.create({
   },
   templateActionBtn: {},
   editText: { fontSize: 13, fontWeight: '600', color: '#10B981' },
+  shareText: { fontSize: 13, fontWeight: '600', color: '#6366F1' },
   deleteText: { fontSize: 13, fontWeight: '600', color: '#EF4444' },
 });
