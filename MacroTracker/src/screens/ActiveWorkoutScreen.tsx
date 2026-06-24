@@ -11,6 +11,7 @@ import {
   ActionSheetIOS,
   Platform,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -330,9 +331,14 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
             <Text style={styles.fillBarLabel}>
               {focusCtx?.field === 'weight' ? 'Fill lbs to all sets' : 'Fill reps to all sets'}
             </Text>
-            <TouchableOpacity style={styles.fillBtn} onPress={fillAll}>
-              <Text style={styles.fillBtnText}>Fill all</Text>
-            </TouchableOpacity>
+            <View style={styles.fillBarActions}>
+              <TouchableOpacity style={styles.fillBtn} onPress={fillAll}>
+                <Text style={styles.fillBtnText}>Fill all</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => Keyboard.dismiss()}>
+                <Text style={styles.fillDoneText}>Done</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </InputAccessoryView>
       )}
@@ -483,6 +489,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
   },
   fillBarLabel: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
+  fillBarActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   fillBtn: {
     paddingHorizontal: 16,
     paddingVertical: 7,
@@ -490,4 +497,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   fillBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  fillDoneText: { fontSize: 15, fontWeight: '700', color: '#10B981' },
 });

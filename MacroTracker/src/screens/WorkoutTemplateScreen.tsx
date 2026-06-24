@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
 import { TemplateExercise, TemplateSet, WorkoutTemplate, SetType } from '../types';
+import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
 
 interface Props {
   route: { params?: { templateId?: string } };
@@ -239,6 +240,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                         updateSet(e.id, s.id, { weight: Number.isNaN(n) ? 0 : n });
                       }}
                       keyboardType="decimal-pad"
+                      inputAccessoryViewID={DONE_ACCESSORY_ID}
                       placeholder="0"
                       placeholderTextColor="#D1D5DB"
                     />
@@ -250,6 +252,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                         updateSet(e.id, s.id, { reps: Number.isNaN(n) ? 0 : n });
                       }}
                       keyboardType="number-pad"
+                      inputAccessoryViewID={DONE_ACCESSORY_ID}
                       placeholder="0"
                       placeholderTextColor="#D1D5DB"
                     />
@@ -272,6 +275,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      <KeyboardDoneAccessory />
     </SafeAreaView>
   );
 }

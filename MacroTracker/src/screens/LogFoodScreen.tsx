@@ -20,6 +20,7 @@ import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import Svg, { Rect } from 'react-native-svg';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
+import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -357,6 +358,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   value={amount}
                   onChangeText={setAmount}
                   keyboardType="decimal-pad"
+                  inputAccessoryViewID={DONE_ACCESSORY_ID}
                   selectTextOnFocus
                 />
                 <TouchableOpacity style={styles.servingsBtn} onPress={() => adjustAmount(1)}>
@@ -386,6 +388,8 @@ export function LogFoodScreen({ route, navigation }: Props) {
           </View>
         </View>
       )}
+
+      <KeyboardDoneAccessory />
     </SafeAreaView>
   );
 }

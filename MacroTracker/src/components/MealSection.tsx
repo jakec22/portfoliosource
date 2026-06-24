@@ -21,6 +21,7 @@ import Reanimated, {
 import { FoodEntry, MealType, ServingUnit } from '../types';
 import { useStore, sumMacros } from '../store/useStore';
 import { availableUnits, defaultAmount, formatAmount, toMultiplier } from '../utils/serving';
+import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from './KeyboardDoneAccessory';
 
 const ACTION_WIDTH = 72;
 
@@ -324,6 +325,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                     value={editing.amount}
                     onChangeText={(v) => setEditing({ ...editing, amount: v })}
                     keyboardType="decimal-pad"
+                    inputAccessoryViewID={DONE_ACCESSORY_ID}
                     selectTextOnFocus
                   />
                   <TouchableOpacity style={styles.servingsBtn} onPress={() => adjustAmount(1)}>
@@ -345,6 +347,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
               </TouchableOpacity>
             </View>
           )}
+          <KeyboardDoneAccessory />
         </KeyboardAvoidingView>
       </Modal>
     </View>
