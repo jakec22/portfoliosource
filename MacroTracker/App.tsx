@@ -55,6 +55,15 @@ function ExerciseStack() {
   );
 }
 
+function HistoryStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HistoryHome" component={HistoryScreen as any} />
+      <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
+    </Stack.Navigator>
+  );
+}
+
 function MainTabs() {
   const insets = useSafeAreaInsets();
   return (
@@ -86,7 +95,7 @@ function MainTabs() {
         >
           <Tab.Screen name="Home" component={HomeStack} />
           <Tab.Screen name="Exercise" component={ExerciseStack} />
-          <Tab.Screen name="History" component={HistoryScreen} />
+          <Tab.Screen name="History" component={HistoryStack} />
           <Tab.Screen name="Profile" component={CalculatorScreen} />
         </Tab.Navigator>
       </NavigationContainer>

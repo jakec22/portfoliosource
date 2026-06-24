@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { WorkoutTemplate } from '../types';
-import { displayDate } from '../utils/date';
+import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 
 interface Props {
   navigation: any;
@@ -23,6 +23,7 @@ export function ExerciseScreen({ navigation }: Props) {
   const history = useStore((s) => s.workoutHistory);
   const startWorkout = useStore((s) => s.startWorkout);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
+  const deleteWorkout = useStore((s) => s.deleteWorkout);
 
   function handleStartEmpty() {
     if (activeWorkout) {
@@ -140,23 +141,16 @@ export function ExerciseScreen({ navigation }: Props) {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent</Text>
             </View>
-            {history.slice(0, 8).map((h) => {
-              const totalSets = h.exercises.reduce((n, e) => n + e.sets.length, 0);
-              const doneSets = h.exercises.reduce(
-                (n, e) => n + e.sets.filter((s) => s.completed).length,
-                0
-              );
-              return (
-                <View key={h.id} style={styles.historyCard}>
-                  <View>
-                    <Text style={styles.historyName}>{h.name}</Text>
-                    <Text style={styles.historyMeta}>
-                      {displayDate(h.date)} · {h.exercises.length} exercises · {doneSets}/{totalSets} sets done
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
+            {history.slice(0, 8).map((h) => (
+              <WorkoutHistoryItem
+                key={h.id}
+                session={h}
+                onPress={() =>
+                  navigation.navigate('WorkoutSummary', { sessionId: h.id, viewOnly: true })
+                }
+                onDelete={() => deleteWorkout(h.id)}
+              />
+            ))}
           </>
         )}
       </ScrollView>
@@ -246,13 +240,4 @@ const styles = StyleSheet.create({
   templateActionBtn: {},
   editText: { fontSize: 13, fontWeight: '600', color: '#10B981' },
   deleteText: { fontSize: 13, fontWeight: '600', color: '#EF4444' },
-
-  historyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-  },
-  historyName: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  historyMeta: { fontSize: 12, color: '#9CA3AF', marginTop: 3 },
 });

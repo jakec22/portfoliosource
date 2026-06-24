@@ -141,6 +141,7 @@ export interface AppState {
   startWorkout: (template?: WorkoutTemplate) => void;
   cancelWorkout: () => void;
   finishWorkout: () => void;
+  deleteWorkout: (id: string) => void;
   addWorkoutExercise: (name: string) => void;
   removeWorkoutExercise: (exerciseId: string) => void;
   addWorkoutSet: (exerciseId: string) => void;

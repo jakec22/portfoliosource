@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
 import { getPastDays, displayDate } from '../utils/date';
+import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
+import { WorkoutSession } from '../types';
 
 interface Props {
   navigation: any;
@@ -23,7 +25,18 @@ const MACRO_COLORS = {
 export function HistoryScreen({ navigation }: Props) {
   const logs = useStore((s) => s.logs);
   const goals = useStore((s) => s.goals);
+  const workoutHistory = useStore((s) => s.workoutHistory);
+  const deleteWorkout = useStore((s) => s.deleteWorkout);
   const days = getPastDays(14);
+
+  // Group completed workouts by their date so each day card can list them.
+  const workoutsByDate = useMemo(() => {
+    const map: Record<string, WorkoutSession[]> = {};
+    for (const w of workoutHistory) {
+      (map[w.date] ??= []).push(w);
+    }
+    return map;
+  }, [workoutHistory]);
 
   function MacroBar({
     value,
@@ -57,6 +70,7 @@ export function HistoryScreen({ navigation }: Props) {
           const totals = sumMacros(logs[date] ?? []);
           const hasData = totals.calories > 0;
           const calPct = Math.round((totals.calories / goals.calories) * 100);
+          const dayWorkouts = workoutsByDate[date] ?? [];
 
           return (
             <View key={date} style={styles.dayCard}>
@@ -71,6 +85,8 @@ export function HistoryScreen({ navigation }: Props) {
                   >
                     {Math.round(totals.calories)} / {goals.calories} kcal
                   </Text>
+                ) : dayWorkouts.length > 0 ? (
+                  <Text style={styles.workoutDay}>Workout day</Text>
                 ) : (
                   <Text style={styles.noData}>No data</Text>
                 )}
@@ -140,6 +156,28 @@ export function HistoryScreen({ navigation }: Props) {
                     </View>
                   </View>
                 </>
+              )}
+
+              {dayWorkouts.length > 0 && (
+                <View style={[styles.workoutsSection, hasData && styles.workoutsDivided]}>
+                  <Text style={styles.workoutsLabel}>
+                    {dayWorkouts.length} workout{dayWorkouts.length === 1 ? '' : 's'}
+                  </Text>
+                  {dayWorkouts.map((w) => (
+                    <WorkoutHistoryItem
+                      key={w.id}
+                      session={w}
+                      showDate={false}
+                      onPress={() =>
+                        navigation.navigate('WorkoutSummary', {
+                          sessionId: w.id,
+                          viewOnly: true,
+                        })
+                      }
+                      onDelete={() => deleteWorkout(w.id)}
+                    />
+                  ))}
+                </View>
               )}
             </View>
           );
@@ -217,6 +255,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#D1D5DB',
     fontStyle: 'italic',
+  },
+  workoutDay: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  workoutsSection: {
+    marginTop: 4,
+  },
+  workoutsDivided: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  workoutsLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   calorieBarTrack: {
     height: 6,

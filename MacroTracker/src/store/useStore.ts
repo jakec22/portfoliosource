@@ -237,6 +237,12 @@ export const useStore = create<AppState>()(
 
       cancelWorkout: () => set({ activeWorkout: null }),
 
+      deleteWorkout: (id) => {
+        set((state) => ({
+          workoutHistory: state.workoutHistory.filter((w) => w.id !== id),
+        }));
+      },
+
       finishWorkout: () => {
         set((state) => {
           if (!state.activeWorkout) return {};

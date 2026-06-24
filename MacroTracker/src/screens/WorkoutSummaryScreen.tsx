@@ -2,19 +2,21 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { formatDuration } from '../utils/date';
+import { formatDuration, displayDate } from '../utils/date';
 
 interface Props {
-  route: { params: { sessionId: string } };
+  route: { params: { sessionId: string; viewOnly?: boolean } };
   navigation: any;
 }
 
 export function WorkoutSummaryScreen({ route, navigation }: Props) {
-  const { sessionId } = route.params;
+  const { sessionId, viewOnly } = route.params;
   const session = useStore((s) => s.workoutHistory.find((w) => w.id === sessionId));
 
   function done() {
-    navigation.popToTop();
+    // Viewing a past workout returns to the list; finishing pops the stack.
+    if (viewOnly) navigation.goBack();
+    else navigation.popToTop();
   }
 
   if (!session) {
@@ -46,9 +48,11 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.bigCheck}>🎉</Text>
-        <Text style={styles.title}>Workout Complete</Text>
-        <Text style={styles.subtitle}>{session.name}</Text>
+        <Text style={styles.bigCheck}>{viewOnly ? '🏋️' : '🎉'}</Text>
+        <Text style={styles.title}>{viewOnly ? session.name : 'Workout Complete'}</Text>
+        <Text style={styles.subtitle}>
+          {viewOnly ? displayDate(session.date) : session.name}
+        </Text>
 
         {/* Headline stats */}
         <View style={styles.statsRow}>
@@ -91,7 +95,7 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
         })}
 
         <TouchableOpacity style={styles.doneBtn} onPress={done} activeOpacity={0.85}>
-          <Text style={styles.doneText}>Done</Text>
+          <Text style={styles.doneText}>{viewOnly ? 'Close' : 'Done'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
