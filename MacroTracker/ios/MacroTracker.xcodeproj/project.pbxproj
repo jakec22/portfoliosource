@@ -260,7 +260,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.macrotracker.app";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jacobclover.macrotracker";
 				PRODUCT_NAME = "MacroTracker";
 				SWIFT_OBJC_BRIDGING_HEADER = "MacroTracker/MacroTracker-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -290,7 +290,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.macrotracker.app";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jacobclover.macrotracker";
 				PRODUCT_NAME = "MacroTracker";
 				SWIFT_OBJC_BRIDGING_HEADER = "MacroTracker/MacroTracker-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
