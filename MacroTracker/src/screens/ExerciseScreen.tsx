@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { WorkoutTemplate } from '../types';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
-import { encodeTemplateLink } from '../utils/templateShare';
+import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 
 interface Props {
   navigation: any;
@@ -26,6 +26,7 @@ export function ExerciseScreen({ navigation }: Props) {
   const startWorkout = useStore((s) => s.startWorkout);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
   const deleteWorkout = useStore((s) => s.deleteWorkout);
+  const saveTemplate = useStore((s) => s.saveTemplate);
 
   function handleStartEmpty() {
     if (activeWorkout) {
@@ -78,6 +79,36 @@ export function ExerciseScreen({ navigation }: Props) {
     Share.share({ message: lines.join('\n').trim() });
   }
 
+  // Fallback for when tapping a shared link doesn't auto-open the app: let the
+  // user paste the link text and import it manually.
+  function handleImportFromLink() {
+    Alert.prompt(
+      'Add from link',
+      'Paste a shared MacroTracker workout link.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          onPress: (value?: string) => {
+            const text = (value ?? '').trim();
+            if (!text) return;
+            const template = decodeTemplateLink(text);
+            if (!template) {
+              Alert.alert(
+                'Invalid link',
+                "That doesn't look like a MacroTracker workout link. Copy the whole link and try again."
+              );
+              return;
+            }
+            saveTemplate(template);
+            Alert.alert('Imported', `“${template.name}” was added to My Workouts.`);
+          },
+        },
+      ],
+      'plain-text'
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
@@ -115,9 +146,14 @@ export function ExerciseScreen({ navigation }: Props) {
         {/* Templates */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>My Workouts</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('WorkoutTemplate', {})}>
-            <Text style={styles.createLink}>+ Create</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={handleImportFromLink}>
+              <Text style={styles.importLink}>Add from link</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('WorkoutTemplate', {})}>
+              <Text style={styles.createLink}>+ Create</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {templates.length === 0 ? (
@@ -235,6 +271,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  importLink: { fontSize: 15, fontWeight: '700', color: '#6366F1' },
   createLink: { fontSize: 15, fontWeight: '700', color: '#10B981' },
 
   emptyCard: {
