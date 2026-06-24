@@ -214,7 +214,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleCancel}>
           <Text style={styles.cancel}>Cancel</Text>
