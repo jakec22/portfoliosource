@@ -372,6 +372,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           </View>
         )}
+        <KeyboardDoneAccessory />
       </KeyboardAvoidingView>
 
       <BarcodeScanner
@@ -388,8 +389,6 @@ export function LogFoodScreen({ route, navigation }: Props) {
           </View>
         </View>
       )}
-
-      <KeyboardDoneAccessory />
     </SafeAreaView>
   );
 }
