@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Food, MealType, ServingUnit } from '../types';
@@ -20,6 +21,7 @@ import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import Svg, { Rect } from 'react-native-svg';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
+import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -93,6 +95,9 @@ export function LogFoodScreen({ route, navigation }: Props) {
   }, [query]);
 
   function handleSelectFood(food: Food) {
+    // Dismiss the search keyboard first so the amount field opens its own
+    // fresh decimal-pad — this ensures the Done accessory bar connects properly.
+    Keyboard.dismiss();
     setSelectedFood(food);
     setUnit('serving');
     setAmount('1');
@@ -356,8 +361,8 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   style={styles.servingsInput}
                   value={amount}
                   onChangeText={setAmount}
-                  keyboardType="numbers-and-punctuation"
-                  returnKeyType="done"
+                  keyboardType="decimal-pad"
+                  inputAccessoryViewID={DONE_ACCESSORY_ID}
                   selectTextOnFocus
                 />
                 <TouchableOpacity style={styles.servingsBtn} onPress={() => adjustAmount(1)}>
@@ -371,6 +376,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           </View>
         )}
+        <KeyboardDoneAccessory />
       </KeyboardAvoidingView>
 
       <BarcodeScanner

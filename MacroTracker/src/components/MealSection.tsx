@@ -10,6 +10,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   ScrollView,
+  Keyboard,
 } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
@@ -69,6 +70,7 @@ interface Props {
 export function MealSection({ meal, date, onAddFood }: Props) {
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState<EditState | null>(null);
+  const [amountFocused, setAmountFocused] = useState(false);
   const dateEntries = useStore((s) => s.logs[date]);
   const entries = useMemo(
     () => (dateEntries ?? []).filter((e) => e.meal === meal),
@@ -323,8 +325,9 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                     style={styles.servingsInput}
                     value={editing.amount}
                     onChangeText={(v) => setEditing({ ...editing, amount: v })}
-                    keyboardType="numbers-and-punctuation"
-                    returnKeyType="done"
+                    keyboardType="decimal-pad"
+                    onFocus={() => setAmountFocused(true)}
+                    onBlur={() => setAmountFocused(false)}
                     selectTextOnFocus
                   />
                   <TouchableOpacity style={styles.servingsBtn} onPress={() => adjustAmount(1)}>
@@ -332,6 +335,14 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                   </TouchableOpacity>
                 </View>
               </View>
+              {amountFocused && (
+                <TouchableOpacity
+                  style={styles.inlineDoneBtn}
+                  onPress={() => { Keyboard.dismiss(); setAmountFocused(false); }}
+                >
+                  <Text style={styles.inlineDoneText}>Done</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Delete */}
               <TouchableOpacity
@@ -512,4 +523,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteBtnText: { fontSize: 15, fontWeight: '600', color: '#EF4444' },
+  inlineDoneBtn: {
+    alignSelf: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    marginBottom: 8,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+  },
+  inlineDoneText: { fontSize: 14, fontWeight: '700', color: '#10B981' },
 });
