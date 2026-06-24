@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
 import { formatDuration } from '../utils/date';
 import { RestTimer } from '../components/RestTimer';
@@ -198,58 +199,62 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                 <Text style={[styles.colSet, styles.headText]}>Set</Text>
                 <Text style={[styles.colNum, styles.headText]}>lbs</Text>
                 <Text style={[styles.colNum, styles.headText]}>Reps</Text>
-                <Text style={[styles.colCheck, styles.headText]}>Done</Text>
-                <View style={styles.colDel} />
+                <View style={styles.colCheck} />
               </View>
 
               {ex.sets.map((set, i) => (
-                <View
+                <ReanimatedSwipeable
                   key={set.id}
-                  style={[styles.setRow, set.completed && styles.setRowDone]}
+                  renderRightActions={() => (
+                    <TouchableOpacity
+                      style={styles.swipeDeleteAction}
+                      onPress={() => removeWorkoutSet(ex.id, set.id)}
+                    >
+                      <Text style={styles.swipeDeleteText}>Delete</Text>
+                    </TouchableOpacity>
+                  )}
+                  overshootRight={false}
+                  friction={2}
                 >
-                  <Text style={styles.colSet}>{i + 1}</Text>
-                  <TextInput
-                    style={[styles.colNum, styles.setInput]}
-                    value={set.weight === 0 ? '' : String(set.weight)}
-                    onChangeText={(v) => {
-                      const n = parseFloat(v.replace(/[^0-9.]/g, ''));
-                      updateWorkoutSet(ex.id, set.id, { weight: Number.isNaN(n) ? 0 : n });
-                    }}
-                    onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'weight' })}
-                    keyboardType="decimal-pad"
-                    placeholder="0"
-                    placeholderTextColor="#D1D5DB"
-                    inputAccessoryViewID="workout-fill-bar"
-                  />
-                  <TextInput
-                    style={[styles.colNum, styles.setInput]}
-                    value={set.reps === 0 ? '' : String(set.reps)}
-                    onChangeText={(v) => {
-                      const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
-                      updateWorkoutSet(ex.id, set.id, { reps: Number.isNaN(n) ? 0 : n });
-                    }}
-                    onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'reps' })}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                    placeholderTextColor="#D1D5DB"
-                    inputAccessoryViewID="workout-fill-bar"
-                  />
-                  <TouchableOpacity
-                    style={styles.colCheck}
-                    onPress={() => toggleWorkoutSet(ex.id, set.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.checkbox, set.completed && styles.checkboxOn]}>
-                      {set.completed && <Text style={styles.checkmark}>✓</Text>}
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.colDel}
-                    onPress={() => removeWorkoutSet(ex.id, set.id)}
-                  >
-                    <Text style={styles.delText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
+                  <View style={[styles.setRow, set.completed && styles.setRowDone]}>
+                    <Text style={styles.colSet}>{i + 1}</Text>
+                    <TextInput
+                      style={[styles.colNum, styles.setInput]}
+                      value={set.weight === 0 ? '' : String(set.weight)}
+                      onChangeText={(v) => {
+                        const n = parseFloat(v.replace(/[^0-9.]/g, ''));
+                        updateWorkoutSet(ex.id, set.id, { weight: Number.isNaN(n) ? 0 : n });
+                      }}
+                      onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'weight' })}
+                      keyboardType="decimal-pad"
+                      placeholder="0"
+                      placeholderTextColor="#D1D5DB"
+                      inputAccessoryViewID="workout-fill-bar"
+                    />
+                    <TextInput
+                      style={[styles.colNum, styles.setInput]}
+                      value={set.reps === 0 ? '' : String(set.reps)}
+                      onChangeText={(v) => {
+                        const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                        updateWorkoutSet(ex.id, set.id, { reps: Number.isNaN(n) ? 0 : n });
+                      }}
+                      onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'reps' })}
+                      keyboardType="number-pad"
+                      placeholder="0"
+                      placeholderTextColor="#D1D5DB"
+                      inputAccessoryViewID="workout-fill-bar"
+                    />
+                    <TouchableOpacity
+                      style={styles.colCheck}
+                      onPress={() => toggleWorkoutSet(ex.id, set.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.checkbox, set.completed && styles.checkboxOn]}>
+                        {set.completed && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                </ReanimatedSwipeable>
               ))}
 
               <TouchableOpacity
@@ -352,8 +357,7 @@ const styles = StyleSheet.create({
   setRowDone: { backgroundColor: '#F0FDF4' },
   colSet: { width: 34, textAlign: 'center', fontSize: 14, color: '#374151', fontWeight: '600' },
   colNum: { flex: 1, marginHorizontal: 4 },
-  colCheck: { width: 52, alignItems: 'center' },
-  colDel: { width: 32, alignItems: 'center' },
+  colCheck: { width: 64, alignItems: 'center' },
   setInput: {
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
@@ -365,17 +369,26 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    borderWidth: 2,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 2.5,
     borderColor: '#D1D5DB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxOn: { backgroundColor: '#10B981', borderColor: '#10B981' },
-  checkmark: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  delText: { color: '#D1D5DB', fontSize: 14, fontWeight: '700' },
+  checkmark: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  swipeDeleteAction: {
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderRadius: 10,
+    marginVertical: 2,
+    marginLeft: 8,
+  },
+  swipeDeleteText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   addSetBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
   addSetText: { color: '#10B981', fontWeight: '600', fontSize: 14 },
