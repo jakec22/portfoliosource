@@ -1,5 +1,11 @@
 import { supabase } from './supabase';
-import type { DailyGoals, Food, FoodEntry } from '../types';
+import type {
+  DailyGoals,
+  Food,
+  FoodEntry,
+  WorkoutSession,
+  WorkoutTemplate,
+} from '../types';
 
 // While hydrating from the cloud we suspend pushes so writing the freshly
 // pulled state back into the store doesn't echo straight back to the server.
@@ -22,9 +28,13 @@ export interface SettingsSnapshot {
   goals: DailyGoals;
   waterGoal: number;
   waterIncrement: number;
+  showWaterTracker: boolean;
+  autoRestTimer: boolean;
+  defaultRestSeconds: number;
   bodyWeightLbs?: number;
   recentFoods: Food[];
   waterIntake: Record<string, number>;
+  workoutTemplates: WorkoutTemplate[];
 }
 
 function entryRow(entry: FoodEntry) {
@@ -73,10 +83,55 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     goals: s.goals,
     water_goal: s.waterGoal,
     water_increment: s.waterIncrement,
+    show_water_tracker: s.showWaterTracker,
+    auto_rest_timer: s.autoRestTimer,
+    default_rest_seconds: s.defaultRestSeconds,
     body_weight_lbs: s.bodyWeightLbs ?? null,
     recent_foods: s.recentFoods,
     water_intake: s.waterIntake,
+    workout_templates: s.workoutTemplates,
     updated_at: new Date().toISOString(),
   });
   if (error) console.warn('[sync] pushSettings failed:', error.message);
+}
+
+// ── Workout history ─────────────────────────────────────────────────────────
+// Completed workout sessions live in their own table (one row per session),
+// mirroring how food entries are stored — so a session can be upserted or
+// deleted individually rather than re-pushing the whole history each time.
+function workoutRow(w: WorkoutSession) {
+  return {
+    id: w.id,
+    user_id: userId,
+    name: w.name,
+    template_id: w.templateId ?? null,
+    date: w.date,
+    started_at: w.startedAt,
+    completed_at: w.completedAt ?? null,
+    exercises: w.exercises,
+    heart_rate_samples: w.heartRateSamples ?? null,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export async function pushWorkout(w: WorkoutSession): Promise<void> {
+  if (!enabled()) return;
+  const { error } = await supabase.from('workouts').upsert(workoutRow(w));
+  if (error) console.warn('[sync] pushWorkout failed:', error.message);
+}
+
+export async function pushWorkouts(list: WorkoutSession[]): Promise<void> {
+  if (!enabled() || list.length === 0) return;
+  const { error } = await supabase.from('workouts').upsert(list.map(workoutRow));
+  if (error) console.warn('[sync] pushWorkouts failed:', error.message);
+}
+
+export async function deleteWorkoutRemote(id: string): Promise<void> {
+  if (!enabled()) return;
+  const { error } = await supabase
+    .from('workouts')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId as string);
+  if (error) console.warn('[sync] deleteWorkout failed:', error.message);
 }

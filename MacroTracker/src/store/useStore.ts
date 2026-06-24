@@ -15,6 +15,8 @@ import {
   pushEntry,
   deleteEntryRemote,
   pushSettings,
+  pushWorkout,
+  deleteWorkoutRemote,
   type SettingsSnapshot,
 } from '../services/sync';
 
@@ -59,9 +61,13 @@ export const useStore = create<AppState>()(
           goals: s.goals,
           waterGoal: s.waterGoal,
           waterIncrement: s.waterIncrement,
+          showWaterTracker: s.showWaterTracker,
+          autoRestTimer: s.autoRestTimer,
+          defaultRestSeconds: s.defaultRestSeconds,
           bodyWeightLbs: s.bodyWeightLbs,
           recentFoods: s.recentFoods,
           waterIntake: s.waterIntake,
+          workoutTemplates: s.workoutTemplates,
         };
         void pushSettings(snap);
       };
@@ -173,14 +179,17 @@ export const useStore = create<AppState>()(
 
       setShowWaterTracker: (show) => {
         set({ showWaterTracker: show });
+        syncSettings();
       },
 
       setAutoRestTimer: (on) => {
         set({ autoRestTimer: on });
+        syncSettings();
       },
 
       setDefaultRestSeconds: (seconds) => {
         set({ defaultRestSeconds: Math.min(600, Math.max(15, Math.round(seconds))) });
+        syncSettings();
       },
 
       setBodyWeight: (lbs) => {
@@ -199,12 +208,14 @@ export const useStore = create<AppState>()(
               : [...state.workoutTemplates, template],
           };
         });
+        syncSettings(); // templates ride along in the settings snapshot
       },
 
       deleteTemplate: (id) => {
         set((state) => ({
           workoutTemplates: state.workoutTemplates.filter((t) => t.id !== id),
         }));
+        syncSettings();
       },
 
       startWorkout: (template) => {
@@ -241,6 +252,7 @@ export const useStore = create<AppState>()(
         set((state) => ({
           workoutHistory: state.workoutHistory.filter((w) => w.id !== id),
         }));
+        void deleteWorkoutRemote(id);
       },
 
       attachWorkoutHeartRate: (id, samples) => {
@@ -249,20 +261,19 @@ export const useStore = create<AppState>()(
             w.id === id ? { ...w, heartRateSamples: samples } : w
           ),
         }));
+        const updated = get().workoutHistory.find((w) => w.id === id);
+        if (updated) void pushWorkout(updated);
       },
 
       finishWorkout: () => {
-        set((state) => {
-          if (!state.activeWorkout) return {};
-          const finished: WorkoutSession = {
-            ...state.activeWorkout,
-            completedAt: Date.now(),
-          };
-          return {
-            activeWorkout: null,
-            workoutHistory: [finished, ...state.workoutHistory].slice(0, 100),
-          };
-        });
+        const active = get().activeWorkout;
+        if (!active) return;
+        const finished: WorkoutSession = { ...active, completedAt: Date.now() };
+        set((state) => ({
+          activeWorkout: null,
+          workoutHistory: [finished, ...state.workoutHistory].slice(0, 100),
+        }));
+        void pushWorkout(finished);
       },
 
       addWorkoutExercise: (name) => {
