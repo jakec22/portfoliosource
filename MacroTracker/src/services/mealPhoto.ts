@@ -3,6 +3,9 @@ import { supabase } from './supabase';
 export interface AnalyzedItem {
   name: string;
   serving?: string;
+  // Weight of the AI-estimated portion in grams. Present when Gemini returns
+  // it; enables the user to re-enter the amount by g / oz in the UI.
+  serving_grams?: number;
   calories: number;
   protein: number;
   carbs: number;
@@ -37,6 +40,9 @@ export async function analyzeMealPhoto(
   return items.map((it) => ({
     name: String(it.name ?? 'Food'),
     serving: it.serving ? String(it.serving) : undefined,
+    serving_grams: it.serving_grams && Number(it.serving_grams) > 0
+      ? Math.round(Number(it.serving_grams))
+      : undefined,
     calories: Math.max(0, Math.round(Number(it.calories) || 0)),
     protein: Math.max(0, Math.round(Number(it.protein) || 0)),
     carbs: Math.max(0, Math.round(Number(it.carbs) || 0)),

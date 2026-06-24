@@ -19,8 +19,10 @@ const corsHeaders = {
 const PROMPT = `You are a nutrition estimation assistant. Analyze the meal in the photo.
 Identify each distinct food item you can see. For each item, estimate the portion
 that appears in the photo and its nutrition. Report protein, carbs, and fat in grams
-and calories in kcal. Be realistic; when unsure, give your best estimate based on
-typical servings. Ignore plates, utensils, and non-caloric drinks like water.
+and calories in kcal. Also estimate the weight of the visible portion in grams
+(serving_grams) — this is used so the user can re-enter the amount by weight.
+Be realistic; when unsure, give your best estimate based on typical servings.
+Ignore plates, utensils, and non-caloric drinks like water.
 Return only the structured data.`;
 
 // Force Gemini to return parseable, well-shaped JSON.
@@ -34,6 +36,7 @@ const responseSchema = {
         properties: {
           name: { type: 'string' },
           serving: { type: 'string' },
+          serving_grams: { type: 'number' },
           calories: { type: 'number' },
           protein: { type: 'number' },
           carbs: { type: 'number' },

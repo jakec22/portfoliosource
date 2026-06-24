@@ -4,16 +4,20 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TextInput,
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useStore } from '../store/useStore';
 import { analyzeMealPhoto, AnalyzedItem } from '../services/mealPhoto';
-import { MealType } from '../types';
+import { MealType, ServingUnit, Food } from '../types';
+import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -24,12 +28,45 @@ const MEAL_LABELS: Record<MealType, string> = {
 
 interface ReviewItem extends AnalyzedItem {
   id: string;
-  qty: number; // serving multiplier the user can adjust
+  unit: ServingUnit;
+  amount: string; // free-type; mirrors the amount field in LogFoodScreen
 }
 
 interface Props {
   route: { params: { meal: MealType; date: string } };
   navigation: any;
+}
+
+// Build a Food object from an AI-analyzed item so we can reuse the serving
+// utilities (toMultiplier, availableUnits, defaultAmount) identically to
+// manually-searched foods.
+function buildFood(it: ReviewItem | AnalyzedItem): Food {
+  const grams = (it as any).serving_grams as number | undefined;
+  return {
+    id: '',
+    name: it.name,
+    brand: 'AI estimate',
+    // When Gemini returns a gram weight, macros are "per that many grams", so
+    // toMultiplier can convert g → multiplier correctly. Without gram data we
+    // fall back to serving_size=1 (unitless) and only offer 'serving'.
+    serving_size: grams ?? 1,
+    serving_unit: grams ? 'g' : 'serving',
+    macros: {
+      calories: it.calories,
+      protein: it.protein,
+      carbs: it.carbs,
+      fat: it.fat,
+      fiber: 0,
+      sugar: 0,
+    },
+  };
+}
+
+// Units offered for an AI item — same logic as LogFoodScreen but gated on
+// whether we have a gram weight to convert from.
+function itemUnits(it: ReviewItem): ServingUnit[] {
+  if (!it.serving_grams) return ['serving'];
+  return availableUnits(buildFood(it));
 }
 
 export function MealPhotoScreen({ route, navigation }: Props) {
@@ -38,6 +75,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [analyzed, setAnalyzed] = useState(false);
   const [items, setItems] = useState<ReviewItem[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const addEntry = useStore((s) => s.addEntry);
 
   async function pick(source: 'camera' | 'library') {
@@ -48,7 +86,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
     if (!perm.granted) {
       Alert.alert(
         'Permission needed',
-        `Please allow ${source === 'camera' ? 'camera' : 'photo'} access in Settings to use this feature.`,
+        `Please allow ${source === 'camera' ? 'camera' : 'photo'} access in Settings.`,
       );
       return;
     }
@@ -71,9 +109,17 @@ export function MealPhotoScreen({ route, navigation }: Props) {
     setLoading(true);
     setAnalyzed(false);
     setItems([]);
+    setExpandedId(null);
     try {
       const result = await analyzeMealPhoto(base64);
-      setItems(result.map((it, i) => ({ ...it, id: `${Date.now()}-${i}`, qty: 1 })));
+      setItems(
+        result.map((it, i) => ({
+          ...it,
+          id: `${Date.now()}-${i}`,
+          unit: 'serving',
+          amount: '1',
+        })),
+      );
       setAnalyzed(true);
       if (result.length === 0) {
         Alert.alert('No food detected', 'Try a clearer, well-lit photo of the meal.');
@@ -85,50 +131,80 @@ export function MealPhotoScreen({ route, navigation }: Props) {
     }
   }
 
-  function updateQty(id: string, delta: number) {
+  function toggleExpand(id: string) {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }
+
+  function handleUnitChange(id: string, newUnit: ServingUnit) {
     setItems((prev) =>
-      prev.map((it) =>
-        it.id === id ? { ...it, qty: Math.max(0.5, Math.round((it.qty + delta) * 2) / 2) } : it,
-      ),
+      prev.map((it) => {
+        if (it.id !== id) return it;
+        const food = buildFood(it);
+        return { ...it, unit: newUnit, amount: String(defaultAmount(food, newUnit)) };
+      }),
     );
+  }
+
+  function adjustAmount(id: string, delta: number) {
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== id) return it;
+        const food = buildFood(it);
+        const step =
+          it.unit === 'serving'
+            ? 0.5
+            : Math.max(1, Math.round(defaultAmount(food, it.unit) * 0.25));
+        const next =
+          Math.max(step, Math.round(((parseFloat(it.amount) || 0) + delta * step) * 10) / 10);
+        return { ...it, amount: String(next) };
+      }),
+    );
+  }
+
+  function setAmount(id: string, value: string) {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, amount: value } : it)));
   }
 
   function removeItem(id: string) {
     setItems((prev) => prev.filter((it) => it.id !== id));
+    if (expandedId === id) setExpandedId(null);
   }
 
   function addAll() {
     const now = Date.now();
+    let added = 0;
     items.forEach((it, i) => {
+      const food = buildFood(it);
+      food.id = `ai-${now}-${i}`;
+      const multiplier = toMultiplier(food, parseFloat(it.amount) || 0, it.unit);
+      if (multiplier <= 0) return;
       addEntry({
         id: `${now}-${i}-${Math.random()}`,
-        food: {
-          id: `ai-${now}-${i}`,
-          name: it.name,
-          brand: 'AI estimate',
-          serving_size: 1,
-          serving_unit: 'serving',
-          macros: {
-            calories: it.calories,
-            protein: it.protein,
-            carbs: it.carbs,
-            fat: it.fat,
-            fiber: 0,
-            sugar: 0,
-          },
-        },
-        servings: it.qty,
-        amount: it.qty,
-        unit: 'serving',
+        food,
+        servings: multiplier,
+        amount: parseFloat(it.amount),
+        unit: it.unit,
         meal,
         timestamp: now,
         date,
       });
+      added++;
     });
+    if (added === 0) {
+      Alert.alert('Nothing to add', 'Enter a valid amount for at least one item.');
+      return;
+    }
     navigation.goBack();
   }
 
-  const totalCals = Math.round(items.reduce((s, it) => s + it.calories * it.qty, 0));
+  // Running total at current user-chosen amounts.
+  const totalCals = Math.round(
+    items.reduce((s, it) => {
+      const food = buildFood(it);
+      const m = toMultiplier(food, parseFloat(it.amount) || 0, it.unit);
+      return s + it.calories * m;
+    }, 0),
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -140,89 +216,216 @@ export function MealPhotoScreen({ route, navigation }: Props) {
         <View style={{ width: 60 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {imageUri && <Image source={{ uri: imageUri }} style={styles.preview} />}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={8}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {imageUri && <Image source={{ uri: imageUri }} style={styles.preview} />}
 
-        {!imageUri && (
-          <View style={styles.intro}>
-            <Text style={styles.introEmoji}>🍽️</Text>
-            <Text style={styles.introTitle}>Analyze a meal photo</Text>
-            <Text style={styles.introText}>
-              Snap or pick a photo of your plate and AI will estimate the foods and
-              their macros. Results are estimates — adjust the amounts before adding.
-            </Text>
-          </View>
-        )}
+          {!imageUri && (
+            <View style={styles.intro}>
+              <Text style={styles.introEmoji}>🍽️</Text>
+              <Text style={styles.introTitle}>Analyze a meal photo</Text>
+              <Text style={styles.introText}>
+                Snap or pick a photo of your plate and AI will estimate the foods and
+                their macros. Tap any item to adjust its serving size before logging.
+              </Text>
+            </View>
+          )}
 
-        {!loading && (
-          <View style={styles.pickRow}>
-            <TouchableOpacity style={styles.pickBtn} onPress={() => pick('camera')} activeOpacity={0.85}>
-              <Text style={styles.pickBtnIcon}>📷</Text>
-              <Text style={styles.pickBtnText}>Take Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.pickBtn} onPress={() => pick('library')} activeOpacity={0.85}>
-              <Text style={styles.pickBtnIcon}>🖼️</Text>
-              <Text style={styles.pickBtnText}>Choose Photo</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          {!loading && (
+            <View style={styles.pickRow}>
+              <TouchableOpacity
+                style={styles.pickBtn}
+                onPress={() => pick('camera')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.pickBtnIcon}>📷</Text>
+                <Text style={styles.pickBtnText}>Take Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.pickBtn}
+                onPress={() => pick('library')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.pickBtnIcon}>🖼️</Text>
+                <Text style={styles.pickBtnText}>Choose Photo</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {loading && (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#10B981" />
-            <Text style={styles.loadingText}>Analyzing your meal…</Text>
-          </View>
-        )}
+          {loading && (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color="#10B981" />
+              <Text style={styles.loadingText}>Analyzing your meal…</Text>
+            </View>
+          )}
+
+          {analyzed && items.length > 0 && (
+            <View style={styles.results}>
+              <Text style={styles.resultsLabel}>
+                Detected items · tap to adjust serving
+              </Text>
+
+              {items.map((it) => {
+                const food = buildFood(it);
+                const multiplier = toMultiplier(food, parseFloat(it.amount) || 0, it.unit);
+                const preview = {
+                  calories: Math.round(it.calories * multiplier),
+                  protein: Math.round(it.protein * multiplier),
+                  carbs: Math.round(it.carbs * multiplier),
+                  fat: Math.round(it.fat * multiplier),
+                };
+                const units = itemUnits(it);
+                const isExpanded = expandedId === it.id;
+
+                return (
+                  <View key={it.id} style={[styles.itemCard, isExpanded && styles.itemCardExpanded]}>
+                    {/* Always-visible summary row */}
+                    <TouchableOpacity
+                      style={styles.itemSummary}
+                      onPress={() => toggleExpand(it.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.itemLeft}>
+                        <Text style={styles.itemName}>{it.name}</Text>
+                        {it.serving ? (
+                          <Text style={styles.itemServing}>
+                            AI estimate: {it.serving}
+                          </Text>
+                        ) : null}
+                        <Text style={styles.itemMacros}>
+                          {preview.calories} kcal · P{preview.protein} ·
+                          C{preview.carbs} · F{preview.fat}
+                        </Text>
+                      </View>
+                      <View style={styles.itemRight}>
+                        <Text style={styles.amountBadge}>
+                          {it.amount}
+                          {it.unit === 'serving' ? '×' : ` ${it.unit}`}
+                        </Text>
+                        <Text style={styles.chevron}>{isExpanded ? '↑' : '↓'}</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Expanded editor */}
+                    {isExpanded && (
+                      <View style={styles.editor}>
+                        <View style={styles.divider} />
+
+                        {/* Unit selector */}
+                        {units.length > 1 && (
+                          <View style={styles.unitRow}>
+                            {units.map((u) => (
+                              <TouchableOpacity
+                                key={u}
+                                style={[styles.unitBtn, it.unit === u && styles.unitBtnActive]}
+                                onPress={() => handleUnitChange(it.id, u)}
+                              >
+                                <Text
+                                  style={[
+                                    styles.unitBtnText,
+                                    it.unit === u && styles.unitBtnTextActive,
+                                  ]}
+                                >
+                                  {u === 'serving' ? 'Serving' : u}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+
+                        {/* Amount row */}
+                        <View style={styles.amountRow}>
+                          <Text style={styles.amountLabel}>
+                            {it.unit === 'serving'
+                              ? 'Servings (1 = AI estimated portion)'
+                              : `Amount in ${it.unit}`}
+                          </Text>
+                          <View style={styles.amountControl}>
+                            <TouchableOpacity
+                              style={styles.stepBtn}
+                              onPress={() => adjustAmount(it.id, -1)}
+                            >
+                              <Text style={styles.stepBtnText}>−</Text>
+                            </TouchableOpacity>
+                            <TextInput
+                              style={styles.amountInput}
+                              value={it.amount}
+                              onChangeText={(v) => setAmount(it.id, v)}
+                              keyboardType="decimal-pad"
+                              selectTextOnFocus
+                            />
+                            <TouchableOpacity
+                              style={styles.stepBtn}
+                              onPress={() => adjustAmount(it.id, 1)}
+                            >
+                              <Text style={styles.stepBtnText}>+</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+
+                        {/* Live macro preview */}
+                        <View style={styles.previewRow}>
+                          <MacroStat label="kcal" value={preview.calories} color="#111827" />
+                          <MacroStat label="protein" value={preview.protein} color="#3B82F6" unit="g" />
+                          <MacroStat label="carbs" value={preview.carbs} color="#F59E0B" unit="g" />
+                          <MacroStat label="fat" value={preview.fat} color="#EF4444" unit="g" />
+                        </View>
+
+                        <TouchableOpacity
+                          style={styles.removeBtn}
+                          onPress={() => removeItem(it.id)}
+                        >
+                          <Text style={styles.removeBtnText}>Remove item</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </ScrollView>
 
         {analyzed && items.length > 0 && (
-          <View style={styles.results}>
-            <Text style={styles.resultsLabel}>Detected items</Text>
-            {items.map((it) => (
-              <View key={it.id} style={styles.itemRow}>
-                <View style={styles.itemLeft}>
-                  <Text style={styles.itemName}>{it.name}</Text>
-                  {it.serving ? <Text style={styles.itemServing}>{it.serving}</Text> : null}
-                  <Text style={styles.itemMacros}>
-                    {Math.round(it.calories * it.qty)} kcal · P{Math.round(it.protein * it.qty)} ·
-                    C{Math.round(it.carbs * it.qty)} · F{Math.round(it.fat * it.qty)}
-                  </Text>
-                </View>
-                <View style={styles.qtyControl}>
-                  <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQty(it.id, -0.5)}>
-                    <Text style={styles.qtyBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.qtyValue}>{it.qty}×</Text>
-                  <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQty(it.id, 0.5)}>
-                    <Text style={styles.qtyBtnText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity
-                  style={styles.removeBtn}
-                  onPress={() => removeItem(it.id)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={styles.removeBtnText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+          <View style={styles.footer}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValue}>{totalCals} kcal</Text>
+            </View>
+            <TouchableOpacity style={styles.addBtn} onPress={addAll} activeOpacity={0.85}>
+              <Text style={styles.addBtnText}>
+                Add {items.length} {items.length === 1 ? 'item' : 'items'} to {MEAL_LABELS[meal]}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
-      </ScrollView>
-
-      {analyzed && items.length > 0 && (
-        <View style={styles.footer}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{totalCals} kcal</Text>
-          </View>
-          <TouchableOpacity style={styles.addBtn} onPress={addAll} activeOpacity={0.85}>
-            <Text style={styles.addBtnText}>
-              Add {items.length} {items.length === 1 ? 'item' : 'items'} to {MEAL_LABELS[meal]}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function MacroStat({
+  label,
+  value,
+  color,
+  unit = '',
+}: {
+  label: string;
+  value: number;
+  color: string;
+  unit?: string;
+}) {
+  return (
+    <View style={styles.macroStat}>
+      <Text style={[styles.macroStatValue, { color }]}>
+        {value}{unit}
+      </Text>
+      <Text style={styles.macroStatLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -273,6 +476,7 @@ const styles = StyleSheet.create({
   pickBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
   loadingBox: { alignItems: 'center', paddingVertical: 40 },
   loadingText: { marginTop: 12, fontSize: 14, color: '#6B7280', fontWeight: '500' },
+
   results: { marginTop: 20 },
   resultsLabel: {
     fontSize: 12,
@@ -280,40 +484,101 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+
+  // Item card
+  itemCard: {
     backgroundColor: '#fff',
     borderRadius: 14,
+    marginBottom: 10,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#F3F4F6',
+  },
+  itemCardExpanded: {
+    borderColor: '#10B981',
+  },
+  itemSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 14,
-    marginBottom: 8,
   },
   itemLeft: { flex: 1 },
   itemName: { fontSize: 15, fontWeight: '600', color: '#111827' },
   itemServing: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
   itemMacros: { fontSize: 12, color: '#6B7280', marginTop: 4 },
-  qtyControl: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 8 },
-  qtyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  itemRight: { alignItems: 'flex-end', gap: 4, marginLeft: 12 },
+  amountBadge: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#10B981',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  chevron: { fontSize: 14, color: '#9CA3AF', fontWeight: '600' },
+
+  // Expanded editor
+  editor: { paddingHorizontal: 14, paddingBottom: 14 },
+  divider: { height: 1, backgroundColor: '#F3F4F6', marginBottom: 14 },
+  unitRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  unitBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  unitBtnActive: { backgroundColor: '#ECFDF5', borderColor: '#10B981' },
+  unitBtnText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  unitBtnTextActive: { color: '#10B981' },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  amountLabel: { fontSize: 13, color: '#6B7280', flex: 1 },
+  amountControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  stepBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qtyBtnText: { fontSize: 18, fontWeight: '300', color: '#374151' },
-  qtyValue: { fontSize: 13, fontWeight: '600', color: '#111827', minWidth: 28, textAlign: 'center' },
-  removeBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
+  stepBtnText: { fontSize: 20, fontWeight: '300', color: '#374151' },
+  amountInput: {
+    width: 64,
+    height: 34,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
   },
-  removeBtnText: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
+  previewRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 14,
+    justifyContent: 'space-around',
+  },
+  macroStat: { alignItems: 'center' },
+  macroStatValue: { fontSize: 16, fontWeight: '700' },
+  macroStatLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  removeBtn: { alignItems: 'center', paddingVertical: 6 },
+  removeBtnText: { fontSize: 13, fontWeight: '600', color: '#EF4444' },
+
+  // Footer
   footer: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
