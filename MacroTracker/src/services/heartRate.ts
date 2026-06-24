@@ -106,11 +106,30 @@ function healthKitMonitor(): HeartRateMonitor {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     hk = require('@kingstinct/react-native-healthkit');
-  } catch {
+  } catch (e) {
+    // The native module isn't in this build (e.g. Expo Go, or `pod install`
+    // hasn't been run since the package was added). We degrade to no data.
+    // This log is the quickest way to confirm that's what's happening.
+    if (__DEV__) {
+      console.warn(
+        '[heartRate] @kingstinct/react-native-healthkit failed to load — ' +
+          'HR will show no data. Run `npx pod-install` and rebuild. Details:',
+        e
+      );
+    }
     return offMonitor();
   }
   if (!hk) return offMonitor();
   const HK = hk;
+  if (__DEV__) {
+    let avail = false;
+    try {
+      avail = Platform.OS === 'ios' && HK.isHealthDataAvailable();
+    } catch {
+      avail = false;
+    }
+    console.log(`[heartRate] HealthKit module loaded. healthDataAvailable=${avail}`);
+  }
 
   let poll: ReturnType<typeof setInterval> | null = null;
   let subscription: { remove: () => boolean } | null = null;
@@ -142,8 +161,11 @@ function healthKitMonitor(): HeartRateMonitor {
     available,
     async requestPermissions() {
       try {
-        return await HK.requestAuthorization({ toRead: [HR_IDENTIFIER] });
-      } catch {
+        const granted = await HK.requestAuthorization({ toRead: [HR_IDENTIFIER] });
+        if (__DEV__) console.log(`[heartRate] requestAuthorization -> ${granted}`);
+        return granted;
+      } catch (e) {
+        if (__DEV__) console.warn('[heartRate] requestAuthorization threw:', e);
         return false;
       }
     },
