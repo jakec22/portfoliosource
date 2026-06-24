@@ -8,17 +8,34 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   InputAccessoryView,
+  ActionSheetIOS,
   Platform,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
+import type { SetType } from '../types';
 import { formatDuration } from '../utils/date';
 import { RestTimer } from '../components/RestTimer';
 
 interface Props {
   navigation: any;
+}
+
+// Label + colors for the left-side set bubble. Normal sets show their number;
+// tagged sets show a colored letter (W / F / D).
+function setBadgeInfo(type: SetType | undefined, index: number) {
+  switch (type) {
+    case 'warmup':
+      return { label: 'W', bubble: styles.badgeWarmup, text: styles.badgeWarmupText };
+    case 'failure':
+      return { label: 'F', bubble: styles.badgeFailure, text: styles.badgeFailureText };
+    case 'dropset':
+      return { label: 'D', bubble: styles.badgeDropset, text: styles.badgeDropsetText };
+    default:
+      return { label: String(index + 1), bubble: styles.badgeNormal, text: styles.badgeNormalText };
+  }
 }
 
 export function ActiveWorkoutScreen({ navigation }: Props) {
@@ -52,6 +69,26 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
         updateWorkoutSet(focusCtx.exId, s.id, { [focusCtx.field]: value });
       }
     });
+  }
+
+  // Per-set type picker: tap the left bubble to tag a set.
+  function pickSetType(exId: string, setId: string) {
+    const labels = ['Normal', 'Warm up', 'Failure', 'Drop set'];
+    const types: SetType[] = ['normal', 'warmup', 'failure', 'dropset'];
+    const apply = (i: number) => {
+      if (i >= 0 && i < types.length) updateWorkoutSet(exId, setId, { type: types[i] });
+    };
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { title: 'Set type', options: [...labels, 'Cancel'], cancelButtonIndex: labels.length },
+        apply
+      );
+    } else {
+      Alert.alert('Set type', undefined, [
+        ...labels.map((label, i) => ({ text: label, onPress: () => apply(i) })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]);
+    }
   }
 
   // Elapsed workout timer, ticking every second from the session start.
@@ -217,7 +254,20 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                   friction={2}
                 >
                   <View style={[styles.setRow, set.completed && styles.setRowDone]}>
-                    <Text style={styles.colSet}>{i + 1}</Text>
+                    <TouchableOpacity
+                      style={styles.colSet}
+                      onPress={() => pickSetType(ex.id, set.id)}
+                      activeOpacity={0.7}
+                    >
+                      {(() => {
+                        const badge = setBadgeInfo(set.type, i);
+                        return (
+                          <View style={[styles.setBadge, badge.bubble]}>
+                            <Text style={[styles.setBadgeText, badge.text]}>{badge.label}</Text>
+                          </View>
+                        );
+                      })()}
+                    </TouchableOpacity>
                     <TextInput
                       style={[styles.colNum, styles.setInput]}
                       value={set.weight === 0 ? '' : String(set.weight)}
@@ -355,9 +405,29 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   setRowDone: { backgroundColor: '#F0FDF4' },
-  colSet: { width: 34, textAlign: 'center', fontSize: 14, color: '#374151', fontWeight: '600' },
+  colSet: { width: 40, textAlign: 'center', alignItems: 'center', justifyContent: 'center' },
   colNum: { flex: 1, marginHorizontal: 4 },
   colCheck: { width: 64, alignItems: 'center' },
+
+  // Left-side set-type bubble (tap to tag a set).
+  setBadge: {
+    minWidth: 28,
+    height: 28,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+  },
+  setBadgeText: { fontSize: 13, fontWeight: '800' },
+  badgeNormal: { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' },
+  badgeNormalText: { color: '#6B7280' },
+  badgeWarmup: { backgroundColor: '#FEF3C7', borderColor: '#FCD34D' },
+  badgeWarmupText: { color: '#D97706' },
+  badgeFailure: { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' },
+  badgeFailureText: { color: '#DC2626' },
+  badgeDropset: { backgroundColor: '#EDE9FE', borderColor: '#C4B5FD' },
+  badgeDropsetText: { color: '#7C3AED' },
   setInput: {
     backgroundColor: '#F9FAFB',
     borderRadius: 8,

@@ -48,12 +48,17 @@ export interface DailyLog {
 
 // ----- Workouts / Exercise -----
 
+// The role a set plays in an exercise. 'normal' is a regular working set;
+// the rest are tags the user can apply per set.
+export type SetType = 'normal' | 'warmup' | 'failure' | 'dropset';
+
 // A single performed set: a weight × reps pair with a done checkbox.
 export interface WorkoutSet {
   id: string;
   weight: number; // lbs
   reps: number;
   completed: boolean;
+  type?: SetType; // undefined === 'normal'
 }
 
 // An exercise within an active/logged workout, holding its performed sets.
@@ -134,7 +139,7 @@ export interface AppState {
   updateWorkoutSet: (
     exerciseId: string,
     setId: string,
-    patch: Partial<Pick<WorkoutSet, 'weight' | 'reps'>>
+    patch: Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'type'>>
   ) => void;
   toggleWorkoutSet: (exerciseId: string, setId: string) => void;
   removeWorkoutSet: (exerciseId: string, setId: string) => void;
