@@ -11,7 +11,7 @@
     "@supabase/supabase-js": "^2.45.0",
     "expo": "~56.0.12",
     "expo-camera": "~56.0.8",
-    "expo-image-picker": "~17.0.0",
+    "expo-image-picker": "~16.1.4",
     "expo-linking": "~56.0.14",
     "expo-status-bar": "~56.0.4",
     "expo-web-browser": "~56.0.5",
