@@ -1,36 +1,44 @@
+import { Platform } from 'react-native';
 import type { HeartRateSample } from '../types';
 
 /**
  * Heart-rate data source for workouts.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * HOW THIS WORKS / HOW TO ENABLE REAL APPLE WATCH DATA
+ * HOW THIS WORKS
  * ─────────────────────────────────────────────────────────────────────────
- * Apple Watch writes heart-rate samples into the iPhone's HealthKit store.
- * This app reads them — no watchOS app required (see the Tier-1 design notes).
+ * Apple Watch writes heart-rate samples into the iPhone's HealthKit store and
+ * this app reads them via @kingstinct/react-native-healthkit — no watchOS app
+ * required (see the Tier-1 design notes).
  *
  * The UI is wired against the `HeartRateMonitor` interface below, so the data
  * source is swappable. Three sources are provided:
  *
- *   'simulated' — generates a realistic wandering BPM with no native deps.
- *                 Lets you see the live bar, pulsing heart, and end-of-workout
- *                 graph working immediately in Expo Go / any build. DEFAULT.
+ *   'healthkit' — real Apple Watch data via HealthKit. DEFAULT. Requires the
+ *                 native module + a rebuilt dev client / EAS build (does NOT
+ *                 work in Expo Go — there it degrades gracefully to no data).
+ *                 Setup is already in place:
+ *                   • @kingstinct/react-native-healthkit + react-native-nitro-modules
+ *                     are installed.
+ *                   • app.json has the config plugin (HealthKit entitlement +
+ *                     NSHealthShareUsageDescription).
+ *                   • Run `npx expo prebuild --clean` then build (e.g. EAS) to
+ *                     produce an installable build with the native module.
  *
- *   'healthkit' — real Apple Watch data via HealthKit. Requires a native
- *                 module + a rebuilt dev client (does NOT work in Expo Go):
- *                   1. npm install @kingstinct/react-native-healthkit
- *                   2. app.json → add the config plugin + HealthKit entitlement
- *                      and NSHealthShareUsageDescription Info.plist string.
- *                   3. npx expo prebuild && rebuild the dev client / EAS build.
- *                   4. Uncomment the implementation in `healthKitMonitor()`
- *                      below and set HR_SOURCE = 'healthkit'.
+ *   'simulated' — generates a realistic wandering BPM with no native deps.
+ *                 Handy in Expo Go or the simulator to preview the live bar,
+ *                 pulsing heart, and end-of-workout graph.
  *
  *   'off'       — no heart rate. The HR bar/graph simply don't render.
  *
  * Switch sources with the single constant below.
  */
 export type HeartRateSource = 'simulated' | 'healthkit' | 'off';
-export const HR_SOURCE: HeartRateSource = 'simulated';
+export const HR_SOURCE: HeartRateSource = 'healthkit';
+
+// HealthKit identifiers/units (string constants — see the library's typings).
+const HR_IDENTIFIER = 'HKQuantityTypeIdentifierHeartRate' as const;
+const HR_UNIT = 'count/min' as const;
 
 export interface HeartRateMonitor {
   /** Whether this source can produce data on the current device/build. */
@@ -89,52 +97,98 @@ function simulatedMonitor(): HeartRateMonitor {
 }
 
 // ── HealthKit source (real Apple Watch data) ───────────────────────────────
-// Left as a no-op until the native module is installed (see header). When you
-// install @kingstinct/react-native-healthkit, replace the body below with the
-// commented reference implementation and set HR_SOURCE = 'healthkit'.
+// Reads heart rate from the iPhone's Health store via
+// @kingstinct/react-native-healthkit. The module is loaded lazily and every
+// call is guarded, so on a build/runtime without the native module (e.g. Expo
+// Go) this degrades to "no data" rather than crashing.
 function healthKitMonitor(): HeartRateMonitor {
-  // import {
-  //   isHealthDataAvailable,
-  //   requestAuthorization,
-  //   queryQuantitySamples,
-  //   subscribeToChanges,
-  //   HKQuantityTypeIdentifier,
-  // } from '@kingstinct/react-native-healthkit';
-  //
-  // let unsubscribe: (() => void) | null = null;
-  // let poll: ReturnType<typeof setInterval> | null = null;
-  // return {
-  //   available: isHealthDataAvailable(),
-  //   async requestPermissions() {
-  //     await requestAuthorization([HKQuantityTypeIdentifier.heartRate], []);
-  //     return true;
-  //   },
-  //   start(onSample) {
-  //     // Poll the most recent sample every 5s for the live readout.
-  //     const pull = async () => {
-  //       const [latest] = await queryQuantitySamples(
-  //         HKQuantityTypeIdentifier.heartRate,
-  //         { limit: 1, ascending: false }
-  //       );
-  //       if (latest) onSample({ timestamp: +new Date(latest.endDate), bpm: Math.round(latest.quantity) });
-  //     };
-  //     pull();
-  //     poll = setInterval(pull, 5000);
-  //   },
-  //   stop() {
-  //     if (poll) clearInterval(poll);
-  //     if (unsubscribe) unsubscribe();
-  //     poll = null; unsubscribe = null;
-  //   },
-  //   async query(startMs, endMs) {
-  //     const samples = await queryQuantitySamples(HKQuantityTypeIdentifier.heartRate, {
-  //       filter: { startDate: new Date(startMs), endDate: new Date(endMs) },
-  //       ascending: true,
-  //     });
-  //     return samples.map((s) => ({ timestamp: +new Date(s.endDate), bpm: Math.round(s.quantity) }));
-  //   },
-  // };
-  return offMonitor();
+  let hk: typeof import('@kingstinct/react-native-healthkit') | null = null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    hk = require('@kingstinct/react-native-healthkit');
+  } catch {
+    return offMonitor();
+  }
+  if (!hk) return offMonitor();
+  const HK = hk;
+
+  let poll: ReturnType<typeof setInterval> | null = null;
+  let subscription: { remove: () => boolean } | null = null;
+  let lastTs = 0;
+
+  const available = (() => {
+    try {
+      return Platform.OS === 'ios' && HK.isHealthDataAvailable();
+    } catch {
+      return false;
+    }
+  })();
+
+  // Read the most recent HR sample and emit it (deduped by timestamp).
+  async function pull(onSample: (sample: HeartRateSample) => void) {
+    try {
+      const s = await HK.getMostRecentQuantitySample(HR_IDENTIFIER, HR_UNIT);
+      if (!s) return;
+      const ts = +new Date(s.endDate);
+      if (ts === lastTs) return; // same reading as last time — skip
+      lastTs = ts;
+      onSample({ timestamp: ts, bpm: Math.round(s.quantity) });
+    } catch {
+      // ignore transient read errors
+    }
+  }
+
+  return {
+    available,
+    async requestPermissions() {
+      try {
+        return await HK.requestAuthorization({ toRead: [HR_IDENTIFIER] });
+      } catch {
+        return false;
+      }
+    },
+    start(onSample) {
+      this.stop();
+      lastTs = 0;
+      void pull(onSample);
+      // Poll for the live readout, and also refetch promptly when HealthKit
+      // signals that new heart-rate data has landed from the Watch.
+      poll = setInterval(() => void pull(onSample), 5000);
+      try {
+        subscription = HK.subscribeToChanges(HR_IDENTIFIER, () => void pull(onSample));
+      } catch {
+        subscription = null;
+      }
+    },
+    stop() {
+      if (poll) clearInterval(poll);
+      poll = null;
+      if (subscription) {
+        try {
+          subscription.remove();
+        } catch {
+          // ignore
+        }
+        subscription = null;
+      }
+    },
+    async query(startMs, endMs) {
+      try {
+        const samples = await HK.queryQuantitySamples(HR_IDENTIFIER, {
+          filter: { date: { startDate: new Date(startMs), endDate: new Date(endMs) } },
+          limit: -1, // all samples in the window
+          ascending: true,
+          unit: HR_UNIT,
+        });
+        return samples.map((s) => ({
+          timestamp: +new Date(s.endDate),
+          bpm: Math.round(s.quantity),
+        }));
+      } catch {
+        return [];
+      }
+    },
+  };
 }
 
 // ── Off source ─────────────────────────────────────────────────────────────

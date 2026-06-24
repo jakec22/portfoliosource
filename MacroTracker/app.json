@@ -21,6 +21,14 @@
           "photosPermission": "Allow MacroTracker to access your photos to analyze meals.",
           "cameraPermission": "Allow MacroTracker to use the camera to photograph meals."
         }
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "MacroTracker reads your heart rate from Apple Health to display and chart it during workouts.",
+          "NSHealthUpdateUsageDescription": false,
+          "background": false
+        }
       ]
     ],
     "splash": {

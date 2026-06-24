@@ -49,6 +49,8 @@
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>Allow MacroTracker to use the camera to scan food barcodes.</string>
+    <key>NSHealthShareUsageDescription</key>
+    <string>MacroTracker reads your heart rate from Apple Health to display and chart it during workouts.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
     <key>UILaunchStoryboardName</key>
