@@ -18,6 +18,7 @@ import { AuthScreen } from './src/screens/AuthScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
+import { useTemplateImport } from './src/hooks/useTemplateImport';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -66,6 +67,8 @@ function HistoryStack() {
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
+  // Handle incoming "import-template" share links once the user is in the app.
+  useTemplateImport();
   return (
     <NavigationContainer>
         <Tab.Navigator

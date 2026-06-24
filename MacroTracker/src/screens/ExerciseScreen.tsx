@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { WorkoutTemplate } from '../types';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
+import { encodeTemplateLink } from '../utils/templateShare';
 
 interface Props {
   navigation: any;
@@ -71,6 +72,9 @@ export function ExerciseScreen({ navigation }: Props) {
       });
       lines.push('');
     }
+    // Append a deep link that imports the template into the recipient's app.
+    lines.push('Open in MacroTracker to add this workout:');
+    lines.push(encodeTemplateLink(t));
     Share.share({ message: lines.join('\n').trim() });
   }
 
