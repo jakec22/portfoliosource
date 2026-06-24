@@ -16,7 +16,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const PROMPT = `You are a nutrition estimation assistant. Analyze the meal in the photo.
+const PHOTO_PROMPT = `You are a nutrition estimation assistant. Analyze the meal in the photo.
 Identify each distinct food item you can see. For each item, estimate the portion
 that appears in the photo and its nutrition. Report protein, carbs, and fat in grams
 and calories in kcal. Also estimate the weight of the visible portion in grams
@@ -24,6 +24,15 @@ and calories in kcal. Also estimate the weight of the visible portion in grams
 Be realistic; when unsure, give your best estimate based on typical servings.
 Ignore plates, utensils, and non-caloric drinks like water.
 Return only the structured data.`;
+
+const TEXT_PROMPT = `You are a nutrition estimation assistant. The user describes a
+meal in words, including foods and (sometimes) amounts. Identify each distinct food
+item. For each item, estimate its nutrition. Report protein, carbs, and fat in grams
+and calories in kcal. Also estimate the weight of the portion in grams (serving_grams)
+— this is used so the user can re-enter the amount by weight. If the user gives an
+explicit amount (e.g. "2 eggs", "200g rice", "a cup of milk"), respect it; otherwise
+assume a typical serving. Be realistic; when unsure, give your best estimate.
+Ignore non-caloric drinks like water. Return only the structured data.`;
 
 // Force Gemini to return parseable, well-shaped JSON.
 const responseSchema = {
@@ -62,18 +71,21 @@ Deno.serve(async (req: Request) => {
   try {
     if (!GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY not configured' }, 500);
 
-    const { image, mimeType } = await req.json();
-    if (!image) return json({ error: 'Missing image' }, 400);
+    const { image, mimeType, description } = await req.json();
+    if (!image && !(typeof description === 'string' && description.trim())) {
+      return json({ error: 'Provide an image or a description' }, 400);
+    }
+
+    // Text-only path uses the description; photo path sends the image bytes.
+    const parts = image
+      ? [
+          { text: PHOTO_PROMPT },
+          { inline_data: { mime_type: mimeType ?? 'image/jpeg', data: image } },
+        ]
+      : [{ text: `${TEXT_PROMPT}\n\nMeal description:\n${String(description).trim()}` }];
 
     const body = JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: PROMPT },
-            { inline_data: { mime_type: mimeType ?? 'image/jpeg', data: image } },
-          ],
-        },
-      ],
+      contents: [{ parts }],
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema,

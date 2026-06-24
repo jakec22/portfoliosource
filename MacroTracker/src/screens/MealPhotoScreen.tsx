@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useStore } from '../store/useStore';
-import { analyzeMealPhoto, AnalyzedItem } from '../services/mealPhoto';
+import { analyzeMealPhoto, analyzeMealText, AnalyzedItem } from '../services/mealPhoto';
 import { MealType, ServingUnit, Food } from '../types';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 
@@ -76,6 +76,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
   const [analyzed, setAnalyzed] = useState(false);
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [description, setDescription] = useState('');
   const addEntry = useStore((s) => s.addEntry);
 
   async function pick(source: 'camera' | 'library') {
@@ -105,13 +106,38 @@ export function MealPhotoScreen({ route, navigation }: Props) {
     runAnalysis(asset.base64!);
   }
 
-  async function runAnalysis(base64: string) {
+  function runAnalysis(base64: string) {
+    analyzeWith(
+      () => analyzeMealPhoto(base64),
+      'Try a clearer, well-lit photo of the meal.',
+    );
+  }
+
+  async function runDescription() {
+    const text = description.trim();
+    if (text.length < 3) {
+      Alert.alert('Describe your meal', 'Type what you ate and roughly how much.');
+      return;
+    }
+    setImageUri(null); // text path has no photo to preview
+    analyzeWith(
+      () => analyzeMealText(text),
+      'Try describing the foods and amounts more specifically.',
+    );
+  }
+
+  // Shared analysis runner: takes a function that produces analyzed items and a
+  // message to show if nothing comes back.
+  async function analyzeWith(
+    fn: () => Promise<AnalyzedItem[]>,
+    emptyMessage: string,
+  ) {
     setLoading(true);
     setAnalyzed(false);
     setItems([]);
     setExpandedId(null);
     try {
-      const result = await analyzeMealPhoto(base64);
+      const result = await fn();
       setItems(
         result.map((it, i) => ({
           ...it,
@@ -122,7 +148,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
       );
       setAnalyzed(true);
       if (result.length === 0) {
-        Alert.alert('No food detected', 'Try a clearer, well-lit photo of the meal.');
+        Alert.alert('No food detected', emptyMessage);
       }
     } catch (e: any) {
       Alert.alert('Analysis failed', e?.message ?? 'Please try again.');
@@ -224,36 +250,69 @@ export function MealPhotoScreen({ route, navigation }: Props) {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {imageUri && <Image source={{ uri: imageUri }} style={styles.preview} />}
 
-          {!imageUri && (
+          {!imageUri && !analyzed && (
             <View style={styles.intro}>
-              <Text style={styles.introEmoji}>🍽️</Text>
-              <Text style={styles.introTitle}>Analyze a meal photo</Text>
+              <Text style={styles.introEmoji}>✨</Text>
+              <Text style={styles.introTitle}>Analyze a meal</Text>
               <Text style={styles.introText}>
-                Snap or pick a photo of your plate and AI will estimate the foods and
-                their macros. Tap any item to adjust its serving size before logging.
+                Snap or pick a photo of your plate, or describe what you ate, and AI
+                will estimate the foods and their macros. Tap any item to adjust its
+                serving size before logging.
               </Text>
             </View>
           )}
 
           {!loading && (
-            <View style={styles.pickRow}>
-              <TouchableOpacity
-                style={styles.pickBtn}
-                onPress={() => pick('camera')}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.pickBtnIcon}>📷</Text>
-                <Text style={styles.pickBtnText}>Take Photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.pickBtn}
-                onPress={() => pick('library')}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.pickBtnIcon}>🖼️</Text>
-                <Text style={styles.pickBtnText}>Choose Photo</Text>
-              </TouchableOpacity>
-            </View>
+            <>
+              <View style={styles.pickRow}>
+                <TouchableOpacity
+                  style={styles.pickBtn}
+                  onPress={() => pick('camera')}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.pickBtnIcon}>📷</Text>
+                  <Text style={styles.pickBtnText}>Take Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.pickBtn}
+                  onPress={() => pick('library')}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.pickBtnIcon}>🖼️</Text>
+                  <Text style={styles.pickBtnText}>Choose Photo</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Or describe the meal in words */}
+              <View style={styles.orRow}>
+                <View style={styles.orLine} />
+                <Text style={styles.orText}>or describe it</Text>
+                <View style={styles.orLine} />
+              </View>
+
+              <View style={styles.describeBox}>
+                <TextInput
+                  style={styles.describeInput}
+                  placeholder="e.g. 2 scrambled eggs, a slice of buttered toast, and a banana"
+                  placeholderTextColor="#9CA3AF"
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  textAlignVertical="top"
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.describeBtn,
+                    description.trim().length < 3 && styles.describeBtnDisabled,
+                  ]}
+                  onPress={runDescription}
+                  disabled={description.trim().length < 3}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.describeBtnText}>✨ Calculate macros</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
 
           {loading && (
@@ -474,6 +533,33 @@ const styles = StyleSheet.create({
   },
   pickBtnIcon: { fontSize: 28, marginBottom: 6 },
   pickBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
+
+  orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 18 },
+  orLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
+  orText: { fontSize: 12, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.6 },
+  describeBox: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  describeInput: {
+    minHeight: 72,
+    fontSize: 15,
+    color: '#111827',
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  describeBtn: {
+    backgroundColor: '#0284C7',
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  describeBtnDisabled: { backgroundColor: '#CBD5E1' },
+  describeBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
   loadingBox: { alignItems: 'center', paddingVertical: 40 },
   loadingText: { marginTop: 12, fontSize: 14, color: '#6B7280', fontWeight: '500' },
 

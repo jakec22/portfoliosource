@@ -20,16 +20,27 @@ export async function analyzeMealPhoto(
   base64: string,
   mimeType = 'image/jpeg',
 ): Promise<AnalyzedItem[]> {
-  const { data, error } = await supabase.functions.invoke('analyze-meal', {
-    body: { image: base64, mimeType },
-  });
+  return invokeAnalyze({ image: base64, mimeType });
+}
+
+/**
+ * Send a free-text meal description (e.g. "2 scrambled eggs and a slice of
+ * toast with butter") to the same `analyze-meal` Edge Function for macro
+ * estimation.
+ */
+export async function analyzeMealText(description: string): Promise<AnalyzedItem[]> {
+  return invokeAnalyze({ description });
+}
+
+async function invokeAnalyze(body: Record<string, unknown>): Promise<AnalyzedItem[]> {
+  const { data, error } = await supabase.functions.invoke('analyze-meal', { body });
   if (error) {
     // Supabase wraps the function's JSON error body in error.context when
     // available; surface the most useful message.
     let detail = error.message;
     try {
-      const body = await (error as any).context?.json?.();
-      if (body?.error) detail = body.error;
+      const errBody = await (error as any).context?.json?.();
+      if (errBody?.error) detail = errBody.error;
     } catch {
       /* ignore — fall back to error.message */
     }
