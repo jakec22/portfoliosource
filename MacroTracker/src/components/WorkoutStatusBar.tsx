@@ -1,12 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Vibration } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Vibration, AppState } from 'react-native';
 import { formatDuration } from '../utils/date';
 import { useStore } from '../store/useStore';
 import { AnimatedHeart } from './AnimatedHeart';
 
 interface Props {
-  /** Live BPM from the heart-rate monitor, or null when unavailable. */
   bpm: number | null;
+  /** Epoch-ms timestamp of when the BPM reading was taken. */
+  bpmUpdatedAt?: number | null;
+}
+
+function ageLabel(updatedAt: number): string {
+  const secs = Math.floor((Date.now() - updatedAt) / 1000);
+  if (secs < 10) return 'just now';
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  return `${mins}m ago`;
 }
 
 // Color the readout by intensity zone.
@@ -20,10 +29,18 @@ function zoneColor(bpm: number): string {
 // pulsing heart. Right: the rest countdown — auto-starts when a set is checked
 // off (using the Profile default rest length), with +30s / Skip while running,
 // or a manual "Rest" button when idle.
-export function WorkoutStatusBar({ bpm }: Props) {
+export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
   const [endAt, setEndAt] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(0);
+  const [, tick] = useState(0); // drives re-renders for the age label
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Tick every 5 seconds so the "X ago" label stays accurate.
+  useEffect(() => {
+    if (!bpmUpdatedAt) return;
+    const id = setInterval(() => tick((n) => n + 1), 5000);
+    return () => clearInterval(id);
+  }, [bpmUpdatedAt]);
 
   const restTrigger = useStore((s) => s.restTrigger);
   const defaultRest = useStore((s) => s.defaultRestSeconds);
@@ -70,7 +87,9 @@ export function WorkoutStatusBar({ bpm }: Props) {
                 {bpm}
                 <Text style={styles.hrUnit}> bpm</Text>
               </Text>
-              <Text style={styles.hrLabel}>Heart rate</Text>
+              <Text style={styles.hrLabel}>
+                {bpmUpdatedAt ? ageLabel(bpmUpdatedAt) : 'Heart rate'}
+              </Text>
             </View>
           </>
         ) : (

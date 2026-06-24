@@ -55,6 +55,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
 
   // Live heart rate from the Apple Watch (via HealthKit) during the workout.
   const [liveBpm, setLiveBpm] = useState<number | null>(null);
+  const [bpmUpdatedAt, setBpmUpdatedAt] = useState<number | null>(null);
   const hrSamplesRef = useRef<HeartRateSample[]>([]);
   const monitorRef = useRef(getHeartRateMonitor());
   const workoutId = workout?.id;
@@ -69,6 +70,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
       monitor.start((sample) => {
         hrSamplesRef.current.push(sample);
         setLiveBpm(sample.bpm);
+        setBpmUpdatedAt(sample.timestamp);
       });
     })();
     return () => {
@@ -366,7 +368,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
             <Text style={styles.addExText}>+ Add Exercise</Text>
           </TouchableOpacity>
         </ScrollView>
-        <WorkoutStatusBar bpm={liveBpm} />
+        <WorkoutStatusBar bpm={liveBpm} bpmUpdatedAt={bpmUpdatedAt} />
       </KeyboardAvoidingView>
 
       {Platform.OS === 'ios' && (
