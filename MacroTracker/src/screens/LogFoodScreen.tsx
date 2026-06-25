@@ -258,9 +258,9 @@ export function LogFoodScreen({ route, navigation }: Props) {
           <Text style={styles.title}>Add to {MEAL_LABELS[meal]}</Text>
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => navigation.navigate('CreateCustomFood', { meal, date })}
+            onPress={() => navigation.navigate('BuildMeal', { meal, date })}
           >
-            <Text style={[styles.backText, { textAlign: 'right' }]}>+ Food</Text>
+            <Text style={[styles.backText, { textAlign: 'right' }]}>Build Meal</Text>
           </TouchableOpacity>
         </View>
 
