@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import type { Food } from '../types';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   navigation: any;
 }
 
 export function CreateCustomFoodScreen({ navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const addCustomFood = useStore((s) => s.addCustomFood);
 
   const [name, setName] = useState('');
@@ -179,6 +183,8 @@ function Field({
   keyboardType?: any;
   placeholder?: string;
 }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -188,7 +194,7 @@ function Field({
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor={c.textFaint}
         inputAccessoryViewID={
           keyboardType === 'decimal-pad' ? DONE_ACCESSORY_ID : undefined
         }
@@ -197,8 +203,8 @@ function Field({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -206,24 +212,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: c.border,
   },
   sideBtn: { width: 64 },
-  backText: { fontSize: 16, color: '#10B981', fontWeight: '600' },
+  backText: { fontSize: 16, color: c.primary, fontWeight: '600' },
   saveText: {
     fontSize: 16,
-    color: '#10B981',
+    color: c.primary,
     fontWeight: '700',
     textAlign: 'right',
   },
-  title: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  title: { fontSize: 17, fontWeight: '700', color: c.text },
   content: { padding: 16, paddingBottom: 40 },
   sectionLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: c.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 16,
@@ -233,28 +239,28 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: c.gray700,
     marginBottom: 6,
   },
   fieldInput: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111827',
+    color: c.text,
   },
   row: { flexDirection: 'row' },
   gap: { width: 12 },
   halfField: { flex: 1 },
   createBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
   },
-  createBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  createBtnText: { color: c.onPrimary, fontSize: 17, fontWeight: '700' },
 });

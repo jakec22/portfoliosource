@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,10 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { useStore } from '../store/useStore';
 import { TemplateExercise, TemplateSet, WorkoutTemplate, SetType } from '../types';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
+
+type TemplateStyles = ReturnType<typeof makeStyles>;
 
 interface Props {
   route: { params?: { templateId?: string } };
@@ -35,7 +39,7 @@ function blankExercise(): TemplateExercise {
 }
 
 // Label + colors for the left-side set bubble (mirrors the active workout).
-function setBadgeInfo(type: SetType | undefined, index: number) {
+function setBadgeInfo(type: SetType | undefined, index: number, styles: TemplateStyles) {
   switch (type) {
     case 'warmup':
       return { label: 'W', bubble: styles.badgeWarmup, text: styles.badgeWarmupText };
@@ -49,6 +53,8 @@ function setBadgeInfo(type: SetType | undefined, index: number) {
 }
 
 export function WorkoutTemplateScreen({ route, navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const templateId = route.params?.templateId;
   const templates = useStore((s) => s.workoutTemplates);
   const saveTemplate = useStore((s) => s.saveTemplate);
@@ -177,7 +183,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
             value={name}
             onChangeText={setName}
             placeholder="e.g. Push Day, Leg Day"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={c.textFaint}
           />
 
           <Text style={[styles.label, { marginTop: 20 }]}>Exercises</Text>
@@ -189,7 +195,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                   value={e.name}
                   onChangeText={(v) => updateExercise(e.id, { name: v })}
                   placeholder={`Exercise ${idx + 1}`}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={c.textFaint}
                 />
                 <TouchableOpacity onPress={() => removeExercise(e.id)} style={styles.exRemove}>
                   <Text style={styles.exRemoveText}>✕</Text>
@@ -224,7 +230,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                       activeOpacity={0.7}
                     >
                       {(() => {
-                        const badge = setBadgeInfo(s.type, i);
+                        const badge = setBadgeInfo(s.type, i, styles);
                         return (
                           <View style={[styles.setBadge, badge.bubble]}>
                             <Text style={[styles.setBadgeText, badge.text]}>{badge.label}</Text>
@@ -242,7 +248,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                       keyboardType="decimal-pad"
                       inputAccessoryViewID={DONE_ACCESSORY_ID}
                       placeholder="0"
-                      placeholderTextColor="#D1D5DB"
+                      placeholderTextColor={c.textFaint}
                     />
                     <TextInput
                       style={[styles.colNum, styles.setInput]}
@@ -254,7 +260,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                       keyboardType="number-pad"
                       inputAccessoryViewID={DONE_ACCESSORY_ID}
                       placeholder="0"
-                      placeholderTextColor="#D1D5DB"
+                      placeholderTextColor={c.textFaint}
                     />
                   </View>
                 </ReanimatedSwipeable>
@@ -280,8 +286,8 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -289,70 +295,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    backgroundColor: '#fff',
+    borderBottomColor: c.border,
+    backgroundColor: c.card,
   },
-  cancel: { fontSize: 16, color: '#6B7280' },
-  save: { fontSize: 16, color: '#10B981', fontWeight: '700' },
-  title: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  cancel: { fontSize: 16, color: c.textMuted },
+  save: { fontSize: 16, color: c.primary, fontWeight: '700' },
+  title: { fontSize: 17, fontWeight: '700', color: c.text },
   content: { padding: 16, paddingBottom: 40 },
-  label: { fontSize: 13, fontWeight: '700', color: '#6B7280', marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: '700', color: c.textMuted, marginBottom: 8 },
   nameInput: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#111827',
+    color: c.text,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
   exCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: c.border,
   },
   exTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   exNameInput: {
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: c.text,
     paddingVertical: 6,
   },
   exRemove: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: c.dangerSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  exRemoveText: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
+  exRemoveText: { color: c.danger, fontSize: 13, fontWeight: '700' },
 
   setRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 },
-  headText: { fontSize: 11, color: '#9CA3AF', fontWeight: '600' },
+  headText: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
   },
   colSet: { width: 40, textAlign: 'center', alignItems: 'center', justifyContent: 'center' },
   colNum: { flex: 1, marginHorizontal: 4 },
   setInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.input,
     borderRadius: 8,
     paddingVertical: 8,
     fontSize: 15,
-    color: '#111827',
+    color: c.text,
     textAlign: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
 
   // Left-side set-type bubble (tap to tag a set).
@@ -366,17 +372,17 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   setBadgeText: { fontSize: 13, fontWeight: '800' },
-  badgeNormal: { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' },
-  badgeNormalText: { color: '#6B7280' },
-  badgeWarmup: { backgroundColor: '#FEF3C7', borderColor: '#FCD34D' },
-  badgeWarmupText: { color: '#D97706' },
-  badgeFailure: { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' },
-  badgeFailureText: { color: '#DC2626' },
-  badgeDropset: { backgroundColor: '#EDE9FE', borderColor: '#C4B5FD' },
-  badgeDropsetText: { color: '#7C3AED' },
+  badgeNormal: { backgroundColor: c.cardMuted, borderColor: c.border },
+  badgeNormalText: { color: c.textMuted },
+  badgeWarmup: { backgroundColor: c.warningSoft, borderColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.5)' : '#FCD34D' },
+  badgeWarmupText: { color: c.warning },
+  badgeFailure: { backgroundColor: c.dangerSoft, borderColor: c.scheme === 'dark' ? 'rgba(239,68,68,0.5)' : '#FCA5A5' },
+  badgeFailureText: { color: c.danger },
+  badgeDropset: { backgroundColor: c.accentSoft, borderColor: c.scheme === 'dark' ? 'rgba(139,92,246,0.5)' : '#C4B5FD' },
+  badgeDropsetText: { color: c.accent },
 
   swipeDeleteAction: {
-    backgroundColor: '#EF4444',
+    backgroundColor: c.danger,
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
@@ -387,16 +393,16 @@ const styles = StyleSheet.create({
   swipeDeleteText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   addSetBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
-  addSetText: { color: '#10B981', fontWeight: '600', fontSize: 14 },
+  addSetText: { color: c.primary, fontWeight: '600', fontSize: 14 },
 
   addExBtn: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: c.primarySoft,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
     marginTop: 4,
   },
-  addExText: { color: '#059669', fontWeight: '700', fontSize: 15 },
+  addExText: { color: c.primaryDark, fontWeight: '700', fontSize: 15 },
 });
