@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,12 @@ import {
   signUpWithEmail,
   signInWithGoogle,
 } from '../services/auth';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 export function AuthScreen() {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -75,7 +79,7 @@ export function AuthScreen() {
           <TextInput
             style={styles.input}
             placeholder="Email"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={c.textFaint}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
@@ -86,7 +90,7 @@ export function AuthScreen() {
           <TextInput
             style={styles.input}
             placeholder="Password"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={c.textFaint}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
@@ -141,8 +145,8 @@ export function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   flex: { flex: 1 },
   content: {
     flex: 1,
@@ -153,36 +157,36 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#111827',
+    color: c.text,
     textAlign: 'center',
     marginTop: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: c.textMuted,
     textAlign: 'center',
     marginTop: 6,
     marginBottom: 28,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: '#111827',
+    color: c.text,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     marginBottom: 12,
   },
   primaryBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
   },
-  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  primaryBtnText: { color: c.onPrimary, fontSize: 16, fontWeight: '700' },
   btnDisabled: { opacity: 0.6 },
   dividerRow: {
     flexDirection: 'row',
@@ -190,25 +194,25 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     gap: 12,
   },
-  divider: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  dividerText: { color: '#9CA3AF', fontSize: 13 },
+  divider: { flex: 1, height: 1, backgroundColor: c.border },
+  dividerText: { color: c.textFaint, fontSize: 13 },
   googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 12,
     paddingVertical: 15,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
   googleG: {
     fontSize: 18,
     fontWeight: '800',
     color: '#4285F4',
   },
-  googleBtnText: { color: '#374151', fontSize: 16, fontWeight: '600' },
+  googleBtnText: { color: c.gray700, fontSize: 16, fontWeight: '600' },
   toggle: { marginTop: 24, alignItems: 'center' },
-  toggleText: { color: '#10B981', fontSize: 14, fontWeight: '600' },
+  toggleText: { color: c.primary, fontSize: 14, fontWeight: '600' },
 });

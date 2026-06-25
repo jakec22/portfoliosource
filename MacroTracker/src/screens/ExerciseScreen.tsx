@@ -16,12 +16,16 @@ import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { exerciseSummaries } from '../utils/exerciseHistory';
 import { relativeDateLabel } from '../utils/date';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   navigation: any;
 }
 
 export function ExerciseScreen({ navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const templates = useStore((s) => s.workoutTemplates);
   const activeWorkout = useStore((s) => s.activeWorkout);
   const history = useStore((s) => s.workoutHistory);
@@ -79,7 +83,7 @@ export function ExerciseScreen({ navigation }: Props) {
       lines.push('');
     }
     // Append a deep link that imports the template into the recipient's app.
-    lines.push('Open in MacroTracker to add this workout:');
+    lines.push('Open in HolyMacro to add this workout:');
     lines.push(encodeTemplateLink(t));
     Share.share({ message: lines.join('\n').trim() });
   }
@@ -116,7 +120,10 @@ export function ExerciseScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+      <StatusBar
+        barStyle={c.scheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={c.bg}
+      />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Text style={styles.screenTitle}>Exercise</Text>
 
@@ -263,26 +270,26 @@ export function ExerciseScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 32 },
-  screenTitle: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 16 },
+  screenTitle: { fontSize: 28, fontWeight: '800', color: c.text, marginBottom: 16 },
 
   resumeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#ECFDF5',
+    backgroundColor: c.primarySoft,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
   },
-  resumeTitle: { fontSize: 14, fontWeight: '700', color: '#065F46' },
-  resumeSub: { fontSize: 12, color: '#047857', marginTop: 2 },
-  resumeArrow: { fontSize: 28, color: '#10B981', fontWeight: '300' },
+  resumeTitle: { fontSize: 14, fontWeight: '700', color: c.scheme === 'dark' ? c.primary : '#065F46' },
+  resumeSub: { fontSize: 12, color: c.scheme === 'dark' ? c.textMuted : '#047857', marginTop: 2 },
+  resumeArrow: { fontSize: 28, color: c.primary, fontWeight: '300' },
 
   startBtn: {
     flexDirection: 'row',
@@ -309,65 +316,65 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 4,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  importLink: { fontSize: 15, fontWeight: '700', color: '#6366F1' },
-  createLink: { fontSize: 15, fontWeight: '700', color: '#10B981' },
+  importLink: { fontSize: 15, fontWeight: '700', color: c.accent },
+  createLink: { fontSize: 15, fontWeight: '700', color: c.primary },
 
   emptyCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
   },
-  emptyText: { fontSize: 14, color: '#6B7280', lineHeight: 20 },
+  emptyText: { fontSize: 14, color: c.textMuted, lineHeight: 20 },
 
   templateCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
   templateMain: {},
-  templateName: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  templateMeta: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
+  templateName: { fontSize: 16, fontWeight: '700', color: c.text },
+  templateMeta: { fontSize: 12, color: c.textFaint, marginTop: 4 },
   templateActions: {
     flexDirection: 'row',
     gap: 16,
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: c.border,
   },
   templateActionBtn: {},
 
   progressCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 16,
     marginBottom: 10,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
-  progressName: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  progressMeta: { fontSize: 12, color: '#9CA3AF', marginTop: 3 },
+  progressName: { fontSize: 15, fontWeight: '700', color: c.text },
+  progressMeta: { fontSize: 12, color: c.textFaint, marginTop: 3 },
   progressBest: { alignItems: 'flex-end', marginRight: 12 },
-  progressBestValue: { fontSize: 16, fontWeight: '800', color: '#10B981', fontVariant: ['tabular-nums'] },
-  progressBestLabel: { fontSize: 10, color: '#9CA3AF', marginTop: 1 },
-  progressArrow: { fontSize: 24, color: '#D1D5DB', fontWeight: '300' },
+  progressBestValue: { fontSize: 16, fontWeight: '800', color: c.primary, fontVariant: ['tabular-nums'] },
+  progressBestLabel: { fontSize: 10, color: c.textFaint, marginTop: 1 },
+  progressArrow: { fontSize: 24, color: c.textFaint, fontWeight: '300' },
 
-  editText: { fontSize: 13, fontWeight: '600', color: '#10B981' },
-  shareText: { fontSize: 13, fontWeight: '600', color: '#6366F1' },
-  deleteText: { fontSize: 13, fontWeight: '600', color: '#EF4444' },
+  editText: { fontSize: 13, fontWeight: '600', color: c.primary },
+  shareText: { fontSize: 13, fontWeight: '600', color: c.accent },
+  deleteText: { fontSize: 13, fontWeight: '600', color: c.danger },
 });

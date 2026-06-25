@@ -11,6 +11,8 @@ import { useStore, sumMacros } from '../store/useStore';
 import { getPastDays, displayDate } from '../utils/date';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { WorkoutSession } from '../types';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   navigation: any;
@@ -25,6 +27,9 @@ const MACRO_COLORS = {
 const PAGE = 14;
 
 export function HistoryScreen({ navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
+  const barStyles = useMemo(() => makeBarStyles(c), [c]);
   const logs = useStore((s) => s.logs);
   const goals = useStore((s) => s.goals);
   const workoutHistory = useStore((s) => s.workoutHistory);
@@ -120,8 +125,8 @@ export function HistoryScreen({ navigation }: Props) {
                           width: `${Math.min(calPct, 100)}%` as any,
                           backgroundColor:
                             totals.calories > goals.calories
-                              ? '#EF4444'
-                              : '#10B981',
+                              ? c.danger
+                              : c.primary,
                         },
                       ]}
                     />
@@ -213,10 +218,10 @@ export function HistoryScreen({ navigation }: Props) {
   );
 }
 
-const barStyles = StyleSheet.create({
+const makeBarStyles = (c: Theme) => StyleSheet.create({
   track: {
     height: 4,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     borderRadius: 2,
     marginTop: 4,
     overflow: 'hidden',
@@ -227,10 +232,10 @@ const barStyles = StyleSheet.create({
   },
 });
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.bg,
   },
   content: {
     padding: 16,
@@ -239,20 +244,20 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#111827',
+    color: c.text,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: c.textFaint,
     marginBottom: 20,
   },
   dayCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -267,25 +272,25 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
   },
   dayCalories: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: c.primary,
   },
   overGoal: {
-    color: '#EF4444',
+    color: c.danger,
   },
   noData: {
     fontSize: 13,
-    color: '#D1D5DB',
+    color: c.textFaint,
     fontStyle: 'italic',
   },
   workoutDay: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#10B981',
+    color: c.primary,
   },
   workoutsSection: {
     marginTop: 4,
@@ -294,19 +299,19 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: c.border,
   },
   workoutsLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: c.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
   calorieBarTrack: {
     height: 6,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     borderRadius: 3,
     marginBottom: 12,
     overflow: 'hidden',
@@ -329,7 +334,7 @@ const styles = StyleSheet.create({
   },
   macroLabel: {
     fontSize: 10,
-    color: '#9CA3AF',
+    color: c.textFaint,
     marginTop: 4,
   },
   loadMoreBtn: {
@@ -341,24 +346,24 @@ const styles = StyleSheet.create({
   loadMoreText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10B981',
+    color: c.primary,
   },
   trendsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
   },
   trendsIcon: { fontSize: 28 },
-  trendsTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  trendsSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  trendsArrow: { fontSize: 26, color: '#D1D5DB', fontWeight: '300' },
+  trendsTitle: { fontSize: 16, fontWeight: '700', color: c.text },
+  trendsSub: { fontSize: 12, color: c.textFaint, marginTop: 2 },
+  trendsArrow: { fontSize: 26, color: c.textFaint, fontWeight: '300' },
 });
