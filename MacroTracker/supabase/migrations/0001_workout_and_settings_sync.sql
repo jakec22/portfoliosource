@@ -23,6 +23,9 @@ create table if not exists public.user_settings (
   body_weight_lbs      numeric,
   body_weight_log      jsonb,
   recent_foods         jsonb,
+  favorite_foods       jsonb,
+  custom_foods         jsonb,
+  saved_meals          jsonb,
   water_intake         jsonb,
   workout_templates    jsonb,
   updated_at           timestamptz not null default now()
@@ -42,6 +45,9 @@ alter table public.user_settings
   add column if not exists body_weight_lbs      numeric,
   add column if not exists body_weight_log      jsonb,
   add column if not exists recent_foods         jsonb,
+  add column if not exists favorite_foods       jsonb,
+  add column if not exists custom_foods         jsonb,
+  add column if not exists saved_meals          jsonb,
   add column if not exists water_intake         jsonb,
   add column if not exists workout_templates    jsonb;
 

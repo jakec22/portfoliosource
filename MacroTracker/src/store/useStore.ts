@@ -4,9 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AppState,
   DailyGoals,
+  Food,
   FoodEntry,
   MacroNutrients,
   MealType,
+  SavedMeal,
   WorkoutSession,
   WorkoutTemplate,
 } from '../types';
@@ -68,6 +70,9 @@ export const useStore = create<AppState>()(
           bodyWeightLbs: s.bodyWeightLbs,
           bodyWeightLog: s.bodyWeightLog,
           recentFoods: s.recentFoods,
+          favoriteFoods: s.favoriteFoods,
+          customFoods: s.customFoods,
+          savedMeals: s.savedMeals,
           waterIntake: s.waterIntake,
           workoutTemplates: s.workoutTemplates,
         };
@@ -87,6 +92,9 @@ export const useStore = create<AppState>()(
       bodyWeightLbs: undefined,
       bodyWeightLog: [],
       recentFoods: [],
+      favoriteFoods: [],
+      customFoods: [],
+      savedMeals: [],
       workoutTemplates: [],
       activeWorkout: null,
       workoutHistory: [],
@@ -227,6 +235,63 @@ export const useStore = create<AppState>()(
           };
         });
         syncSettings();
+      },
+
+      // ----- Nutrition shortcuts -----
+
+      toggleFavoriteFood: (food: Food) => {
+        set((state) => {
+          const isFav = state.favoriteFoods.some((f) => f.id === food.id);
+          return {
+            favoriteFoods: isFav
+              ? state.favoriteFoods.filter((f) => f.id !== food.id)
+              : [food, ...state.favoriteFoods],
+          };
+        });
+        syncSettings();
+      },
+
+      addCustomFood: (food: Food) => {
+        set((state) => ({ customFoods: [food, ...state.customFoods] }));
+        syncSettings();
+      },
+
+      deleteCustomFood: (id: string) => {
+        set((state) => ({
+          customFoods: state.customFoods.filter((f) => f.id !== id),
+          favoriteFoods: state.favoriteFoods.filter((f) => f.id !== id),
+        }));
+        syncSettings();
+      },
+
+      saveMeal: (meal: SavedMeal) => {
+        set((state) => ({ savedMeals: [meal, ...state.savedMeals] }));
+        syncSettings();
+      },
+
+      deleteSavedMeal: (id: string) => {
+        set((state) => ({ savedMeals: state.savedMeals.filter((m) => m.id !== id) }));
+        syncSettings();
+      },
+
+      copyMealFromDate: (fromDate: string, toDate: string, meal: MealType): number => {
+        const fromEntries = (get().logs[fromDate] ?? []).filter((e) => e.meal === meal);
+        if (fromEntries.length === 0) return 0;
+        const now = Date.now();
+        const newEntries: FoodEntry[] = fromEntries.map((e) => ({
+          ...e,
+          id: `${now}-${Math.random()}`,
+          date: toDate,
+          timestamp: now,
+        }));
+        set((state) => ({
+          logs: {
+            ...state.logs,
+            [toDate]: [...(state.logs[toDate] ?? []), ...newEntries],
+          },
+        }));
+        for (const entry of newEntries) void pushEntry(entry);
+        return newEntries.length;
       },
 
       // ----- Workouts -----
@@ -474,7 +539,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 3,
+      version: 4,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -512,6 +577,14 @@ export const useStore = create<AppState>()(
               typeof state.bodyWeightLbs === 'number'
                 ? [{ date: todayString(), lbs: state.bodyWeightLbs, loggedAt: Date.now() }]
                 : [],
+          };
+        }
+        if (version < 4 && state) {
+          state = {
+            ...state,
+            favoriteFoods: state.favoriteFoods ?? [],
+            customFoods: state.customFoods ?? [],
+            savedMeals: state.savedMeals ?? [],
           };
         }
         return state;

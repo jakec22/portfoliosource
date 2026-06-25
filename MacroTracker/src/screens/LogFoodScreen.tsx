@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Food, MealType, ServingUnit } from '../types';
+import { Food, MealType, SavedMeal, ServingUnit } from '../types';
 import { useStore } from '../store/useStore';
 import { searchFoods } from '../data/foods';
 import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
@@ -69,8 +69,23 @@ export function LogFoodScreen({ route, navigation }: Props) {
   const addEntry = useStore((s) => s.addEntry);
   const addRecentFood = useStore((s) => s.addRecentFood);
   const recentFoods = useStore((s) => s.recentFoods);
+  const favoriteFoods = useStore((s) => s.favoriteFoods);
+  const customFoods = useStore((s) => s.customFoods);
+  const savedMeals = useStore((s) => s.savedMeals);
+  const toggleFavoriteFood = useStore((s) => s.toggleFavoriteFood);
+  const saveMealToStore = useStore((s) => s.saveMeal);
+  const deleteSavedMeal = useStore((s) => s.deleteSavedMeal);
+  const copyMealFromDate = useStore((s) => s.copyMealFromDate);
+  const logs = useStore((s) => s.logs);
+
+  // Foods already logged for this meal today — used for "Save this meal".
+  const mealEntries = useMemo(
+    () => (logs[date] ?? []).filter((e) => e.meal === meal),
+    [logs, date, meal]
+  );
 
   // Debounced live search against USDA (falls back to local foods offline).
+  // Custom foods are merged in front of API results when their name matches.
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -79,7 +94,19 @@ export function LogFoodScreen({ route, navigation }: Props) {
       searchFoodsApi(query, controller.signal)
         .then((r) => {
           if (active) {
-            setResults(r);
+            const q = query.toLowerCase().trim();
+            const customMatches = q
+              ? customFoods.filter(
+                  (f) =>
+                    f.name.toLowerCase().includes(q) ||
+                    (f.brand && f.brand.toLowerCase().includes(q))
+                )
+              : customFoods;
+            const apiIds = new Set(r.map((f) => f.id));
+            setResults([
+              ...customMatches.filter((f) => !apiIds.has(f.id)),
+              ...r,
+            ]);
             setLoading(false);
           }
         })
@@ -92,7 +119,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
       clearTimeout(t);
       controller.abort();
     };
-  }, [query]);
+  }, [query, customFoods]);
 
   function handleSelectFood(food: Food) {
     // Dismiss the search keyboard first so the amount field opens its own
@@ -164,7 +191,59 @@ export function LogFoodScreen({ route, navigation }: Props) {
       }
     : null;
 
-  const showRecents = query.trim() === '' && recentFoods.length > 0;
+  const showShortcuts = query.trim() === '';
+
+  function prevDay(dateStr: string): string {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() - 1);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  }
+
+  function handleCopyYesterday() {
+    const count = copyMealFromDate(prevDay(date), date, meal);
+    if (count === 0) {
+      Alert.alert(
+        'Nothing to copy',
+        `No ${MEAL_LABELS[meal].toLowerCase()} was logged yesterday.`
+      );
+    } else {
+      navigation.goBack();
+    }
+  }
+
+  function handleSaveMeal() {
+    if (mealEntries.length === 0) return;
+    Alert.prompt(
+      'Save Meal',
+      `Name this ${MEAL_LABELS[meal].toLowerCase()} for quick re-logging:`,
+      (name) => {
+        if (!name?.trim()) return;
+        saveMealToStore({
+          id: `meal-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          name: name.trim(),
+          items: mealEntries.map((e) => ({ food: e.food, servings: e.servings })),
+          createdAt: Date.now(),
+        });
+      },
+      'plain-text'
+    );
+  }
+
+  function handleLogSavedMeal(sm: SavedMeal) {
+    const now = Date.now();
+    for (const item of sm.items) {
+      addEntry({
+        id: `${now}-${Math.random()}`,
+        food: item.food,
+        servings: item.servings,
+        meal,
+        timestamp: now,
+        date,
+      });
+    }
+    navigation.goBack();
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -177,7 +256,12 @@ export function LogFoodScreen({ route, navigation }: Props) {
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Add to {MEAL_LABELS[meal]}</Text>
-          <View style={{ width: 60 }} />
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.navigate('CreateCustomFood', { meal, date })}
+          >
+            <Text style={[styles.backText, { textAlign: 'right' }]}>+ Food</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.searchRow}>
@@ -216,69 +300,173 @@ export function LogFoodScreen({ route, navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            showRecents ? (
+            showShortcuts ? (
               <View style={styles.recentSection}>
-                <Text style={styles.recentTitle}>Recent</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  contentContainerStyle={styles.recentRow}
-                >
-                  {recentFoods.map((f) => (
+                {/* Favorites */}
+                {favoriteFoods.length > 0 && (
+                  <>
+                    <Text style={styles.recentTitle}>Favorites</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      contentContainerStyle={styles.recentRow}
+                    >
+                      {favoriteFoods.map((f) => (
+                        <TouchableOpacity
+                          key={f.id}
+                          style={styles.recentChip}
+                          onPress={() => handleSelectFood(f)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.recentChipName} numberOfLines={1}>
+                            {f.name}
+                          </Text>
+                          <Text style={styles.recentChipCals}>
+                            {f.macros.calories} kcal
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </>
+                )}
+
+                {/* Saved meals */}
+                {savedMeals.length > 0 && (
+                  <>
+                    <Text style={styles.recentTitle}>Saved Meals</Text>
+                    {savedMeals.map((sm) => {
+                      const totalCal = Math.round(
+                        sm.items.reduce(
+                          (s, i) => s + i.food.macros.calories * i.servings,
+                          0
+                        )
+                      );
+                      return (
+                        <TouchableOpacity
+                          key={sm.id}
+                          style={styles.savedMealRow}
+                          onPress={() => handleLogSavedMeal(sm)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.savedMealName}>{sm.name}</Text>
+                            <Text style={styles.savedMealMeta}>
+                              {sm.items.length} item{sm.items.length === 1 ? '' : 's'}{' '}
+                              · {totalCal} kcal
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => deleteSavedMeal(sm.id)}
+                            hitSlop={{ top: 8, bottom: 8, left: 12, right: 8 }}
+                          >
+                            <Text style={styles.savedMealDelete}>✕</Text>
+                          </TouchableOpacity>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </>
+                )}
+
+                {/* Shortcut buttons */}
+                <View style={styles.shortcutRow}>
+                  <TouchableOpacity
+                    style={styles.shortcutBtn}
+                    onPress={handleCopyYesterday}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.shortcutBtnText}>📋  Copy yesterday</Text>
+                  </TouchableOpacity>
+                  {mealEntries.length > 0 && (
                     <TouchableOpacity
-                      key={f.id}
-                      style={styles.recentChip}
-                      onPress={() => handleSelectFood(f)}
+                      style={styles.shortcutBtn}
+                      onPress={handleSaveMeal}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.recentChipName} numberOfLines={1}>
-                        {f.name}
-                      </Text>
-                      <Text style={styles.recentChipCals}>
-                        {f.macros.calories} kcal
-                      </Text>
+                      <Text style={styles.shortcutBtnText}>💾  Save this meal</Text>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                  )}
+                </View>
+
+                {/* Recents */}
+                {recentFoods.length > 0 && (
+                  <>
+                    <Text style={styles.recentTitle}>Recent</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      contentContainerStyle={styles.recentRow}
+                    >
+                      {recentFoods.map((f) => (
+                        <TouchableOpacity
+                          key={f.id}
+                          style={styles.recentChip}
+                          onPress={() => handleSelectFood(f)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.recentChipName} numberOfLines={1}>
+                            {f.name}
+                          </Text>
+                          <Text style={styles.recentChipCals}>
+                            {f.macros.calories} kcal
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </>
+                )}
+
                 <Text style={styles.allFoodsLabel}>All Foods</Text>
               </View>
             ) : null
           }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.foodItem,
-                selectedFood?.id === item.id && styles.foodItemSelected,
-              ]}
-              onPress={() => handleSelectFood(item)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.foodItemLeft}>
-                <Text style={styles.foodName}>{item.name}</Text>
-                {item.brand && (
-                  <Text style={styles.foodBrand}>{item.brand}</Text>
-                )}
-                <Text style={styles.foodServing}>
-                  per {item.serving_size}{item.serving_unit}
-                </Text>
-              </View>
-              <View style={styles.foodItemRight}>
-                <Text style={styles.foodCals}>
-                  {item.macros.calories} kcal
-                </Text>
-                <Text style={styles.foodMacro}>
-                  P {item.macros.protein}g
-                </Text>
-                <Text style={styles.foodMacro}>
-                  C {item.macros.carbs}g
-                </Text>
-                <Text style={styles.foodMacro}>
-                  F {item.macros.fat}g
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const isFav = favoriteFoods.some((f) => f.id === item.id);
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.foodItem,
+                  selectedFood?.id === item.id && styles.foodItemSelected,
+                ]}
+                onPress={() => handleSelectFood(item)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.foodItemLeft}>
+                  <Text style={styles.foodName}>{item.name}</Text>
+                  {item.brand && (
+                    <Text style={styles.foodBrand}>{item.brand}</Text>
+                  )}
+                  <Text style={styles.foodServing}>
+                    per {item.serving_size}{item.serving_unit}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.starBtn}
+                  onPress={() => toggleFavoriteFood(item)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+                >
+                  <Text style={[styles.starBtnText, isFav && styles.starBtnActive]}>
+                    {isFav ? '★' : '☆'}
+                  </Text>
+                </TouchableOpacity>
+                <View style={styles.foodItemRight}>
+                  <Text style={styles.foodCals}>
+                    {item.macros.calories} kcal
+                  </Text>
+                  <Text style={styles.foodMacro}>
+                    P {item.macros.protein}g
+                  </Text>
+                  <Text style={styles.foodMacro}>
+                    C {item.macros.carbs}g
+                  </Text>
+                  <Text style={styles.foodMacro}>
+                    F {item.macros.fat}g
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
           ListEmptyComponent={
             loading ? (
               <View style={styles.empty}>
@@ -558,6 +746,65 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 4,
     marginLeft: 2,
+  },
+  shortcutRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  shortcutBtn: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  shortcutBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  savedMealRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  savedMealName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  savedMealMeta: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  savedMealDelete: {
+    fontSize: 15,
+    color: '#D1D5DB',
+    paddingLeft: 12,
+    fontWeight: '600',
+  },
+  starBtn: {
+    paddingHorizontal: 6,
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+  starBtnText: {
+    fontSize: 20,
+    color: '#D1D5DB',
+  },
+  starBtnActive: {
+    color: '#F59E0B',
   },
   unitRow: {
     flexDirection: 'row',

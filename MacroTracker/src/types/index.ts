@@ -118,6 +118,14 @@ export interface BodyWeightEntry {
   loggedAt: number; // ms epoch
 }
 
+// A saved meal — a named collection of foods the user wants to re-log quickly.
+export interface SavedMeal {
+  id: string;
+  name: string;
+  items: Array<{ food: Food; servings: number }>;
+  createdAt: number;
+}
+
 export interface AppState {
   goals: DailyGoals;
   logs: Record<string, FoodEntry[]>; // date -> entries
@@ -131,6 +139,9 @@ export interface AppState {
   bodyWeightLbs?: number; // most recent body weight, used for the TDEE calc
   bodyWeightLog: BodyWeightEntry[]; // dated weight history, newest first
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
+  favoriteFoods: Food[]; // user-starred foods, shown above recents
+  customFoods: Food[]; // user-created foods with custom macros
+  savedMeals: SavedMeal[]; // named meal templates for quick re-logging
   workoutTemplates: WorkoutTemplate[];
   activeWorkout: WorkoutSession | null;
   workoutHistory: WorkoutSession[]; // completed sessions, newest first
@@ -138,6 +149,12 @@ export interface AppState {
   addEntry: (entry: FoodEntry) => void;
   addRecentFood: (food: Food) => void;
   removeEntry: (date: string, entryId: string) => void;
+  toggleFavoriteFood: (food: Food) => void;
+  addCustomFood: (food: Food) => void;
+  deleteCustomFood: (id: string) => void;
+  saveMeal: (meal: SavedMeal) => void;
+  deleteSavedMeal: (id: string) => void;
+  copyMealFromDate: (fromDate: string, toDate: string, meal: MealType) => number;
   updateEntry: (date: string, entryId: string, patch: { servings: number; amount?: number; unit?: ServingUnit }) => void;
   addWater: (date: string, oz: number) => void;
   setWater: (date: string, oz: number) => void;

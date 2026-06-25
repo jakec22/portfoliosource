@@ -5,6 +5,7 @@ import type {
   DailyGoals,
   Food,
   FoodEntry,
+  SavedMeal,
   WorkoutSession,
   WorkoutTemplate,
 } from '../types';
@@ -56,6 +57,9 @@ export interface SettingsSnapshot {
   bodyWeightLbs?: number;
   bodyWeightLog: BodyWeightEntry[];
   recentFoods: Food[];
+  favoriteFoods: Food[];
+  customFoods: Food[];
+  savedMeals: SavedMeal[];
   waterIntake: Record<string, number>;
   workoutTemplates: WorkoutTemplate[];
 }
@@ -112,6 +116,9 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     body_weight_lbs: s.bodyWeightLbs ?? null,
     body_weight_log: s.bodyWeightLog,
     recent_foods: s.recentFoods,
+    favorite_foods: s.favoriteFoods,
+    custom_foods: s.customFoods,
+    saved_meals: s.savedMeals,
     water_intake: s.waterIntake,
     workout_templates: s.workoutTemplates,
     updated_at: new Date().toISOString(),

@@ -16,6 +16,7 @@ import { ActiveWorkoutScreen } from './src/screens/ActiveWorkoutScreen';
 import { WorkoutSummaryScreen } from './src/screens/WorkoutSummaryScreen';
 import { ExerciseProgressScreen } from './src/screens/ExerciseProgressScreen';
 import { AnalyticsScreen } from './src/screens/AnalyticsScreen';
+import { CreateCustomFoodScreen } from './src/screens/CreateCustomFoodScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -41,6 +42,11 @@ function HomeStack() {
       />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen
+        name="CreateCustomFood"
+        component={CreateCustomFoodScreen as any}
+        options={{ presentation: 'modal' }}
+      />
     </Stack.Navigator>
   );
 }

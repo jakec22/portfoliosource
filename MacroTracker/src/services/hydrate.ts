@@ -27,6 +27,9 @@ function snapshot(): SettingsSnapshot {
     bodyWeightLbs: s.bodyWeightLbs,
     bodyWeightLog: s.bodyWeightLog,
     recentFoods: s.recentFoods,
+    favoriteFoods: s.favoriteFoods,
+    customFoods: s.customFoods,
+    savedMeals: s.savedMeals,
     waterIntake: s.waterIntake,
     workoutTemplates: s.workoutTemplates,
   };
@@ -171,6 +174,15 @@ export async function syncOnLogin(userId: string): Promise<void> {
       recentFoods: settings?.recent_foods?.length
         ? settings.recent_foods
         : state.recentFoods,
+      favoriteFoods: settings?.favorite_foods?.length
+        ? settings.favorite_foods
+        : state.favoriteFoods,
+      customFoods: settings?.custom_foods?.length
+        ? settings.custom_foods
+        : state.customFoods,
+      savedMeals: settings?.saved_meals?.length
+        ? settings.saved_meals
+        : state.savedMeals,
       bodyWeightLog: settings?.body_weight_log?.length
         ? settings.body_weight_log
         : state.bodyWeightLog,
