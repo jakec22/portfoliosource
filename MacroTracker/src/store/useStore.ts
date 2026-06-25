@@ -9,6 +9,7 @@ import {
   MacroNutrients,
   MealType,
   SavedMeal,
+  UserProfile,
   WorkoutSession,
   WorkoutTemplate,
 } from '../types';
@@ -69,6 +70,7 @@ export const useStore = create<AppState>()(
           defaultRestSeconds: s.defaultRestSeconds,
           bodyWeightLbs: s.bodyWeightLbs,
           bodyWeightLog: s.bodyWeightLog,
+          profile: s.profile,
           recentFoods: s.recentFoods,
           favoriteFoods: s.favoriteFoods,
           customFoods: s.customFoods,
@@ -91,6 +93,7 @@ export const useStore = create<AppState>()(
       restTrigger: 0,
       bodyWeightLbs: undefined,
       bodyWeightLog: [],
+      profile: undefined,
       recentFoods: [],
       favoriteFoods: [],
       customFoods: [],
@@ -205,6 +208,11 @@ export const useStore = create<AppState>()(
 
       setBodyWeight: (lbs) => {
         set({ bodyWeightLbs: Math.round(lbs) });
+        syncSettings();
+      },
+
+      setProfile: (profile) => {
+        set({ profile });
         syncSettings();
       },
 

@@ -126,6 +126,21 @@ export interface SavedMeal {
   createdAt: number;
 }
 
+// The inputs the Goal Wizard collects, persisted so re-running it pre-fills the
+// user's last answers. `heightCm`/`weightLbs` are stored canonically; `units`
+// only controls how they're displayed/edited.
+export interface UserProfile {
+  sex: 'male' | 'female';
+  age: number;
+  heightCm: number;
+  weightLbs: number;
+  units: 'imperial' | 'metric';
+  activityIdx: number;
+  goalType: 'lose' | 'maintain' | 'gain';
+  rateLbPerWeek: number; // 0 for maintain
+  updatedAt: number;
+}
+
 export interface AppState {
   goals: DailyGoals;
   logs: Record<string, FoodEntry[]>; // date -> entries
@@ -138,6 +153,7 @@ export interface AppState {
   restTrigger: number; // bumped to signal the rest timer to auto-start
   bodyWeightLbs?: number; // most recent body weight, used for the TDEE calc
   bodyWeightLog: BodyWeightEntry[]; // dated weight history, newest first
+  profile?: UserProfile; // saved Goal Wizard inputs, used to pre-fill on re-run
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
   favoriteFoods: Food[]; // user-starred foods, shown above recents
   customFoods: Food[]; // user-created foods with custom macros
@@ -164,6 +180,7 @@ export interface AppState {
   setAutoRestTimer: (on: boolean) => void;
   setDefaultRestSeconds: (seconds: number) => void;
   setBodyWeight: (lbs: number) => void;
+  setProfile: (profile: UserProfile) => void;
   logBodyWeight: (lbs: number, date?: string) => void;
   deleteBodyWeightEntry: (loggedAt: number) => void;
   getEntriesForDate: (date: string) => FoodEntry[];

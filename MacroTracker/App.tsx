@@ -17,6 +17,7 @@ import { WorkoutSummaryScreen } from './src/screens/WorkoutSummaryScreen';
 import { ExerciseProgressScreen } from './src/screens/ExerciseProgressScreen';
 import { AnalyticsScreen } from './src/screens/AnalyticsScreen';
 import { BuildMealScreen } from './src/screens/BuildMealScreen';
+import { GoalWizardScreen } from './src/screens/GoalWizardScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -82,6 +83,11 @@ function ProfileStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileHome" component={CalculatorScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen
+        name="GoalWizard"
+        component={GoalWizardScreen as any}
+        options={{ presentation: 'modal' }}
+      />
     </Stack.Navigator>
   );
 }

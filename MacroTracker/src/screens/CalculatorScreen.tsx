@@ -202,6 +202,7 @@ function MacroSlider({
 export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const goals = useStore((s) => s.goals);
   const setGoals = useStore((s) => s.setGoals);
+  const profile = useStore((s) => s.profile);
   const setBodyWeight = useStore((s) => s.setBodyWeight);
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
   const logBodyWeight = useStore((s) => s.logBodyWeight);
@@ -390,6 +391,28 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Goals</Text>
         <Text style={styles.subtitle}>Set your daily targets, or calculate them below</Text>
+
+        {/* Guided setup wizard — the recommended path */}
+        {navigation && (
+          <TouchableOpacity
+            style={styles.wizardCta}
+            onPress={() => navigation.navigate('GoalWizard')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.wizardIcon}>🎯</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.wizardTitle}>
+                {profile ? 'Update my plan' : 'Set up my goals'}
+              </Text>
+              <Text style={styles.wizardSub}>
+                {profile
+                  ? 'Re-run the guided wizard to recalculate your targets'
+                  : 'Answer a few questions to calculate your calories & macros'}
+              </Text>
+            </View>
+            <Text style={styles.wizardArrow}>›</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Daily Goals (editable) */}
         <Text style={styles.sectionTitle}>Daily Goals</Text>
@@ -824,6 +847,21 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 48 },
   pageTitle: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 4 },
   subtitle: { fontSize: 14, color: '#9CA3AF', marginBottom: 20 },
+  wizardCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#A7F3D0',
+    padding: 18,
+    marginBottom: 24,
+    gap: 14,
+  },
+  wizardIcon: { fontSize: 28 },
+  wizardTitle: { fontSize: 16, fontWeight: '800', color: '#065F46' },
+  wizardSub: { fontSize: 13, color: '#059669', marginTop: 2, lineHeight: 18 },
+  wizardArrow: { fontSize: 24, color: '#10B981', fontWeight: '700' },
   sectionTitle: {
     fontSize: 13, fontWeight: '700', color: '#9CA3AF',
     textTransform: 'uppercase', letterSpacing: 0.8,

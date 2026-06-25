@@ -6,6 +6,7 @@ import type {
   Food,
   FoodEntry,
   SavedMeal,
+  UserProfile,
   WorkoutSession,
   WorkoutTemplate,
 } from '../types';
@@ -56,6 +57,7 @@ export interface SettingsSnapshot {
   defaultRestSeconds: number;
   bodyWeightLbs?: number;
   bodyWeightLog: BodyWeightEntry[];
+  profile?: UserProfile;
   recentFoods: Food[];
   favoriteFoods: Food[];
   customFoods: Food[];
@@ -115,6 +117,7 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     default_rest_seconds: s.defaultRestSeconds,
     body_weight_lbs: s.bodyWeightLbs ?? null,
     body_weight_log: s.bodyWeightLog,
+    profile: s.profile ?? null,
     recent_foods: s.recentFoods,
     favorite_foods: s.favoriteFoods,
     custom_foods: s.customFoods,
