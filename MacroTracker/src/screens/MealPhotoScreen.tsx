@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import { useStore } from '../store/useStore';
 import { analyzeMealPhoto, analyzeMealText, AnalyzedItem } from '../services/mealPhoto';
 import { MealType, ServingUnit, Food } from '../types';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -70,6 +72,8 @@ function itemUnits(it: ReviewItem): ServingUnit[] {
 }
 
 export function MealPhotoScreen({ route, navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { meal, date } = route.params;
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -294,7 +298,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                 <TextInput
                   style={styles.describeInput}
                   placeholder="e.g. 2 scrambled eggs, a slice of buttered toast, and a banana"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={c.textFaint}
                   value={description}
                   onChangeText={setDescription}
                   multiline
@@ -317,7 +321,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
 
           {loading && (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color="#10B981" />
+              <ActivityIndicator size="large" color={c.primary} />
               <Text style={styles.loadingText}>Analyzing your meal…</Text>
             </View>
           )}
@@ -428,7 +432,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
 
                         {/* Live macro preview */}
                         <View style={styles.previewRow}>
-                          <MacroStat label="kcal" value={preview.calories} color="#111827" />
+                          <MacroStat label="kcal" value={preview.calories} color={c.text} />
                           <MacroStat label="protein" value={preview.protein} color="#3B82F6" unit="g" />
                           <MacroStat label="carbs" value={preview.carbs} color="#F59E0B" unit="g" />
                           <MacroStat label="fat" value={preview.fat} color="#EF4444" unit="g" />
@@ -478,6 +482,8 @@ function MacroStat({
   color: string;
   unit?: string;
 }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.macroStat}>
       <Text style={[styles.macroStatValue, { color }]}>
@@ -488,35 +494,35 @@ function MacroStat({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: c.border,
   },
   backBtn: { padding: 4, width: 60 },
-  backText: { fontSize: 16, color: '#10B981', fontWeight: '600' },
-  title: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  backText: { fontSize: 16, color: c.primary, fontWeight: '600' },
+  title: { fontSize: 17, fontWeight: '700', color: c.text },
   content: { padding: 16, paddingBottom: 32 },
   preview: {
     width: '100%',
     height: 220,
     borderRadius: 16,
     marginBottom: 16,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: c.cardMuted,
   },
   intro: { alignItems: 'center', paddingVertical: 24 },
   introEmoji: { fontSize: 48, marginBottom: 12 },
-  introTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  introTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginBottom: 8 },
   introText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: c.textMuted,
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 8,
@@ -524,30 +530,30 @@ const styles = StyleSheet.create({
   pickRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
   pickBtn: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     paddingVertical: 20,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
   pickBtnIcon: { fontSize: 28, marginBottom: 6 },
-  pickBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
+  pickBtnText: { fontSize: 14, fontWeight: '600', color: c.gray700 },
 
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 18 },
-  orLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
-  orText: { fontSize: 12, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.6 },
+  orLine: { flex: 1, height: 1, backgroundColor: c.border },
+  orText: { fontSize: 12, fontWeight: '600', color: c.textFaint, textTransform: 'uppercase', letterSpacing: 0.6 },
   describeBox: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
   describeInput: {
     minHeight: 72,
     fontSize: 15,
-    color: '#111827',
+    color: c.text,
     lineHeight: 21,
     marginBottom: 12,
   },
@@ -557,17 +563,17 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
   },
-  describeBtnDisabled: { backgroundColor: '#CBD5E1' },
+  describeBtnDisabled: { backgroundColor: c.borderStrong },
   describeBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   loadingBox: { alignItems: 'center', paddingVertical: 40 },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#6B7280', fontWeight: '500' },
+  loadingText: { marginTop: 12, fontSize: 14, color: c.textMuted, fontWeight: '500' },
 
   results: { marginTop: 20 },
   resultsLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: c.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 10,
@@ -575,15 +581,15 @@ const styles = StyleSheet.create({
 
   // Item card
   itemCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     marginBottom: 10,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: '#F3F4F6',
+    borderColor: c.border,
   },
   itemCardExpanded: {
-    borderColor: '#10B981',
+    borderColor: c.primary,
   },
   itemSummary: {
     flexDirection: 'row',
@@ -591,68 +597,69 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   itemLeft: { flex: 1 },
-  itemName: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  itemServing: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  itemMacros: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  itemName: { fontSize: 15, fontWeight: '600', color: c.text },
+  itemServing: { fontSize: 12, color: c.textFaint, marginTop: 2 },
+  itemMacros: { fontSize: 12, color: c.textMuted, marginTop: 4 },
   itemRight: { alignItems: 'flex-end', gap: 4, marginLeft: 12 },
   amountBadge: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#10B981',
-    backgroundColor: '#ECFDF5',
+    color: c.primary,
+    backgroundColor: c.primarySoft,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  chevron: { fontSize: 14, color: '#9CA3AF', fontWeight: '600' },
+  chevron: { fontSize: 14, color: c.textFaint, fontWeight: '600' },
 
   // Expanded editor
   editor: { paddingHorizontal: 14, paddingBottom: 14 },
-  divider: { height: 1, backgroundColor: '#F3F4F6', marginBottom: 14 },
+  divider: { height: 1, backgroundColor: c.border, marginBottom: 14 },
   unitRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   unitBtn: {
     flex: 1,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
-  unitBtnActive: { backgroundColor: '#ECFDF5', borderColor: '#10B981' },
-  unitBtnText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  unitBtnTextActive: { color: '#10B981' },
+  unitBtnActive: { backgroundColor: c.primarySoft, borderColor: c.primary },
+  unitBtnText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+  unitBtnTextActive: { color: c.primary },
   amountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
   },
-  amountLabel: { fontSize: 13, color: '#6B7280', flex: 1 },
+  amountLabel: { fontSize: 13, color: c.textMuted, flex: 1 },
   amountControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepBtnText: { fontSize: 20, fontWeight: '300', color: '#374151' },
+  stepBtnText: { fontSize: 20, fontWeight: '300', color: c.gray700 },
   amountInput: {
     width: 64,
     height: 34,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     borderRadius: 10,
     textAlign: 'center',
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: c.text,
+    backgroundColor: c.input,
   },
   previewRow: {
     flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     borderRadius: 12,
     padding: 10,
     marginBottom: 14,
@@ -660,17 +667,17 @@ const styles = StyleSheet.create({
   },
   macroStat: { alignItems: 'center' },
   macroStatValue: { fontSize: 16, fontWeight: '700' },
-  macroStatLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  macroStatLabel: { fontSize: 11, color: c.textFaint, marginTop: 2 },
   removeBtn: { alignItems: 'center', paddingVertical: 6 },
-  removeBtnText: { fontSize: 13, fontWeight: '600', color: '#EF4444' },
+  removeBtnText: { fontSize: 13, fontWeight: '600', color: c.danger },
 
   // Footer
   footer: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -682,13 +689,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  totalLabel: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
-  totalValue: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  totalLabel: { fontSize: 14, color: c.textMuted, fontWeight: '600' },
+  totalValue: { fontSize: 18, fontWeight: '700', color: c.text },
   addBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  addBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  addBtnText: { color: c.onPrimary, fontSize: 16, fontWeight: '700' },
 });
