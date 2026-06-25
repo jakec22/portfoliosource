@@ -27,12 +27,21 @@ create table if not exists public.user_settings (
   updated_at           timestamptz not null default now()
 );
 
--- Backfill columns onto a user_settings table that predates this schema.
+-- Backfill every column onto a user_settings table that predates this schema.
+-- `create table if not exists` above is a no-op when the table already exists,
+-- so if an older/partial user_settings was created previously (e.g. with only
+-- the water columns), these ensure the rest of the columns are present too.
 alter table public.user_settings
+  add column if not exists goals                jsonb,
+  add column if not exists water_goal           numeric,
+  add column if not exists water_increment      numeric,
   add column if not exists show_water_tracker   boolean,
-  add column if not exists auto_rest_timer       boolean,
-  add column if not exists default_rest_seconds  integer,
-  add column if not exists workout_templates     jsonb;
+  add column if not exists auto_rest_timer      boolean,
+  add column if not exists default_rest_seconds integer,
+  add column if not exists body_weight_lbs      numeric,
+  add column if not exists recent_foods         jsonb,
+  add column if not exists water_intake         jsonb,
+  add column if not exists workout_templates    jsonb;
 
 -- ── food_entries ─────────────────────────────────────────────────────────────
 -- One row per logged food item, upserted/deleted individually.

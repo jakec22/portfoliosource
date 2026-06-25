@@ -163,11 +163,24 @@ export async function syncOnLogin(userId: string): Promise<void> {
       autoRestTimer: settings?.auto_rest_timer ?? state.autoRestTimer,
       defaultRestSeconds: settings?.default_rest_seconds ?? state.defaultRestSeconds,
       bodyWeightLbs: settings?.body_weight_lbs ?? state.bodyWeightLbs,
-      recentFoods: settings?.recent_foods ?? state.recentFoods,
       waterIntake: settings?.water_intake ?? state.waterIntake,
-      workoutTemplates: settings?.workout_templates ?? state.workoutTemplates,
+      // For list-valued settings, only take the cloud copy when it actually has
+      // items — an empty/missing cloud array must not wipe local data (e.g. a
+      // settings row written before templates/foods existed).
+      recentFoods: settings?.recent_foods?.length
+        ? settings.recent_foods
+        : state.recentFoods,
+      workoutTemplates: settings?.workout_templates?.length
+        ? settings.workout_templates
+        : state.workoutTemplates,
       workoutHistory: mergedWorkoutHistory,
     }));
+
+    // The cloud settings row may be incomplete or stale (older schema, or
+    // written before templates/recent foods existed). Push the now-merged
+    // snapshot back up so the cloud self-heals to a complete row.
+    setSuspended(false);
+    await pushSettings(snapshot());
   } finally {
     setSuspended(false);
   }
