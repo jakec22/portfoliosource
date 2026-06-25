@@ -18,7 +18,7 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { useStore } from '../store/useStore';
 import type { SetType, HeartRateSample } from '../types';
 import { formatDuration, relativeDateLabel } from '../utils/date';
-import { lastPerformance, formatPerformedSets } from '../utils/exerciseHistory';
+import { lastPerformance } from '../utils/exerciseHistory';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
 import { getHeartRateMonitor } from '../services/heartRate';
 
@@ -281,15 +281,15 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                 </View>
               </View>
 
-              {/* Previous performance — progressive-overload reference */}
+              {/* Values were pre-filled from the last session — note when, so
+                  the numbers below read as "last time" rather than fresh. */}
               {(() => {
                 const last = lastPerformance(workoutHistory, ex.name);
                 if (!last) return null;
                 return (
                   <Text style={styles.lastTime} numberOfLines={1}>
-                    <Text style={styles.lastTimeLabel}>
-                      Last ({relativeDateLabel(last.date)}): </Text>
-                    {formatPerformedSets(last.sets)}
+                    <Text style={styles.lastTimeLabel}>Pre-filled</Text> from last time ·{' '}
+                    {relativeDateLabel(last.date)}
                   </Text>
                 );
               })()}

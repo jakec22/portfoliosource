@@ -1,4 +1,4 @@
-import type { WorkoutExercise, WorkoutSession } from '../types';
+import type { SetType, WorkoutExercise, WorkoutSession } from '../types';
 
 /**
  * Progressive-overload helpers: derive per-exercise history, bests, and
@@ -85,6 +85,38 @@ export function lastPerformance(
   excludeSessionId?: string
 ): ExercisePerformance | null {
   return exerciseHistory(history, exerciseName, excludeSessionId)[0] ?? null;
+}
+
+// A planned set used to seed a new active-workout exercise.
+export interface PrefillSet {
+  weight: number;
+  reps: number;
+  type?: SetType;
+}
+
+// Overlay the weights/reps from the last time an exercise was performed onto a
+// set of planned sets, so a new session starts pre-filled for progressive
+// overload — "start where you left off, then beat it." Warm-up sets keep their
+// planned values; working sets are filled from history in order, and any extra
+// working sets done last time are carried forward. With no prior history the
+// planned sets are returned unchanged.
+export function prefillFromLastPerformance(
+  history: WorkoutSession[],
+  exerciseName: string,
+  planned: PrefillSet[]
+): PrefillSet[] {
+  const last = lastPerformance(history, exerciseName);
+  if (!last || last.sets.length === 0) return planned;
+  let i = 0;
+  const out: PrefillSet[] = planned.map((ps) => {
+    if (ps.type === 'warmup') return ps;
+    const prev = last.sets[i++];
+    return prev ? { ...ps, weight: prev.weight, reps: prev.reps } : ps;
+  });
+  for (; i < last.sets.length; i++) {
+    out.push({ weight: last.sets[i].weight, reps: last.sets[i].reps });
+  }
+  return out;
 }
 
 // Best-ever marks for an exercise across history.

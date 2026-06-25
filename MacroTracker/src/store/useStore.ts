@@ -11,6 +11,7 @@ import {
   WorkoutTemplate,
 } from '../types';
 import { todayString } from '../utils/date';
+import { prefillFromLastPerformance } from '../utils/exerciseHistory';
 import {
   pushEntry,
   deleteEntryRemote,
@@ -220,6 +221,9 @@ export const useStore = create<AppState>()(
 
       startWorkout: (template) => {
         const now = Date.now();
+        // Seed each exercise from the last time it was performed (progressive
+        // overload by default); the template's planned sets are the fallback.
+        const history = get().workoutHistory;
         const session: WorkoutSession = {
           id: `w-${now}-${Math.random()}`,
           name: template?.name ?? 'Quick Workout',
@@ -230,10 +234,11 @@ export const useStore = create<AppState>()(
             const planned = te.sets.length
               ? te.sets
               : [{ weight: 0, reps: 0, type: undefined }];
+            const prefilled = prefillFromLastPerformance(history, te.name, planned);
             return {
               id: `we-${now}-${i}-${Math.random()}`,
               name: te.name,
-              sets: planned.map((ts, si) => ({
+              sets: prefilled.map((ts, si) => ({
                 id: `ws-${now}-${i}-${si}-${Math.random()}`,
                 weight: ts.weight,
                 reps: ts.reps,
@@ -280,12 +285,22 @@ export const useStore = create<AppState>()(
         set((state) => {
           if (!state.activeWorkout) return {};
           const now = Date.now();
+          const cleanName = name.trim() || 'Exercise';
+          // Pre-fill from the last time this exercise was done, recreating its
+          // full set list when there's history to draw on.
+          const prefilled = prefillFromLastPerformance(state.workoutHistory, cleanName, [
+            { weight: 0, reps: 0 },
+          ]);
           const exercise = {
             id: `we-${now}-${Math.random()}`,
-            name: name.trim() || 'Exercise',
-            sets: [
-              { id: `ws-${now}-${Math.random()}`, weight: 0, reps: 0, completed: false },
-            ],
+            name: cleanName,
+            sets: prefilled.map((ts, si) => ({
+              id: `ws-${now}-${si}-${Math.random()}`,
+              weight: ts.weight,
+              reps: ts.reps,
+              type: ts.type,
+              completed: false,
+            })),
           };
           return {
             activeWorkout: {
