@@ -25,6 +25,7 @@ function snapshot(): SettingsSnapshot {
     autoRestTimer: s.autoRestTimer,
     defaultRestSeconds: s.defaultRestSeconds,
     bodyWeightLbs: s.bodyWeightLbs,
+    bodyWeightLog: s.bodyWeightLog,
     recentFoods: s.recentFoods,
     waterIntake: s.waterIntake,
     workoutTemplates: s.workoutTemplates,
@@ -170,6 +171,9 @@ export async function syncOnLogin(userId: string): Promise<void> {
       recentFoods: settings?.recent_foods?.length
         ? settings.recent_foods
         : state.recentFoods,
+      bodyWeightLog: settings?.body_weight_log?.length
+        ? settings.body_weight_log
+        : state.bodyWeightLog,
       workoutTemplates: settings?.workout_templates?.length
         ? settings.workout_templates
         : state.workoutTemplates,

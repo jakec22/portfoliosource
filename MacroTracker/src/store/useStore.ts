@@ -66,6 +66,7 @@ export const useStore = create<AppState>()(
           autoRestTimer: s.autoRestTimer,
           defaultRestSeconds: s.defaultRestSeconds,
           bodyWeightLbs: s.bodyWeightLbs,
+          bodyWeightLog: s.bodyWeightLog,
           recentFoods: s.recentFoods,
           waterIntake: s.waterIntake,
           workoutTemplates: s.workoutTemplates,
@@ -84,6 +85,7 @@ export const useStore = create<AppState>()(
       defaultRestSeconds: 120,
       restTrigger: 0,
       bodyWeightLbs: undefined,
+      bodyWeightLog: [],
       recentFoods: [],
       workoutTemplates: [],
       activeWorkout: null,
@@ -195,6 +197,35 @@ export const useStore = create<AppState>()(
 
       setBodyWeight: (lbs) => {
         set({ bodyWeightLbs: Math.round(lbs) });
+        syncSettings();
+      },
+
+      logBodyWeight: (lbs, date) => {
+        const entry = {
+          date: date ?? todayString(),
+          lbs: Math.round(lbs * 10) / 10, // keep one decimal
+          loggedAt: Date.now(),
+        };
+        set((state) => {
+          const log = [entry, ...state.bodyWeightLog]
+            .sort((a, b) =>
+              a.date === b.date ? b.loggedAt - a.loggedAt : a.date < b.date ? 1 : -1
+            )
+            .slice(0, 1000);
+          // Keep the scalar "current weight" in step with the latest reading.
+          return { bodyWeightLog: log, bodyWeightLbs: Math.round(log[0].lbs) };
+        });
+        syncSettings();
+      },
+
+      deleteBodyWeightEntry: (loggedAt) => {
+        set((state) => {
+          const log = state.bodyWeightLog.filter((e) => e.loggedAt !== loggedAt);
+          return {
+            bodyWeightLog: log,
+            bodyWeightLbs: log.length ? Math.round(log[0].lbs) : state.bodyWeightLbs,
+          };
+        });
         syncSettings();
       },
 
@@ -443,11 +474,13 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 2,
+      version: 3,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
       // an explicit per-set list; expand the old scalars into a sets array.
+      // v3 introduced a dated body-weight log; seed it from the old single
+      // bodyWeightLbs scalar so existing weight isn't lost.
       migrate: (persisted: any, version) => {
         let state = persisted;
         if (version < 1 && state) {
@@ -470,6 +503,15 @@ export const useStore = create<AppState>()(
                 return { ...rest, sets };
               }),
             })),
+          };
+        }
+        if (version < 3 && state && !Array.isArray(state.bodyWeightLog)) {
+          state = {
+            ...state,
+            bodyWeightLog:
+              typeof state.bodyWeightLbs === 'number'
+                ? [{ date: todayString(), lbs: state.bodyWeightLbs, loggedAt: Date.now() }]
+                : [],
           };
         }
         return state;

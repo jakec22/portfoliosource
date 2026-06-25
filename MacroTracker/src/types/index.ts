@@ -110,6 +110,14 @@ export interface WorkoutSession {
   heartRateSamples?: HeartRateSample[]; // captured over the session, set on finish
 }
 
+// A single dated body-weight reading. Users can log as often as they like;
+// multiple readings on one day are allowed (disambiguated by loggedAt).
+export interface BodyWeightEntry {
+  date: string; // YYYY-MM-DD
+  lbs: number;
+  loggedAt: number; // ms epoch
+}
+
 export interface AppState {
   goals: DailyGoals;
   logs: Record<string, FoodEntry[]>; // date -> entries
@@ -120,7 +128,8 @@ export interface AppState {
   autoRestTimer: boolean; // auto-start rest timer when a set is completed
   defaultRestSeconds: number; // user's default rest length (configured in Profile)
   restTrigger: number; // bumped to signal the rest timer to auto-start
-  bodyWeightLbs?: number; // last known body weight, used for hydration calc
+  bodyWeightLbs?: number; // most recent body weight, used for the TDEE calc
+  bodyWeightLog: BodyWeightEntry[]; // dated weight history, newest first
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
   workoutTemplates: WorkoutTemplate[];
   activeWorkout: WorkoutSession | null;
@@ -138,6 +147,8 @@ export interface AppState {
   setAutoRestTimer: (on: boolean) => void;
   setDefaultRestSeconds: (seconds: number) => void;
   setBodyWeight: (lbs: number) => void;
+  logBodyWeight: (lbs: number, date?: string) => void;
+  deleteBodyWeightEntry: (loggedAt: number) => void;
   getEntriesForDate: (date: string) => FoodEntry[];
   getTotalsForDate: (date: string) => MacroNutrients;
   getMealTotals: (date: string, meal: MealType) => MacroNutrients;

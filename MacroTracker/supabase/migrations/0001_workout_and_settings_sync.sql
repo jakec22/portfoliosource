@@ -21,6 +21,7 @@ create table if not exists public.user_settings (
   auto_rest_timer      boolean,
   default_rest_seconds integer,
   body_weight_lbs      numeric,
+  body_weight_log      jsonb,
   recent_foods         jsonb,
   water_intake         jsonb,
   workout_templates    jsonb,
@@ -39,6 +40,7 @@ alter table public.user_settings
   add column if not exists auto_rest_timer      boolean,
   add column if not exists default_rest_seconds integer,
   add column if not exists body_weight_lbs      numeric,
+  add column if not exists body_weight_log      jsonb,
   add column if not exists recent_foods         jsonb,
   add column if not exists water_intake         jsonb,
   add column if not exists workout_templates    jsonb;

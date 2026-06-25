@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { DailyGoals } from '../types';
+import { displayDate } from '../utils/date';
 import { supabase } from '../services/supabase';
 import { signOut } from '../services/auth';
 
@@ -198,10 +199,13 @@ function MacroSlider({
   );
 }
 
-export function CalculatorScreen() {
+export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const goals = useStore((s) => s.goals);
   const setGoals = useStore((s) => s.setGoals);
   const setBodyWeight = useStore((s) => s.setBodyWeight);
+  const bodyWeightLog = useStore((s) => s.bodyWeightLog);
+  const logBodyWeight = useStore((s) => s.logBodyWeight);
+  const deleteBodyWeightEntry = useStore((s) => s.deleteBodyWeightEntry);
   const waterGoal = useStore((s) => s.waterGoal);
   const setWaterGoal = useStore((s) => s.setWaterGoal);
   const waterIncrement = useStore((s) => s.waterIncrement);
@@ -271,6 +275,20 @@ export function CalculatorScreen() {
   const [heightCm, setHeightCm] = useState('');
   const [activityIdx, setActivityIdx] = useState(1);
   const [results, setResults] = useState<MacroResult[] | null>(null);
+
+  // --- Body weight log ---
+  const [weightInput, setWeightInput] = useState('');
+  const latestWeight = bodyWeightLog[0]?.lbs;
+
+  function handleLogWeight() {
+    const lbs = parseFloat(weightInput);
+    if (isNaN(lbs) || lbs < 30 || lbs > 1000) {
+      Alert.alert('Enter a weight', 'Type your body weight in pounds (e.g. 175).');
+      return;
+    }
+    logBodyWeight(lbs);
+    setWeightInput('');
+  }
 
   function handleSaveGoals() {
     const parsed = {
@@ -434,6 +452,62 @@ export function CalculatorScreen() {
               {macroPct.protein + macroPct.carbs + macroPct.fat}%
             </Text>
           </View>
+        </View>
+
+        {/* Body Weight log */}
+        <View style={styles.weightSectionHeader}>
+          <Text style={styles.sectionTitle}>Body Weight</Text>
+          {navigation && (
+            <TouchableOpacity onPress={() => navigation.navigate('Analytics')}>
+              <Text style={styles.trendsLink}>View trends ›</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.card}>
+          <View style={styles.weightTopRow}>
+            <View>
+              <Text style={styles.weightCurrentLabel}>Current</Text>
+              <Text style={styles.weightCurrentValue}>
+                {latestWeight != null ? `${latestWeight} lb` : '—'}
+              </Text>
+            </View>
+            <View style={styles.weightInputRow}>
+              <TextInput
+                style={styles.weightInput}
+                value={weightInput}
+                onChangeText={setWeightInput}
+                keyboardType="decimal-pad"
+                placeholder="175"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="done"
+                onSubmitEditing={handleLogWeight}
+              />
+              <Text style={styles.weightUnit}>lbs</Text>
+              <TouchableOpacity style={styles.weightLogBtn} onPress={handleLogWeight}>
+                <Text style={styles.weightLogBtnText}>Log</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {bodyWeightLog.length > 0 && (
+            <View style={styles.weightList}>
+              {bodyWeightLog.slice(0, 6).map((e) => (
+                <View key={e.loggedAt} style={styles.weightRow}>
+                  <Text style={styles.weightRowDate}>{displayDate(e.date)}</Text>
+                  <Text style={styles.weightRowValue}>{e.lbs} lb</Text>
+                  <TouchableOpacity
+                    onPress={() => deleteBodyWeightEntry(e.loggedAt)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text style={styles.weightRowDelete}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+          <Text style={[styles.settingHint, { marginTop: 12 }]}>
+            Log as often or as little as you like — defaults to today's date.
+          </Text>
         </View>
 
         {/* ===== Calculator ===== */}
@@ -811,6 +885,58 @@ const styles = StyleSheet.create({
   },
   distTotalLabel: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
   distTotalValue: { fontSize: 13, fontWeight: '800', color: '#10B981' },
+  // Body weight log
+  weightSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  trendsLink: { fontSize: 13, fontWeight: '700', color: '#10B981', marginBottom: 10 },
+  weightTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  weightCurrentLabel: { fontSize: 12, color: '#9CA3AF' },
+  weightCurrentValue: { fontSize: 26, fontWeight: '800', color: '#111827', marginTop: 2 },
+  weightInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  weightInput: {
+    width: 76,
+    height: 44,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    backgroundColor: '#FAFAFA',
+  },
+  weightUnit: { fontSize: 14, color: '#9CA3AF', fontWeight: '500' },
+  weightLogBtn: {
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    height: 44,
+    justifyContent: 'center',
+  },
+  weightLogBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  weightList: {
+    marginTop: 16,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  weightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  weightRowDate: { flex: 1, fontSize: 14, color: '#374151' },
+  weightRowValue: { fontSize: 15, fontWeight: '700', color: '#111827', marginRight: 16 },
+  weightRowDelete: { fontSize: 14, color: '#D1D5DB', fontWeight: '700' },
   // Calculator inputs
   fieldLabel: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 },
   segRow: { flexDirection: 'row', gap: 10 },

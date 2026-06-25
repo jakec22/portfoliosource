@@ -1,6 +1,7 @@
 import { Alert } from 'react-native';
 import { supabase } from './supabase';
 import type {
+  BodyWeightEntry,
   DailyGoals,
   Food,
   FoodEntry,
@@ -53,6 +54,7 @@ export interface SettingsSnapshot {
   autoRestTimer: boolean;
   defaultRestSeconds: number;
   bodyWeightLbs?: number;
+  bodyWeightLog: BodyWeightEntry[];
   recentFoods: Food[];
   waterIntake: Record<string, number>;
   workoutTemplates: WorkoutTemplate[];
@@ -108,6 +110,7 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     auto_rest_timer: s.autoRestTimer,
     default_rest_seconds: s.defaultRestSeconds,
     body_weight_lbs: s.bodyWeightLbs ?? null,
+    body_weight_log: s.bodyWeightLog,
     recent_foods: s.recentFoods,
     water_intake: s.waterIntake,
     workout_templates: s.workoutTemplates,

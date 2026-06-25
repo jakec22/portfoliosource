@@ -15,6 +15,7 @@ import { WorkoutTemplateScreen } from './src/screens/WorkoutTemplateScreen';
 import { ActiveWorkoutScreen } from './src/screens/ActiveWorkoutScreen';
 import { WorkoutSummaryScreen } from './src/screens/WorkoutSummaryScreen';
 import { ExerciseProgressScreen } from './src/screens/ExerciseProgressScreen';
+import { AnalyticsScreen } from './src/screens/AnalyticsScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -39,6 +40,7 @@ function HomeStack() {
         options={{ presentation: 'modal' }}
       />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
+      <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -64,6 +66,15 @@ function HistoryStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HistoryHome" component={HistoryScreen as any} />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
+    </Stack.Navigator>
+  );
+}
+
+function ProfileStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileHome" component={CalculatorScreen as any} />
+      <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -102,7 +113,7 @@ function MainTabs() {
           <Tab.Screen name="Home" component={HomeStack} />
           <Tab.Screen name="Exercise" component={ExerciseStack} />
           <Tab.Screen name="History" component={HistoryStack} />
-          <Tab.Screen name="Profile" component={CalculatorScreen} />
+          <Tab.Screen name="Profile" component={ProfileStack} />
         </Tab.Navigator>
       </NavigationContainer>
   );

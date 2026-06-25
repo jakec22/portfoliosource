@@ -185,6 +185,20 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         </TouchableOpacity>
 
+        {/* Trends */}
+        <TouchableOpacity
+          style={styles.trendsBtn}
+          onPress={() => navigation.navigate('Analytics')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.trendsIcon}>📊</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.trendsTitle}>Trends</Text>
+            <Text style={styles.trendsSub}>Weight, nutrition & workout volume over time</Text>
+          </View>
+          <Text style={styles.trendsArrow}>›</Text>
+        </TouchableOpacity>
+
         {/* Meal Sections */}
         <View style={styles.mealsHeader}>
           <Text style={styles.mealsTitle}>Food Log</Text>
@@ -365,6 +379,24 @@ const styles = StyleSheet.create({
     color: '#BAE6FD',
     marginTop: 2,
   },
+  trendsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  trendsIcon: { fontSize: 28 },
+  trendsTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  trendsSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  trendsArrow: { fontSize: 26, color: '#D1D5DB', fontWeight: '300' },
   mealsHeader: {
     marginBottom: 8,
   },
