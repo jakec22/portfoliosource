@@ -1,9 +1,23 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { formatDuration, displayDate } from '../utils/date';
+import {
+  detectSessionPRs,
+  normalizeExerciseName,
+  type ExercisePR,
+} from '../utils/exerciseHistory';
 import { HeartRateGraph } from '../components/HeartRateGraph';
+
+// Pick the most impressive record to headline for a given exercise PR.
+function prHeadline(pr: ExercisePR): string {
+  if (pr.new1RM != null) return `Est. 1RM ${pr.new1RM} lb · prev ${pr.prev1RM}`;
+  if (pr.newWeight != null) return `Top set ${pr.newWeight} lb · prev ${pr.prevWeight}`;
+  if (pr.newVolume != null)
+    return `Volume ${pr.newVolume.toLocaleString()} lb · prev ${pr.prevVolume?.toLocaleString()}`;
+  return 'New record';
+}
 
 interface Props {
   route: { params: { sessionId: string; viewOnly?: boolean } };
@@ -13,6 +27,19 @@ interface Props {
 export function WorkoutSummaryScreen({ route, navigation }: Props) {
   const { sessionId, viewOnly } = route.params;
   const session = useStore((s) => s.workoutHistory.find((w) => w.id === sessionId));
+  const history = useStore((s) => s.workoutHistory);
+
+  // PRs are only meaningful for a just-finished session (compared against all
+  // prior history). Skip when re-viewing an old workout, where "prior" would
+  // include later sessions and be misleading.
+  const prs = useMemo(
+    () => (session && !viewOnly ? detectSessionPRs(session, history) : []),
+    [session, history, viewOnly]
+  );
+  const prNames = useMemo(
+    () => new Set(prs.map((p) => normalizeExerciseName(p.name))),
+    [prs]
+  );
 
   function done() {
     // Viewing a past workout returns to the list; finishing pops the stack.
@@ -79,6 +106,21 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
           </>
         )}
 
+        {/* Personal records hit this session */}
+        {prs.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Personal Records 🏆</Text>
+            <View style={styles.prCard}>
+              {prs.map((pr) => (
+                <View key={pr.name} style={styles.prRow}>
+                  <Text style={styles.prName}>{pr.name}</Text>
+                  <Text style={styles.prDetail}>{prHeadline(pr)}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+
         {/* Per-exercise breakdown */}
         <Text style={styles.sectionTitle}>Breakdown</Text>
         {session.exercises.map((e) => {
@@ -87,7 +129,10 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
           return (
             <View key={e.id} style={styles.exRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.exName}>{e.name}</Text>
+                <Text style={styles.exName}>
+                  {e.name}
+                  {prNames.has(normalizeExerciseName(e.name)) ? '  🏆' : ''}
+                </Text>
                 <Text style={styles.exDetail}>
                   {done.length}/{e.sets.length} sets
                   {vol > 0 ? ` · ${Math.round(vol).toLocaleString()} lb` : ''}
@@ -164,6 +209,23 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  prCard: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 4,
+  },
+  prRow: {
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#FDE68A',
+  },
+  prName: { fontSize: 15, fontWeight: '700', color: '#92400E' },
+  prDetail: { fontSize: 13, color: '#B45309', marginTop: 2, fontVariant: ['tabular-nums'] },
+
   exRow: {
     backgroundColor: '#fff',
     borderRadius: 14,

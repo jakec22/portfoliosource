@@ -33,6 +33,20 @@ export function getPastDays(n: number): string[] {
   return days;
 }
 
+// Compact relative label for a past YYYY-MM-DD date: "today", "yesterday",
+// "3d ago", "2w ago", or a short month/day once it's further back.
+export function relativeDateLabel(dateStr: string): string {
+  const today = todayString();
+  if (dateStr === today) return 'today';
+  const then = parseDate(dateStr);
+  const days = Math.round((parseDate(today).getTime() - then.getTime()) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  if (days < 28) return `${Math.round(days / 7)}w ago`;
+  return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Formats a millisecond duration as M:SS, or H:MM:SS once it passes an hour.
 export function formatDuration(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));

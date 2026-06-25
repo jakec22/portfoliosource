@@ -17,7 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
 import type { SetType, HeartRateSample } from '../types';
-import { formatDuration } from '../utils/date';
+import { formatDuration, relativeDateLabel } from '../utils/date';
+import { lastPerformance, formatPerformedSets } from '../utils/exerciseHistory';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
 import { getHeartRateMonitor } from '../services/heartRate';
 
@@ -52,6 +53,8 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   const finishWorkout = useStore((s) => s.finishWorkout);
   const cancelWorkout = useStore((s) => s.cancelWorkout);
   const attachWorkoutHeartRate = useStore((s) => s.attachWorkoutHeartRate);
+  // Past sessions, used to show each exercise's previous performance inline.
+  const workoutHistory = useStore((s) => s.workoutHistory);
 
   // Live heart rate from the Apple Watch (via HealthKit) during the workout.
   const [liveBpm, setLiveBpm] = useState<number | null>(null);
@@ -278,6 +281,19 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                 </View>
               </View>
 
+              {/* Previous performance — progressive-overload reference */}
+              {(() => {
+                const last = lastPerformance(workoutHistory, ex.name);
+                if (!last) return null;
+                return (
+                  <Text style={styles.lastTime} numberOfLines={1}>
+                    <Text style={styles.lastTimeLabel}>
+                      Last ({relativeDateLabel(last.date)}): </Text>
+                    {formatPerformedSets(last.sets)}
+                  </Text>
+                );
+              })()}
+
               {/* Column labels */}
               <View style={styles.setRowHead}>
                 <Text style={[styles.colSet, styles.headText]}>Set</Text>
@@ -447,6 +463,9 @@ const styles = StyleSheet.create({
   reorderText: { fontSize: 16, fontWeight: '800', color: '#6B7280' },
   reorderDisabled: { color: '#D1D5DB' },
   exRemove: { fontSize: 13, color: '#EF4444', fontWeight: '600' },
+
+  lastTime: { fontSize: 12, color: '#6B7280', marginTop: -2, marginBottom: 10 },
+  lastTimeLabel: { color: '#9CA3AF', fontWeight: '600' },
 
   setRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 },
   headText: { fontSize: 11, color: '#9CA3AF', fontWeight: '600' },
