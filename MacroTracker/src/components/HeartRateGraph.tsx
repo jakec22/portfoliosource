@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Polyline, Line, Text as SvgText } from 'react-native-svg';
 import type { HeartRateSample } from '../types';
 import { heartRateStats } from '../services/heartRate';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   samples: HeartRateSample[];
@@ -20,6 +22,8 @@ const PAD_B = 20;
 
 // A lightweight SVG line chart of heart rate over the course of a workout.
 export function HeartRateGraph({ samples, startMs, endMs }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const stats = heartRateStats(samples);
   if (!stats || samples.length < 2) return null;
 
@@ -55,10 +59,10 @@ export function HeartRateGraph({ samples, startMs, endMs }: Props) {
               y1={y(v)}
               x2={W - PAD_R}
               y2={y(v)}
-              stroke="#F3F4F6"
+              stroke={c.border}
               strokeWidth={1}
             />
-            <SvgText x={4} y={y(v) + 3} fontSize={9} fill="#9CA3AF">
+            <SvgText x={4} y={y(v) + 3} fontSize={9} fill={c.textFaint}>
               {v}
             </SvgText>
           </React.Fragment>
@@ -74,10 +78,10 @@ export function HeartRateGraph({ samples, startMs, endMs }: Props) {
         />
 
         {/* X axis end labels */}
-        <SvgText x={PAD_L} y={H - 6} fontSize={9} fill="#9CA3AF">
+        <SvgText x={PAD_L} y={H - 6} fontSize={9} fill={c.textFaint}>
           0min
         </SvgText>
-        <SvgText x={W - PAD_R} y={H - 6} fontSize={9} fill="#9CA3AF" textAnchor="end">
+        <SvgText x={W - PAD_R} y={H - 6} fontSize={9} fill={c.textFaint} textAnchor="end">
           {durationMin}min
         </SvgText>
       </Svg>
@@ -86,6 +90,8 @@ export function HeartRateGraph({ samples, startMs, endMs }: Props) {
 }
 
 function Stat({ label, value, color }: { label: string; value: number; color: string }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.stat}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
@@ -94,9 +100,9 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 8 },
   stat: { alignItems: 'center' },
   statValue: { fontSize: 22, fontWeight: '800' },
-  statLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  statLabel: { fontSize: 11, color: c.textFaint, marginTop: 2 },
 });

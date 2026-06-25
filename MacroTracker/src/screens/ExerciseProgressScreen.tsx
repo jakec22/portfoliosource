@@ -10,6 +10,8 @@ import {
   type ExerciseSessionPoint,
 } from '../utils/exerciseHistory';
 import { ProgressLineChart, ChartEmpty } from '../components/ProgressLineChart';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   route: { params: { name: string } };
@@ -35,6 +37,8 @@ function metricValue(p: ExerciseSessionPoint, metric: Metric): number {
 }
 
 export function ExerciseProgressScreen({ route, navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { name } = route.params;
   const history = useStore((s) => s.workoutHistory);
   const [metric, setMetric] = useState<Metric>('topWeight');
@@ -107,7 +111,7 @@ export function ExerciseProgressScreen({ route, navigation }: Props) {
                 <ProgressLineChart values={values} labels={labels} color={active.color} />
               )}
               {values.length >= 2 && (
-                <Text style={[styles.delta, { color: delta >= 0 ? '#059669' : '#DC2626' }]}>
+                <Text style={[styles.delta, { color: delta >= 0 ? c.primaryDark : c.danger }]}>
                   {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toLocaleString()} {active.unit} since{' '}
                   {shortDate(series[0].date)}
                 </Text>
@@ -138,6 +142,8 @@ export function ExerciseProgressScreen({ route, navigation }: Props) {
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.statCard}>
       <Text style={styles.statValue}>{value}</Text>
@@ -146,8 +152,8 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -155,36 +161,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    backgroundColor: '#fff',
+    borderBottomColor: c.border,
+    backgroundColor: c.card,
   },
-  back: { fontSize: 16, color: '#10B981', fontWeight: '600', width: 64 },
+  back: { fontSize: 16, color: c.primary, fontWeight: '600', width: 64 },
   backSpacer: { width: 64 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800', color: '#111827' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800', color: c.text },
   content: { padding: 16, paddingBottom: 40 },
 
-  emptyCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20 },
-  emptyText: { fontSize: 14, color: '#6B7280', lineHeight: 20 },
+  emptyCard: { backgroundColor: c.card, borderRadius: 16, padding: 20 },
+  emptyText: { fontSize: 14, color: c.textMuted, lineHeight: 20 },
 
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
-  statValue: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  statLabel: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
+  statValue: { fontSize: 20, fontWeight: '800', color: c.text },
+  statLabel: { fontSize: 12, color: c.textFaint, marginTop: 4 },
 
   segment: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     borderRadius: 12,
     padding: 4,
     marginTop: 4,
@@ -192,22 +198,22 @@ const styles = StyleSheet.create({
   },
   segmentBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 9 },
   segmentBtnOn: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
+    backgroundColor: c.card,
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 1,
   },
-  segmentText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  segmentTextOn: { color: '#111827' },
+  segmentText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+  segmentTextOn: { color: c.text },
 
   chartCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -215,18 +221,18 @@ const styles = StyleSheet.create({
   },
   delta: { fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 8, fontVariant: ['tabular-nums'] },
 
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginTop: 16, marginBottom: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginTop: 16, marginBottom: 10 },
   logRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
   },
-  logDate: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  logSets: { fontSize: 12, color: '#9CA3AF', marginTop: 3, fontVariant: ['tabular-nums'] },
+  logDate: { fontSize: 14, fontWeight: '700', color: c.text },
+  logSets: { fontSize: 12, color: c.textFaint, marginTop: 3, fontVariant: ['tabular-nums'] },
   logMetric: { alignItems: 'flex-end' },
   logMetricValue: { fontSize: 17, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  logMetricLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
+  logMetricLabel: { fontSize: 11, color: c.textFaint, marginTop: 1 },
 });

@@ -9,6 +9,8 @@ import {
   type ExercisePR,
 } from '../utils/exerciseHistory';
 import { HeartRateGraph } from '../components/HeartRateGraph';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 // Pick the most impressive record to headline for a given exercise PR.
 function prHeadline(pr: ExercisePR): string {
@@ -25,6 +27,8 @@ interface Props {
 }
 
 export function WorkoutSummaryScreen({ route, navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { sessionId, viewOnly } = route.params;
   const session = useStore((s) => s.workoutHistory.find((w) => w.id === sessionId));
   const history = useStore((s) => s.workoutHistory);
@@ -163,6 +167,8 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.statCard}>
       <Text style={styles.statValue}>{value}</Text>
@@ -171,48 +177,48 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emptyText: { fontSize: 16, color: '#6B7280' },
-  doneLink: { fontSize: 16, color: '#10B981', fontWeight: '700' },
+  emptyText: { fontSize: 16, color: c.textMuted },
+  doneLink: { fontSize: 16, color: c.primary, fontWeight: '700' },
   content: { padding: 16, paddingBottom: 40 },
   bigCheck: { fontSize: 48, textAlign: 'center', marginTop: 12 },
-  title: { fontSize: 24, fontWeight: '800', color: '#111827', textAlign: 'center', marginTop: 8 },
-  subtitle: { fontSize: 15, color: '#6B7280', textAlign: 'center', marginBottom: 20 },
+  title: { fontSize: 24, fontWeight: '800', color: c.text, textAlign: 'center', marginTop: 8 },
+  subtitle: { fontSize: 15, color: c.textMuted, textAlign: 'center', marginBottom: 20 },
 
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
-  statValue: { fontSize: 22, fontWeight: '800', color: '#10B981' },
-  statLabel: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
+  statValue: { fontSize: 22, fontWeight: '800', color: c.primary },
+  statLabel: { fontSize: 12, color: c.textFaint, marginTop: 4 },
 
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginTop: 16, marginBottom: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginTop: 16, marginBottom: 10 },
   hrCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 4,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
   prCard: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: c.warningSoft,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.4)' : '#FDE68A',
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 4,
@@ -221,36 +227,36 @@ const styles = StyleSheet.create({
   prRow: {
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#FDE68A',
+    borderBottomColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.4)' : '#FDE68A',
   },
-  prName: { fontSize: 15, fontWeight: '700', color: '#92400E' },
-  prDetail: { fontSize: 13, color: '#B45309', marginTop: 2, fontVariant: ['tabular-nums'] },
+  prName: { fontSize: 15, fontWeight: '700', color: c.scheme === 'dark' ? c.warning : '#92400E' },
+  prDetail: { fontSize: 13, color: c.scheme === 'dark' ? c.textMuted : '#B45309', marginTop: 2, fontVariant: ['tabular-nums'] },
 
   exRow: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
   },
-  exName: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  exDetail: { fontSize: 12, color: '#9CA3AF', marginTop: 3 },
+  exName: { fontSize: 15, fontWeight: '700', color: c.text },
+  exDetail: { fontSize: 12, color: c.textFaint, marginTop: 3 },
   setPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   setPill: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
   },
-  setPillDone: { backgroundColor: '#D1FAE5' },
-  setPillText: { fontSize: 12, color: '#9CA3AF', fontWeight: '600' },
-  setPillTextDone: { color: '#059669' },
+  setPillDone: { backgroundColor: c.primarySoft },
+  setPillText: { fontSize: 12, color: c.textFaint, fontWeight: '600' },
+  setPillTextDone: { color: c.primaryDark },
 
   doneBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 20,
   },
-  doneText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  doneText: { color: c.onPrimary, fontWeight: '700', fontSize: 16 },
 });
