@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,10 @@ import { formatDuration, relativeDateLabel } from '../utils/date';
 import { lastPerformance } from '../utils/exerciseHistory';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
 import { getHeartRateMonitor } from '../services/heartRate';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
+
+type ActiveStyles = ReturnType<typeof makeStyles>;
 
 interface Props {
   navigation: any;
@@ -28,7 +32,7 @@ interface Props {
 
 // Label + colors for the left-side set bubble. Normal sets show their number;
 // tagged sets show a colored letter (W / F / D).
-function setBadgeInfo(type: SetType | undefined, index: number) {
+function setBadgeInfo(type: SetType | undefined, index: number, styles: ActiveStyles) {
   switch (type) {
     case 'warmup':
       return { label: 'W', bubble: styles.badgeWarmup, text: styles.badgeWarmupText };
@@ -42,6 +46,8 @@ function setBadgeInfo(type: SetType | undefined, index: number) {
 }
 
 export function ActiveWorkoutScreen({ navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const workout = useStore((s) => s.activeWorkout);
   const addWorkoutExercise = useStore((s) => s.addWorkoutExercise);
   const removeWorkoutExercise = useStore((s) => s.removeWorkoutExercise);
@@ -323,7 +329,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       activeOpacity={0.7}
                     >
                       {(() => {
-                        const badge = setBadgeInfo(set.type, i);
+                        const badge = setBadgeInfo(set.type, i, styles);
                         return (
                           <View style={[styles.setBadge, badge.bubble]}>
                             <Text style={[styles.setBadgeText, badge.text]}>{badge.label}</Text>
@@ -341,7 +347,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'weight' })}
                       keyboardType="decimal-pad"
                       placeholder="0"
-                      placeholderTextColor="#D1D5DB"
+                      placeholderTextColor={c.textFaint}
                       inputAccessoryViewID="workout-fill-bar"
                     />
                     <TextInput
@@ -354,7 +360,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'reps' })}
                       keyboardType="number-pad"
                       placeholder="0"
-                      placeholderTextColor="#D1D5DB"
+                      placeholderTextColor={c.textFaint}
                       inputAccessoryViewID="workout-fill-bar"
                     />
                     <TouchableOpacity
@@ -408,8 +414,8 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -417,28 +423,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    backgroundColor: '#fff',
+    borderBottomColor: c.border,
+    backgroundColor: c.card,
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  cancel: { fontSize: 16, color: '#EF4444' },
-  save: { fontSize: 16, color: '#10B981', fontWeight: '700' },
-  title: { fontSize: 16, fontWeight: '700', color: '#111827', maxWidth: 180 },
-  timer: { fontSize: 18, fontWeight: '800', color: '#111827', fontVariant: ['tabular-nums'] },
-  progress: { fontSize: 12, color: '#9CA3AF', marginTop: 1, maxWidth: 220 },
+  cancel: { fontSize: 16, color: c.danger },
+  save: { fontSize: 16, color: c.primary, fontWeight: '700' },
+  title: { fontSize: 16, fontWeight: '700', color: c.text, maxWidth: 180 },
+  timer: { fontSize: 18, fontWeight: '800', color: c.text, fontVariant: ['tabular-nums'] },
+  progress: { fontSize: 12, color: c.textFaint, marginTop: 1, maxWidth: 220 },
   content: { padding: 16, paddingBottom: 40 },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emptyText: { fontSize: 16, color: '#6B7280' },
-  emptyCard: { backgroundColor: '#fff', borderRadius: 14, padding: 20, marginBottom: 16 },
-  emptyCardText: { fontSize: 14, color: '#6B7280', lineHeight: 20, textAlign: 'center' },
+  emptyText: { fontSize: 16, color: c.textMuted },
+  emptyCard: { backgroundColor: c.card, borderRadius: 14, padding: 20, marginBottom: 16 },
+  emptyCardText: { fontSize: 14, color: c.textMuted, lineHeight: 20, textAlign: 'center' },
 
   exCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -450,32 +456,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  exName: { fontSize: 16, fontWeight: '700', color: '#111827', flex: 1 },
+  exName: { fontSize: 16, fontWeight: '700', color: c.text, flex: 1 },
   exHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   reorderBtn: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reorderText: { fontSize: 16, fontWeight: '800', color: '#6B7280' },
-  reorderDisabled: { color: '#D1D5DB' },
-  exRemove: { fontSize: 13, color: '#EF4444', fontWeight: '600' },
+  reorderText: { fontSize: 16, fontWeight: '800', color: c.textMuted },
+  reorderDisabled: { color: c.textFaint },
+  exRemove: { fontSize: 13, color: c.danger, fontWeight: '600' },
 
-  lastTime: { fontSize: 12, color: '#6B7280', marginTop: -2, marginBottom: 10 },
-  lastTimeLabel: { color: '#9CA3AF', fontWeight: '600' },
+  lastTime: { fontSize: 12, color: c.textMuted, marginTop: -2, marginBottom: 10 },
+  lastTimeLabel: { color: c.textFaint, fontWeight: '600' },
 
   setRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 },
-  headText: { fontSize: 11, color: '#9CA3AF', fontWeight: '600' },
+  headText: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
     borderRadius: 10,
   },
-  setRowDone: { backgroundColor: '#F0FDF4' },
+  setRowDone: { backgroundColor: c.primarySoft },
   colSet: { width: 40, textAlign: 'center', alignItems: 'center', justifyContent: 'center' },
   colNum: { flex: 1, marginHorizontal: 4 },
   colCheck: { width: 64, alignItems: 'center' },
@@ -491,37 +497,37 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   setBadgeText: { fontSize: 13, fontWeight: '800' },
-  badgeNormal: { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' },
-  badgeNormalText: { color: '#6B7280' },
-  badgeWarmup: { backgroundColor: '#FEF3C7', borderColor: '#FCD34D' },
-  badgeWarmupText: { color: '#D97706' },
-  badgeFailure: { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' },
-  badgeFailureText: { color: '#DC2626' },
-  badgeDropset: { backgroundColor: '#EDE9FE', borderColor: '#C4B5FD' },
-  badgeDropsetText: { color: '#7C3AED' },
+  badgeNormal: { backgroundColor: c.cardMuted, borderColor: c.border },
+  badgeNormalText: { color: c.textMuted },
+  badgeWarmup: { backgroundColor: c.warningSoft, borderColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.5)' : '#FCD34D' },
+  badgeWarmupText: { color: c.warning },
+  badgeFailure: { backgroundColor: c.dangerSoft, borderColor: c.scheme === 'dark' ? 'rgba(239,68,68,0.5)' : '#FCA5A5' },
+  badgeFailureText: { color: c.danger },
+  badgeDropset: { backgroundColor: c.accentSoft, borderColor: c.scheme === 'dark' ? 'rgba(139,92,246,0.5)' : '#C4B5FD' },
+  badgeDropsetText: { color: c.accent },
   setInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.input,
     borderRadius: 8,
     paddingVertical: 8,
     fontSize: 15,
-    color: '#111827',
+    color: c.text,
     textAlign: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
   checkbox: {
     width: 38,
     height: 38,
     borderRadius: 10,
     borderWidth: 2.5,
-    borderColor: '#D1D5DB',
+    borderColor: c.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxOn: { backgroundColor: '#10B981', borderColor: '#10B981' },
+  checkboxOn: { backgroundColor: c.primary, borderColor: c.primary },
   checkmark: { color: '#fff', fontSize: 20, fontWeight: '800' },
   swipeDeleteAction: {
-    backgroundColor: '#EF4444',
+    backgroundColor: c.danger,
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
@@ -532,16 +538,16 @@ const styles = StyleSheet.create({
   swipeDeleteText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   addSetBtn: { paddingVertical: 10, alignItems: 'center', marginTop: 4 },
-  addSetText: { color: '#10B981', fontWeight: '600', fontSize: 14 },
+  addSetText: { color: c.primary, fontWeight: '600', fontSize: 14 },
 
   addExBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
   },
-  addExText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  addExText: { color: c.onPrimary, fontWeight: '700', fontSize: 16 },
 
   fillBar: {
     flexDirection: 'row',
@@ -549,18 +555,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: c.border,
   },
-  fillBarLabel: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
+  fillBarLabel: { fontSize: 13, color: c.textMuted, fontWeight: '500' },
   fillBarActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   fillBtn: {
     paddingHorizontal: 16,
     paddingVertical: 7,
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     borderRadius: 10,
   },
   fillBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  fillDoneText: { fontSize: 15, fontWeight: '700', color: '#10B981' },
+  fillDoneText: { fontSize: 15, fontWeight: '700', color: c.primary },
 });
