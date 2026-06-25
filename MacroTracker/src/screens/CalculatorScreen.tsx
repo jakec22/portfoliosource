@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { DailyGoals } from '../types';
+import { DailyGoals, ThemeMode } from '../types';
 import { displayDate } from '../utils/date';
 import { supabase } from '../services/supabase';
 import { signOut } from '../services/auth';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 // mm:ss for the rest-time stepper (e.g. 120 -> "2:00", 90 -> "1:30").
 function formatRest(seconds: number): string {
@@ -69,6 +71,8 @@ function MacroSlider({
   color: string;
   onChange: (v: number) => void;
 }) {
+  const c = useTheme();
+  const sliderStyles = useMemo(() => makeSliderStyles(c), [c]);
   const viewRef = useRef<View>(null);
   const widthRef = useRef(0);
   const pageXRef = useRef(0);
@@ -115,8 +119,12 @@ function MacroSlider({
 }
 
 export function CalculatorScreen({ navigation }: { navigation?: any }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const goals = useStore((s) => s.goals);
   const setGoals = useStore((s) => s.setGoals);
+  const themeMode = useStore((s) => s.themeMode);
+  const setThemeMode = useStore((s) => s.setThemeMode);
   const profile = useStore((s) => s.profile);
   const setBodyWeight = useStore((s) => s.setBodyWeight);
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
@@ -298,7 +306,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                 onChangeText={setWeightInput}
                 keyboardType="decimal-pad"
                 placeholder="175"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={c.textFaint}
                 returnKeyType="done"
                 onSubmitEditing={handleLogWeight}
               />
@@ -406,12 +414,12 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             <Switch
               value={autoRestTimer}
               onValueChange={setAutoRestTimer}
-              trackColor={{ false: '#E5E7EB', true: '#6EE7B7' }}
-              thumbColor={autoRestTimer ? '#10B981' : '#9CA3AF'}
+              trackColor={{ false: c.border, true: '#6EE7B7' }}
+              thumbColor={autoRestTimer ? c.primary : c.textFaint}
             />
           </View>
 
-          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
+          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
               onPress={() => setDefaultRestSeconds(defaultRestSeconds - 15)}
@@ -443,11 +451,11 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             <Switch
               value={showWaterTracker}
               onValueChange={setShowWaterTracker}
-              trackColor={{ false: '#E5E7EB', true: '#6EE7B7' }}
-              thumbColor={showWaterTracker ? '#10B981' : '#9CA3AF'}
+              trackColor={{ false: c.border, true: '#6EE7B7' }}
+              thumbColor={showWaterTracker ? c.primary : c.textFaint}
             />
           </View>
-          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
+          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
               onPress={() => setWaterGoal(waterGoal - waterIncrement)}
@@ -466,7 +474,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
+          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
               onPress={() => setWaterIncrement(waterIncrement - 1)}
@@ -483,6 +491,36 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             >
               <Text style={styles.hydrationBtnText}>+</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Appearance */}
+        <Text style={styles.sectionTitle}>Appearance</Text>
+        <View style={styles.card}>
+          <Text style={styles.waterToggleLabel}>Theme</Text>
+          <Text style={[styles.settingHint, { marginBottom: 12 }]}>
+            Choose a light or dark look, or follow your device setting.
+          </Text>
+          <View style={styles.segmented}>
+            {([
+              { key: 'light', label: '☀️  Light' },
+              { key: 'dark', label: '🌙  Dark' },
+              { key: 'system', label: '⚙️  System' },
+            ] as { key: ThemeMode; label: string }[]).map(({ key, label }) => {
+              const active = themeMode === key;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.segment, active && styles.segmentActive]}
+                  onPress={() => setThemeMode(key)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -504,131 +542,132 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   content: { padding: 16, paddingBottom: 48 },
-  pageTitle: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#9CA3AF', marginBottom: 20 },
+  pageTitle: { fontSize: 28, fontWeight: '800', color: c.text, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: c.textFaint, marginBottom: 20 },
   sectionTitle: {
-    fontSize: 13, fontWeight: '700', color: '#9CA3AF',
+    fontSize: 13, fontWeight: '700', color: c.textFaint,
     textTransform: 'uppercase', letterSpacing: 0.8,
     marginTop: 8, marginBottom: 10,
   },
   card: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 20,
+    backgroundColor: c.card, borderRadius: 20, padding: 20,
     marginBottom: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowColor: c.shadow, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
   },
   // Wizard CTA
   wizardCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
+    backgroundColor: c.primarySoft,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#A7F3D0',
+    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
     padding: 18,
     marginBottom: 24,
     gap: 14,
   },
   wizardIcon: { fontSize: 28 },
-  wizardTitle: { fontSize: 16, fontWeight: '800', color: '#065F46' },
-  wizardSub: { fontSize: 13, color: '#059669', marginTop: 2, lineHeight: 18 },
-  wizardArrow: { fontSize: 24, color: '#10B981', fontWeight: '700' },
+  wizardTitle: { fontSize: 16, fontWeight: '800', color: c.scheme === 'dark' ? c.primary : '#065F46' },
+  wizardSub: { fontSize: 13, color: c.scheme === 'dark' ? c.textMuted : '#059669', marginTop: 2, lineHeight: 18 },
+  wizardArrow: { fontSize: 24, color: c.primary, fontWeight: '700' },
   // Goals editing
   goalRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#F9FAFB',
+    borderBottomWidth: 1, borderBottomColor: c.border,
   },
   goalDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
-  goalLabel: { flex: 1, fontSize: 16, color: '#374151', fontWeight: '500' },
+  goalLabel: { flex: 1, fontSize: 16, color: c.gray700, fontWeight: '500' },
   goalInputWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   goalInput: {
-    width: 80, height: 40, borderWidth: 1.5, borderColor: '#E5E7EB',
+    width: 80, height: 40, borderWidth: 1.5, borderColor: c.border,
     borderRadius: 10, textAlign: 'center',
-    fontSize: 16, fontWeight: '600', color: '#111827',
+    fontSize: 16, fontWeight: '600', color: c.text,
+    backgroundColor: c.input,
   },
-  goalUnit: { fontSize: 13, color: '#9CA3AF', width: 32 },
+  goalUnit: { fontSize: 13, color: c.textFaint, width: 32 },
   calCalc: {
     flexDirection: 'row', justifyContent: 'space-between',
     marginTop: 16, paddingTop: 16,
-    borderTopWidth: 1, borderTopColor: '#F3F4F6',
+    borderTopWidth: 1, borderTopColor: c.border,
   },
-  calCalcLabel: { fontSize: 13, color: '#6B7280' },
-  calCalcValue: { fontSize: 13, fontWeight: '700', color: '#10B981' },
-  calCalcMismatch: { color: '#F59E0B' },
+  calCalcLabel: { fontSize: 13, color: c.textMuted },
+  calCalcValue: { fontSize: 13, fontWeight: '700', color: c.primary },
+  calCalcMismatch: { color: c.warning },
   saveBtn: {
-    backgroundColor: '#10B981', borderRadius: 14,
+    backgroundColor: c.primary, borderRadius: 14,
     paddingVertical: 14, alignItems: 'center', marginTop: 20,
   },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  saveBtnText: { color: c.onPrimary, fontSize: 16, fontWeight: '700' },
   // Macro distribution
   distLabel: { fontSize: 14, fontWeight: '700' },
-  distHint: { fontSize: 12, color: '#9CA3AF', lineHeight: 17, marginBottom: 8 },
+  distHint: { fontSize: 12, color: c.textFaint, lineHeight: 17, marginBottom: 8 },
   sliderRow: { paddingVertical: 6 },
   sliderHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sliderReadout: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  sliderReadout: { fontSize: 13, fontWeight: '600', color: c.textMuted },
   distTotalRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     marginTop: 12, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: '#F3F4F6',
+    borderTopWidth: 1, borderTopColor: c.border,
   },
-  distTotalLabel: { fontSize: 13, color: '#6B7280', fontWeight: '600' },
-  distTotalValue: { fontSize: 13, fontWeight: '800', color: '#10B981' },
+  distTotalLabel: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
+  distTotalValue: { fontSize: 13, fontWeight: '800', color: c.primary },
   // Body weight log
   weightSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  trendsLink: { fontSize: 13, fontWeight: '700', color: '#10B981', marginBottom: 10 },
+  trendsLink: { fontSize: 13, fontWeight: '700', color: c.primary, marginBottom: 10 },
   weightTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  weightCurrentLabel: { fontSize: 12, color: '#9CA3AF' },
-  weightCurrentValue: { fontSize: 26, fontWeight: '800', color: '#111827', marginTop: 2 },
+  weightCurrentLabel: { fontSize: 12, color: c.textFaint },
+  weightCurrentValue: { fontSize: 26, fontWeight: '800', color: c.text, marginTop: 2 },
   weightInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   weightInput: {
     width: 76,
     height: 44,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     borderRadius: 12,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
+    color: c.text,
+    backgroundColor: c.input,
   },
-  weightUnit: { fontSize: 14, color: '#9CA3AF', fontWeight: '500' },
+  weightUnit: { fontSize: 14, color: c.textFaint, fontWeight: '500' },
   weightLogBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingHorizontal: 18,
     height: 44,
     justifyContent: 'center',
   },
-  weightLogBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  weightLogBtnText: { color: c.onPrimary, fontSize: 15, fontWeight: '700' },
   weightList: {
     marginTop: 16,
     paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: c.border,
   },
   weightRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
+    borderBottomColor: c.border,
   },
-  weightRowDate: { flex: 1, fontSize: 14, color: '#374151' },
-  weightRowValue: { fontSize: 15, fontWeight: '700', color: '#111827', marginRight: 16 },
-  weightRowDelete: { fontSize: 14, color: '#D1D5DB', fontWeight: '700' },
+  weightRowDate: { flex: 1, fontSize: 14, color: c.gray700 },
+  weightRowValue: { fontSize: 15, fontWeight: '700', color: c.text, marginRight: 16 },
+  weightRowDelete: { fontSize: 14, color: c.textFaint, fontWeight: '700' },
   // Hydration
   waterToggleRow: {
     flexDirection: 'row',
@@ -636,32 +675,57 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 4,
   },
-  waterToggleLabel: { fontSize: 15, fontWeight: '600', color: '#374151' },
-  settingHint: { fontSize: 12, color: '#9CA3AF', marginTop: 3, lineHeight: 16 },
+  waterToggleLabel: { fontSize: 15, fontWeight: '600', color: c.gray700 },
+  settingHint: { fontSize: 12, color: c.textFaint, marginTop: 3, lineHeight: 16 },
   hydrationRow: { flexDirection: 'row', alignItems: 'center' },
   hydrationBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: c.infoSoft,
     alignItems: 'center', justifyContent: 'center',
   },
-  hydrationBtnText: { fontSize: 24, fontWeight: '600', color: '#3B82F6', lineHeight: 28 },
+  hydrationBtnText: { fontSize: 24, fontWeight: '600', color: c.info, lineHeight: 28 },
   hydrationCenter: { flex: 1, alignItems: 'center' },
-  hydrationLabel: { fontSize: 11, color: '#9CA3AF' },
-  hydrationValue: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  hydrationLabel: { fontSize: 11, color: c.textFaint },
+  hydrationValue: { fontSize: 18, fontWeight: '700', color: c.text },
+  // Appearance
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: c.cardMuted,
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentActive: {
+    backgroundColor: c.card,
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  segmentText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+  segmentTextActive: { color: c.primary, fontWeight: '700' },
   // Account
   accountRow: { marginBottom: 16 },
-  accountLabel: { fontSize: 12, color: '#9CA3AF', marginBottom: 2 },
-  accountEmail: { fontSize: 15, fontWeight: '600', color: '#111827' },
+  accountLabel: { fontSize: 12, color: c.textFaint, marginBottom: 2 },
+  accountEmail: { fontSize: 15, fontWeight: '600', color: c.text },
   signOutBtn: {
     borderRadius: 14, paddingVertical: 14, alignItems: 'center',
-    borderWidth: 1.5, borderColor: '#FEE2E2', backgroundColor: '#FEF2F2',
+    borderWidth: 1.5, borderColor: c.dangerSoft, backgroundColor: c.dangerSoft,
   },
-  signOutText: { color: '#EF4444', fontSize: 16, fontWeight: '700' },
+  signOutText: { color: c.danger, fontSize: 16, fontWeight: '700' },
 });
 
-const sliderStyles = StyleSheet.create({
+const makeSliderStyles = (c: Theme) => StyleSheet.create({
   touch: { height: 36, justifyContent: 'center', marginTop: 4 },
-  track: { height: 8, borderRadius: 4, backgroundColor: '#F3F4F6', overflow: 'hidden' },
+  track: { height: 8, borderRadius: 4, backgroundColor: c.cardMuted, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4 },
   thumb: {
     position: 'absolute',
@@ -669,9 +733,9 @@ const sliderStyles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     marginLeft: -11,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderWidth: 3,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,

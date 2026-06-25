@@ -6,6 +6,7 @@ import type {
   Food,
   FoodEntry,
   SavedMeal,
+  ThemeMode,
   UserProfile,
   WorkoutSession,
   WorkoutTemplate,
@@ -53,6 +54,7 @@ export interface SettingsSnapshot {
   waterGoal: number;
   waterIncrement: number;
   showWaterTracker: boolean;
+  themeMode: ThemeMode;
   autoRestTimer: boolean;
   defaultRestSeconds: number;
   bodyWeightLbs?: number;
@@ -113,6 +115,7 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     water_goal: s.waterGoal,
     water_increment: s.waterIncrement,
     show_water_tracker: s.showWaterTracker,
+    theme_mode: s.themeMode,
     auto_rest_timer: s.autoRestTimer,
     default_rest_seconds: s.defaultRestSeconds,
     body_weight_lbs: s.bodyWeightLbs ?? null,

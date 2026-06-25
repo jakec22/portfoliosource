@@ -66,6 +66,7 @@ export const useStore = create<AppState>()(
           waterGoal: s.waterGoal,
           waterIncrement: s.waterIncrement,
           showWaterTracker: s.showWaterTracker,
+          themeMode: s.themeMode,
           autoRestTimer: s.autoRestTimer,
           defaultRestSeconds: s.defaultRestSeconds,
           bodyWeightLbs: s.bodyWeightLbs,
@@ -88,6 +89,7 @@ export const useStore = create<AppState>()(
       waterGoal: 64, // default ~8 cups
       waterIncrement: 8, // fl oz per droplet tap
       showWaterTracker: true,
+      themeMode: 'system',
       autoRestTimer: true,
       defaultRestSeconds: 120,
       restTrigger: 0,
@@ -193,6 +195,11 @@ export const useStore = create<AppState>()(
 
       setShowWaterTracker: (show) => {
         set({ showWaterTracker: show });
+        syncSettings();
+      },
+
+      setThemeMode: (mode) => {
+        set({ themeMode: mode });
         syncSettings();
       },
 
@@ -547,7 +554,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 4,
+      version: 5,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -594,6 +601,11 @@ export const useStore = create<AppState>()(
             customFoods: state.customFoods ?? [],
             savedMeals: state.savedMeals ?? [],
           };
+        }
+        // v5 added an appearance preference; default existing users to
+        // following the OS setting.
+        if (version < 5 && state && state.themeMode == null) {
+          state = { ...state, themeMode: 'system' };
         }
         return state;
       },

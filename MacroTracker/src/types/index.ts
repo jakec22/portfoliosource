@@ -1,5 +1,8 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 
+// Appearance preference: explicit light/dark, or follow the OS setting.
+export type ThemeMode = 'light' | 'dark' | 'system';
+
 // How a logged amount is expressed. 'serving' = multiples of the food's
 // base serving_size; the rest are absolute mass/volume amounts.
 export type ServingUnit = 'serving' | 'g' | 'oz' | 'ml' | 'fl oz';
@@ -148,6 +151,7 @@ export interface AppState {
   waterGoal: number; // daily target in fluid ounces
   waterIncrement: number; // fl oz added per water droplet tap
   showWaterTracker: boolean;
+  themeMode: ThemeMode; // appearance preference (light/dark/system)
   autoRestTimer: boolean; // auto-start rest timer when a set is completed
   defaultRestSeconds: number; // user's default rest length (configured in Profile)
   restTrigger: number; // bumped to signal the rest timer to auto-start
@@ -177,6 +181,7 @@ export interface AppState {
   setWaterGoal: (oz: number) => void;
   setWaterIncrement: (oz: number) => void;
   setShowWaterTracker: (show: boolean) => void;
+  setThemeMode: (mode: ThemeMode) => void;
   setAutoRestTimer: (on: boolean) => void;
   setDefaultRestSeconds: (seconds: number) => void;
   setBodyWeight: (lbs: number) => void;

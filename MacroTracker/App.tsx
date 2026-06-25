@@ -1,8 +1,13 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  DefaultTheme as NavLightTheme,
+  DarkTheme as NavDarkTheme,
+} from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, StatusBar } from 'react-native';
+import { useTheme } from './src/theme/useTheme';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon } from './src/components/TabIcon';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -94,18 +99,32 @@ function ProfileStack() {
 
 function MainTabs() {
   const insets = useSafeAreaInsets();
+  const c = useTheme();
   // Handle incoming "import-template" share links once the user is in the app.
   useTemplateImport();
+
+  const navTheme = {
+    ...(c.scheme === 'dark' ? NavDarkTheme : NavLightTheme),
+    colors: {
+      ...(c.scheme === 'dark' ? NavDarkTheme : NavLightTheme).colors,
+      background: c.bg,
+      card: c.card,
+      text: c.text,
+      border: c.border,
+      primary: c.primary,
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
         <Tab.Navigator
           screenOptions={({ route }) => ({
             headerShown: false,
-            tabBarActiveTintColor: '#10B981',
-            tabBarInactiveTintColor: '#9CA3AF',
+            tabBarActiveTintColor: c.primary,
+            tabBarInactiveTintColor: c.textFaint,
             tabBarStyle: {
-              backgroundColor: '#fff',
-              borderTopColor: '#F3F4F6',
+              backgroundColor: c.card,
+              borderTopColor: c.border,
               paddingBottom: insets.bottom + 10,
               paddingTop: 10,
               height: 64 + insets.bottom,
@@ -134,20 +153,22 @@ function MainTabs() {
 
 export default function App() {
   const { session, loading } = useSession();
+  const c = useTheme();
 
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <StatusBar barStyle={c.scheme === 'dark' ? 'light-content' : 'dark-content'} />
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.bg }}>
         {loading ? (
           <View
             style={{
               flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#F9FAFB',
+              backgroundColor: c.bg,
             }}
           >
-            <ActivityIndicator size="large" color="#10B981" />
+            <ActivityIndicator size="large" color={c.primary} />
           </View>
         ) : session ? (
           <MainTabs />
