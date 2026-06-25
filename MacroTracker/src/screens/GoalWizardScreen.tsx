@@ -27,6 +27,8 @@ import {
   imperialHeightToCm,
   imperialToKg,
 } from '../utils/tdee';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   navigation: any;
@@ -37,6 +39,8 @@ interface Props {
 type StepKey = 'goal' | 'basics' | 'body' | 'activity' | 'pace' | 'review';
 
 export function GoalWizardScreen({ navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const profile = useStore((s) => s.profile);
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
   const bodyWeightLbs = useStore((s) => s.bodyWeightLbs);
@@ -235,7 +239,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                 return (
                   <TouchableOpacity
                     key={g}
-                    style={[styles.bigCard, active && { borderColor: m.color, backgroundColor: '#F9FAFB' }]}
+                    style={[styles.bigCard, active && { borderColor: m.color, backgroundColor: c.cardMuted }]}
                     onPress={() => handleSelectGoal(g)}
                     activeOpacity={0.8}
                   >
@@ -278,7 +282,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                 <TextInput
                   style={[styles.input, { width: 110 }]}
                   placeholder="30"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={c.textFaint}
                   value={age}
                   onChangeText={setAge}
                   keyboardType="number-pad"
@@ -315,7 +319,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                   <TextInput
                     style={[styles.input, { width: 110 }]}
                     placeholder="160"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={c.textFaint}
                     value={weightLbs}
                     onChangeText={setWeightLbs}
                     keyboardType="decimal-pad"
@@ -328,7 +332,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                   <TextInput
                     style={[styles.input, { width: 110 }]}
                     placeholder="73"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={c.textFaint}
                     value={weightKg}
                     onChangeText={setWeightKg}
                     keyboardType="decimal-pad"
@@ -344,7 +348,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                   <TextInput
                     style={[styles.input, { width: 80 }]}
                     placeholder="5"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={c.textFaint}
                     value={heightFt}
                     onChangeText={setHeightFt}
                     keyboardType="number-pad"
@@ -354,7 +358,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                   <TextInput
                     style={[styles.input, { width: 80, marginLeft: 12 }]}
                     placeholder="10"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={c.textFaint}
                     value={heightIn}
                     onChangeText={setHeightIn}
                     keyboardType="decimal-pad"
@@ -367,7 +371,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                   <TextInput
                     style={[styles.input, { width: 110 }]}
                     placeholder="178"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={c.textFaint}
                     value={heightCm}
                     onChangeText={setHeightCm}
                     keyboardType="decimal-pad"
@@ -392,11 +396,11 @@ export function GoalWizardScreen({ navigation }: Props) {
                     onPress={() => setActivityIdx(i)}
                     activeOpacity={0.8}
                   >
-                    <View style={[styles.radio, active && { borderColor: '#10B981' }]}>
-                      {active && <View style={[styles.radioDot, { backgroundColor: '#10B981' }]} />}
+                    <View style={[styles.radio, active && { borderColor: c.primary }]}>
+                      {active && <View style={[styles.radioDot, { backgroundColor: c.primary }]} />}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.optLabel, active && { color: '#065F46' }]}>{a.label}</Text>
+                      <Text style={[styles.optLabel, active && { color: c.scheme === 'dark' ? c.primary : '#065F46' }]}>{a.label}</Text>
                       <Text style={styles.optDesc}>{a.description}</Text>
                     </View>
                   </TouchableOpacity>
@@ -427,11 +431,11 @@ export function GoalWizardScreen({ navigation }: Props) {
                     onPress={() => setRateLbPerWeek(rate)}
                     activeOpacity={0.8}
                   >
-                    <View style={[styles.radio, active && { borderColor: '#10B981' }]}>
-                      {active && <View style={[styles.radioDot, { backgroundColor: '#10B981' }]} />}
+                    <View style={[styles.radio, active && { borderColor: c.primary }]}>
+                      {active && <View style={[styles.radioDot, { backgroundColor: c.primary }]} />}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.optLabel, active && { color: '#065F46' }]}>
+                      <Text style={[styles.optLabel, active && { color: c.scheme === 'dark' ? c.primary : '#065F46' }]}>
                         {lbLabel} / week
                       </Text>
                       <Text style={styles.optDesc}>
@@ -521,8 +525,8 @@ export function GoalWizardScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.card },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -531,110 +535,110 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
   },
-  close: { fontSize: 20, color: '#9CA3AF', fontWeight: '600', width: 20 },
-  stepCount: { fontSize: 13, fontWeight: '700', color: '#9CA3AF' },
+  close: { fontSize: 20, color: c.textFaint, fontWeight: '600', width: 20 },
+  stepCount: { fontSize: 13, fontWeight: '700', color: c.textFaint },
   progressTrack: {
     height: 4,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     marginHorizontal: 20,
     borderRadius: 2,
     overflow: 'hidden',
   },
-  progressFill: { height: 4, backgroundColor: '#10B981', borderRadius: 2 },
+  progressFill: { height: 4, backgroundColor: c.primary, borderRadius: 2 },
   content: { padding: 24, paddingBottom: 24 },
-  title: { fontSize: 26, fontWeight: '800', color: '#111827', marginBottom: 6 },
-  subtitle: { fontSize: 15, color: '#6B7280', marginBottom: 24, lineHeight: 21 },
+  title: { fontSize: 26, fontWeight: '800', color: c.text, marginBottom: 6 },
+  subtitle: { fontSize: 15, color: c.textMuted, marginBottom: 24, lineHeight: 21 },
   // Goal cards
   bigCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     padding: 18,
     marginBottom: 14,
     gap: 14,
   },
   bigCardEmoji: { fontSize: 32 },
-  bigCardLabel: { fontSize: 18, fontWeight: '800', color: '#111827' },
-  bigCardBlurb: { fontSize: 13, color: '#9CA3AF', marginTop: 2 },
+  bigCardLabel: { fontSize: 18, fontWeight: '800', color: c.text },
+  bigCardBlurb: { fontSize: 13, color: c.textFaint, marginTop: 2 },
   // Radio
   radio: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: c.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioDot: { width: 12, height: 12, borderRadius: 6 },
   // Fields
-  fieldLabel: { fontSize: 14, fontWeight: '700', color: '#374151', marginBottom: 10 },
+  fieldLabel: { fontSize: 14, fontWeight: '700', color: c.gray700, marginBottom: 10 },
   segRow: { flexDirection: 'row', gap: 12 },
   segBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
-  segBtnActive: { borderColor: '#10B981', backgroundColor: '#ECFDF5' },
-  segBtnText: { fontSize: 15, fontWeight: '600', color: '#6B7280' },
-  segBtnTextActive: { color: '#10B981' },
+  segBtnActive: { borderColor: c.primary, backgroundColor: c.primarySoft },
+  segBtnText: { fontSize: 15, fontWeight: '600', color: c.textMuted },
+  segBtnTextActive: { color: c.primary },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   input: {
     height: 52,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     borderRadius: 14,
     paddingHorizontal: 16,
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
+    color: c.text,
+    backgroundColor: c.input,
   },
-  inputUnit: { fontSize: 15, color: '#9CA3AF', fontWeight: '500' },
+  inputUnit: { fontSize: 15, color: c.textFaint, fontWeight: '500' },
   toggleRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   toggleBtn: {
     flex: 1,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
-  toggleBtnActive: { borderColor: '#10B981', backgroundColor: '#ECFDF5' },
-  toggleBtnText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
-  toggleBtnTextActive: { color: '#10B981' },
+  toggleBtnActive: { borderColor: c.primary, backgroundColor: c.primarySoft },
+  toggleBtnText: { fontSize: 14, fontWeight: '600', color: c.textMuted },
+  toggleBtnTextActive: { color: c.primary },
   // Option rows (activity / pace)
   optRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     padding: 16,
     marginBottom: 12,
     gap: 14,
   },
-  optRowActive: { borderColor: '#10B981', backgroundColor: '#F0FDF4' },
-  optLabel: { fontSize: 16, fontWeight: '700', color: '#374151' },
-  optDesc: { fontSize: 13, color: '#9CA3AF', marginTop: 2 },
+  optRowActive: { borderColor: c.primary, backgroundColor: c.primarySoft },
+  optLabel: { fontSize: 16, fontWeight: '700', color: c.gray700 },
+  optDesc: { fontSize: 13, color: c.textFaint, marginTop: 2 },
   // Review
   reviewCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 20,
     padding: 22,
     borderTopWidth: 4,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
+    borderColor: c.border,
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 8,
@@ -648,31 +652,31 @@ const styles = StyleSheet.create({
   reviewEmoji: { fontSize: 28, marginBottom: 4 },
   reviewGoal: { fontSize: 20, fontWeight: '800' },
   reviewCals: { fontSize: 40, fontWeight: '800', lineHeight: 44 },
-  reviewCalsUnit: { fontSize: 12, color: '#9CA3AF' },
-  reviewDelta: { fontSize: 13, color: '#6B7280', marginTop: 10 },
+  reviewCalsUnit: { fontSize: 12, color: c.textFaint },
+  reviewDelta: { fontSize: 13, color: c.textMuted, marginTop: 10 },
   tdeeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: c.border,
   },
-  tdeeLabel: { fontSize: 14, color: '#6B7280' },
-  tdeeValue: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  tdeeLabel: { fontSize: 14, color: c.textMuted },
+  tdeeValue: { fontSize: 14, fontWeight: '700', color: c.text },
   macroGrid: {
     flexDirection: 'row',
     gap: 8,
     marginTop: 20,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: c.border,
   },
   macroCell: { flex: 1, alignItems: 'center' },
   macroG: { fontSize: 18, fontWeight: '800' },
-  macroLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 3 },
-  macroPct: { fontSize: 11, color: '#6B7280', fontWeight: '600', marginTop: 1 },
-  disclaimer: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginTop: 20, lineHeight: 17 },
+  macroLabel: { fontSize: 11, color: c.textFaint, marginTop: 3 },
+  macroPct: { fontSize: 11, color: c.textMuted, fontWeight: '600', marginTop: 1 },
+  disclaimer: { fontSize: 12, color: c.textFaint, textAlign: 'center', marginTop: 20, lineHeight: 17 },
   // Footer
   footer: {
     flexDirection: 'row',
@@ -681,22 +685,22 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: c.border,
   },
   backBtn: {
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backBtnText: { fontSize: 16, fontWeight: '700', color: '#6B7280' },
+  backBtnText: { fontSize: 16, fontWeight: '700', color: c.textMuted },
   nextBtn: {
     flex: 1,
     paddingVertical: 16,
     borderRadius: 16,
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#10B981',
@@ -704,6 +708,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
-  nextBtnDisabled: { backgroundColor: '#D1D5DB', shadowOpacity: 0 },
-  nextBtnText: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  nextBtnDisabled: { backgroundColor: c.borderStrong, shadowOpacity: 0 },
+  nextBtnText: { fontSize: 17, fontWeight: '700', color: c.onPrimary },
 });
