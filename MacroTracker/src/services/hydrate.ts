@@ -91,7 +91,7 @@ export async function syncOnLogin(userId: string): Promise<void> {
       return;
     }
 
-    // Existing account — pull remote state into the store.
+    // Existing account — food entries and settings come from the cloud.
     const logs: Record<string, FoodEntry[]> = {};
     (rows ?? []).forEach((row: any) => {
       const entry: FoodEntry = {
@@ -107,13 +107,29 @@ export async function syncOnLogin(userId: string): Promise<void> {
       (logs[row.date] ??= []).push(entry);
     });
 
-    // Completed sessions, newest first (matching the store's invariant).
-    const workoutHistory = (workoutRows ?? [])
-      .map(rowToWorkout)
-      .sort(
-        (a, b) =>
-          (b.completedAt ?? b.startedAt) - (a.completedAt ?? a.startedAt)
-      );
+    // Workouts: merge local and cloud bidirectionally.
+    // Local sessions not yet in the cloud are pushed up — this handles the
+    // one-time transition for users who had workouts before sync was added,
+    // and sessions logged while offline. Cloud sessions absent from this
+    // device are pulled down for multi-device use.
+    const cloudWorkouts = (workoutRows ?? []).map(rowToWorkout);
+    const cloudIds = new Set(cloudWorkouts.map((w) => w.id));
+    const localWorkouts = useStore.getState().workoutHistory;
+    const localOnly = localWorkouts.filter((w) => !cloudIds.has(w.id));
+
+    if (localOnly.length > 0) {
+      setSuspended(false);
+      await pushWorkouts(localOnly);
+      setSuspended(true);
+    }
+
+    const localIds = new Set(localWorkouts.map((w) => w.id));
+    const mergedWorkoutHistory = [
+      ...localWorkouts,
+      ...cloudWorkouts.filter((w) => !localIds.has(w.id)),
+    ]
+      .sort((a, b) => (b.completedAt ?? b.startedAt) - (a.completedAt ?? a.startedAt))
+      .slice(0, 100);
 
     useStore.setState((state) => ({
       logs,
@@ -127,7 +143,7 @@ export async function syncOnLogin(userId: string): Promise<void> {
       recentFoods: settings?.recent_foods ?? state.recentFoods,
       waterIntake: settings?.water_intake ?? state.waterIntake,
       workoutTemplates: settings?.workout_templates ?? state.workoutTemplates,
-      workoutHistory,
+      workoutHistory: mergedWorkoutHistory,
     }));
   } finally {
     setSuspended(false);
