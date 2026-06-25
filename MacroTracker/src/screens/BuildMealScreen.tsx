@@ -20,6 +20,8 @@ import { analyzeMealText } from '../services/mealPhoto';
 import type { AnalyzedItem } from '../services/mealPhoto';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -63,6 +65,8 @@ function itemMultiplier(it: BuildItem): number {
 }
 
 export function BuildMealScreen({ route, navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { meal, date } = route.params;
 
   const addEntry = useStore((s) => s.addEntry);
@@ -283,9 +287,9 @@ export function BuildMealScreen({ route, navigation }: Props) {
               onChangeText={setSearchQuery}
               autoCapitalize="none"
               clearButtonMode="while-editing"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={c.textFaint}
             />
-            {searchLoading && <ActivityIndicator size="small" color="#10B981" />}
+            {searchLoading && <ActivityIndicator size="small" color={c.primary} />}
           </View>
         </View>
 
@@ -325,7 +329,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
             ListEmptyComponent={
               searchLoading ? (
                 <View style={styles.emptyBox}>
-                  <ActivityIndicator color="#10B981" />
+                  <ActivityIndicator color={c.primary} />
                   <Text style={styles.emptyText}>Searching…</Text>
                 </View>
               ) : (
@@ -349,7 +353,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
                   'e.g. grilled salmon with roasted sweet potato and steamed broccoli, ' +
                   'medium portions'
                 }
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={c.textFaint}
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -486,7 +490,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
                           </View>
 
                           <View style={styles.previewRow}>
-                            <MacroStat label="kcal" value={preview.calories} color="#111827" />
+                            <MacroStat label="kcal" value={preview.calories} color={c.text} />
                             <MacroStat label="protein" value={preview.protein} color="#3B82F6" unit="g" />
                             <MacroStat label="carbs" value={preview.carbs} color="#F59E0B" unit="g" />
                             <MacroStat label="fat" value={preview.fat} color="#EF4444" unit="g" />
@@ -512,7 +516,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
         {items.length > 0 && !isSearching && (
           <View style={styles.footer}>
             <View style={styles.totalsRow}>
-              <MacroStat label="kcal" value={Math.round(totals.calories)} color="#111827" />
+              <MacroStat label="kcal" value={Math.round(totals.calories)} color={c.text} />
               <MacroStat label="protein" value={Math.round(totals.protein)} color="#3B82F6" unit="g" />
               <MacroStat label="carbs" value={Math.round(totals.carbs)} color="#F59E0B" unit="g" />
               <MacroStat label="fat" value={Math.round(totals.fat)} color="#EF4444" unit="g" />
@@ -553,6 +557,8 @@ function MacroStat({
   color: string;
   unit?: string;
 }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.macroStat}>
       <Text style={[styles.macroStatValue, { color }]}>
@@ -563,8 +569,8 @@ function MacroStat({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   flex: { flex: 1 },
 
   header: {
@@ -573,13 +579,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: c.border,
   },
   sideBtn: { width: 64 },
-  backText: { fontSize: 16, color: '#10B981', fontWeight: '600' },
-  title: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  backText: { fontSize: 16, color: c.primary, fontWeight: '600' },
+  title: { fontSize: 17, fontWeight: '700', color: c.text },
 
   searchRow: {
     flexDirection: 'row',
@@ -591,61 +597,61 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     height: 46,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
   },
   searchIcon: { fontSize: 16, marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 16, color: '#111827' },
+  searchInput: { flex: 1, fontSize: 16, color: c.text },
 
   // Search results
   listContent: { paddingHorizontal: 12, paddingBottom: 8 },
   searchResult: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1,
   },
   searchResultLeft: { flex: 1 },
-  searchResultName: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  searchResultBrand: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  searchResultServing: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  searchResultName: { fontSize: 15, fontWeight: '600', color: c.text },
+  searchResultBrand: { fontSize: 12, color: c.textFaint, marginTop: 2 },
+  searchResultServing: { fontSize: 12, color: c.textMuted, marginTop: 4 },
   searchResultRight: { alignItems: 'flex-end', gap: 2, marginRight: 10 },
-  searchResultCals: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  searchResultMacro: { fontSize: 11, color: '#9CA3AF' },
+  searchResultCals: { fontSize: 14, fontWeight: '700', color: c.text },
+  searchResultMacro: { fontSize: 11, color: c.textFaint },
   addBadge: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: c.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addBadgeText: { fontSize: 20, color: '#10B981', fontWeight: '300' },
+  addBadgeText: { fontSize: 20, color: c.primary, fontWeight: '300' },
   emptyBox: { alignItems: 'center', paddingVertical: 40 },
-  emptyText: { fontSize: 14, color: '#9CA3AF', marginTop: 8 },
+  emptyText: { fontSize: 14, color: c.textFaint, marginTop: 8 },
 
   // Meal builder
   content: { padding: 16, paddingBottom: 32 },
 
   aiBox: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 18,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -654,13 +660,13 @@ const styles = StyleSheet.create({
   aiLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#374151',
+    color: c.gray700,
     marginBottom: 10,
   },
   aiInput: {
     minHeight: 72,
     fontSize: 15,
-    color: '#111827',
+    color: c.text,
     lineHeight: 21,
     marginBottom: 12,
   },
@@ -670,7 +676,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
   },
-  aiBtnDisabled: { backgroundColor: '#CBD5E1' },
+  aiBtnDisabled: { backgroundColor: c.borderStrong },
   aiBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   emptyMeal: {
@@ -681,7 +687,7 @@ const styles = StyleSheet.create({
   emptyMealIcon: { fontSize: 42, marginBottom: 12 },
   emptyMealText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: c.textFaint,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -695,87 +701,88 @@ const styles = StyleSheet.create({
   itemsLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: c.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   itemsCount: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: c.textMuted,
   },
 
   itemCard: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     marginBottom: 10,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: '#F3F4F6',
+    borderColor: c.border,
   },
-  itemCardExpanded: { borderColor: '#10B981' },
+  itemCardExpanded: { borderColor: c.primary },
   itemSummary: { flexDirection: 'row', alignItems: 'center', padding: 14 },
   itemLeft: { flex: 1 },
-  itemName: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  itemMacros: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  itemName: { fontSize: 15, fontWeight: '600', color: c.text },
+  itemMacros: { fontSize: 12, color: c.textMuted, marginTop: 4 },
   itemRight: { alignItems: 'flex-end', gap: 4, marginLeft: 12 },
   amountBadge: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#10B981',
-    backgroundColor: '#ECFDF5',
+    color: c.primary,
+    backgroundColor: c.primarySoft,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  chevron: { fontSize: 13, color: '#9CA3AF', fontWeight: '600' },
+  chevron: { fontSize: 13, color: c.textFaint, fontWeight: '600' },
 
   editor: { paddingHorizontal: 14, paddingBottom: 14 },
-  divider: { height: 1, backgroundColor: '#F3F4F6', marginBottom: 14 },
+  divider: { height: 1, backgroundColor: c.border, marginBottom: 14 },
   unitRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   unitBtn: {
     flex: 1,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
-  unitBtnActive: { backgroundColor: '#ECFDF5', borderColor: '#10B981' },
-  unitBtnText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  unitBtnTextActive: { color: '#10B981' },
+  unitBtnActive: { backgroundColor: c.primarySoft, borderColor: c.primary },
+  unitBtnText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+  unitBtnTextActive: { color: c.primary },
   amountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14,
   },
-  amountLabel: { fontSize: 13, color: '#6B7280', flex: 1 },
+  amountLabel: { fontSize: 13, color: c.textMuted, flex: 1 },
   amountControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepBtnText: { fontSize: 20, fontWeight: '300', color: '#374151' },
+  stepBtnText: { fontSize: 20, fontWeight: '300', color: c.gray700 },
   amountInput: {
     width: 64,
     height: 34,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     borderRadius: 10,
     textAlign: 'center',
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: c.text,
+    backgroundColor: c.input,
   },
   previewRow: {
     flexDirection: 'row',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     borderRadius: 12,
     padding: 10,
     marginBottom: 14,
@@ -783,18 +790,18 @@ const styles = StyleSheet.create({
   },
   macroStat: { alignItems: 'center' },
   macroStatValue: { fontSize: 16, fontWeight: '700' },
-  macroStatLabel: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  macroStatLabel: { fontSize: 11, color: c.textFaint, marginTop: 2 },
   removeBtn: { alignItems: 'center', paddingVertical: 6 },
-  removeBtnText: { fontSize: 13, fontWeight: '600', color: '#EF4444' },
+  removeBtnText: { fontSize: 13, fontWeight: '600', color: c.danger },
 
   // Footer
   footer: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 12,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -803,7 +810,7 @@ const styles = StyleSheet.create({
   totalsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
@@ -814,16 +821,16 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#10B981',
+    borderColor: c.primary,
     alignItems: 'center',
   },
-  saveMealBtnText: { fontSize: 15, fontWeight: '700', color: '#10B981' },
+  saveMealBtnText: { fontSize: 15, fontWeight: '700', color: c.primary },
   addAllBtn: {
     flex: 2,
     paddingVertical: 15,
     borderRadius: 14,
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     alignItems: 'center',
   },
-  addAllBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  addAllBtnText: { color: c.onPrimary, fontSize: 15, fontWeight: '700' },
 });
