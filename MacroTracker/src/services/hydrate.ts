@@ -27,7 +27,6 @@ function snapshot(): SettingsSnapshot {
     bodyWeightLbs: s.bodyWeightLbs,
     bodyWeightLog: s.bodyWeightLog,
     profile: s.profile,
-    reminderSettings: s.reminderSettings,
     recentFoods: s.recentFoods,
     favoriteFoods: s.favoriteFoods,
     customFoods: s.customFoods,
@@ -170,7 +169,6 @@ export async function syncOnLogin(userId: string): Promise<void> {
       defaultRestSeconds: settings?.default_rest_seconds ?? state.defaultRestSeconds,
       bodyWeightLbs: settings?.body_weight_lbs ?? state.bodyWeightLbs,
       profile: settings?.profile ?? state.profile,
-      reminderSettings: settings?.reminder_settings ?? state.reminderSettings,
       waterIntake: settings?.water_intake ?? state.waterIntake,
       // For list-valued settings, only take the cloud copy when it actually has
       // items — an empty/missing cloud array must not wipe local data (e.g. a
