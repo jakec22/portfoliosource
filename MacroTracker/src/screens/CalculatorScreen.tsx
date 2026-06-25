@@ -249,8 +249,8 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.pageTitle}>Goals</Text>
-        <Text style={styles.subtitle}>Your daily calorie and macro targets</Text>
+        <Text style={styles.pageTitle}>Profile</Text>
+        <Text style={styles.subtitle}>Your goals, body weight, and app settings</Text>
 
         {/* Goal Wizard CTA */}
         {navigation && (
@@ -273,6 +273,62 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             <Text style={styles.wizardArrow}>›</Text>
           </TouchableOpacity>
         )}
+
+        {/* Body Weight log */}
+        <View style={styles.weightSectionHeader}>
+          <Text style={styles.sectionTitle}>Body Weight</Text>
+          {navigation && (
+            <TouchableOpacity onPress={() => navigation.navigate('Analytics')}>
+              <Text style={styles.trendsLink}>View trends ›</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.card}>
+          <View style={styles.weightTopRow}>
+            <View>
+              <Text style={styles.weightCurrentLabel}>Current</Text>
+              <Text style={styles.weightCurrentValue}>
+                {latestWeight != null ? `${latestWeight} lb` : '—'}
+              </Text>
+            </View>
+            <View style={styles.weightInputRow}>
+              <TextInput
+                style={styles.weightInput}
+                value={weightInput}
+                onChangeText={setWeightInput}
+                keyboardType="decimal-pad"
+                placeholder="175"
+                placeholderTextColor="#9CA3AF"
+                returnKeyType="done"
+                onSubmitEditing={handleLogWeight}
+              />
+              <Text style={styles.weightUnit}>lbs</Text>
+              <TouchableOpacity style={styles.weightLogBtn} onPress={handleLogWeight}>
+                <Text style={styles.weightLogBtnText}>Log</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {bodyWeightLog.length > 0 && (
+            <View style={styles.weightList}>
+              {bodyWeightLog.slice(0, 6).map((e) => (
+                <View key={e.loggedAt} style={styles.weightRow}>
+                  <Text style={styles.weightRowDate}>{displayDate(e.date)}</Text>
+                  <Text style={styles.weightRowValue}>{e.lbs} lb</Text>
+                  <TouchableOpacity
+                    onPress={() => deleteBodyWeightEntry(e.loggedAt)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text style={styles.weightRowDelete}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+          <Text style={[styles.settingHint, { marginTop: 12 }]}>
+            Log as often or as little as you like — defaults to today's date.
+          </Text>
+        </View>
 
         {/* Daily Goals (editable) */}
         <Text style={styles.sectionTitle}>Daily Goals</Text>
@@ -337,59 +393,45 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           </View>
         </View>
 
-        {/* Body Weight log */}
-        <View style={styles.weightSectionHeader}>
-          <Text style={styles.sectionTitle}>Body Weight</Text>
-          {navigation && (
-            <TouchableOpacity onPress={() => navigation.navigate('Analytics')}>
-              <Text style={styles.trendsLink}>View trends ›</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* Workout Settings */}
+        <Text style={styles.sectionTitle}>Workout Settings</Text>
         <View style={styles.card}>
-          <View style={styles.weightTopRow}>
-            <View>
-              <Text style={styles.weightCurrentLabel}>Current</Text>
-              <Text style={styles.weightCurrentValue}>
-                {latestWeight != null ? `${latestWeight} lb` : '—'}
+          <View style={styles.waterToggleRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.waterToggleLabel}>Auto-start rest timer</Text>
+              <Text style={styles.settingHint}>
+                Starts the rest countdown automatically when you check off a set.
               </Text>
             </View>
-            <View style={styles.weightInputRow}>
-              <TextInput
-                style={styles.weightInput}
-                value={weightInput}
-                onChangeText={setWeightInput}
-                keyboardType="decimal-pad"
-                placeholder="175"
-                placeholderTextColor="#9CA3AF"
-                returnKeyType="done"
-                onSubmitEditing={handleLogWeight}
-              />
-              <Text style={styles.weightUnit}>lbs</Text>
-              <TouchableOpacity style={styles.weightLogBtn} onPress={handleLogWeight}>
-                <Text style={styles.weightLogBtnText}>Log</Text>
-              </TouchableOpacity>
-            </View>
+            <Switch
+              value={autoRestTimer}
+              onValueChange={setAutoRestTimer}
+              trackColor={{ false: '#E5E7EB', true: '#6EE7B7' }}
+              thumbColor={autoRestTimer ? '#10B981' : '#9CA3AF'}
+            />
           </View>
 
-          {bodyWeightLog.length > 0 && (
-            <View style={styles.weightList}>
-              {bodyWeightLog.slice(0, 6).map((e) => (
-                <View key={e.loggedAt} style={styles.weightRow}>
-                  <Text style={styles.weightRowDate}>{displayDate(e.date)}</Text>
-                  <Text style={styles.weightRowValue}>{e.lbs} lb</Text>
-                  <TouchableOpacity
-                    onPress={() => deleteBodyWeightEntry(e.loggedAt)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Text style={styles.weightRowDelete}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
+          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              onPress={() => setDefaultRestSeconds(defaultRestSeconds - 15)}
+            >
+              <Text style={styles.hydrationBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.hydrationCenter}>
+              <Text style={styles.hydrationLabel}>Default Rest Time</Text>
+              <Text style={styles.hydrationValue}>{formatRest(defaultRestSeconds)}</Text>
             </View>
-          )}
-          <Text style={[styles.settingHint, { marginTop: 12 }]}>
-            Log as often or as little as you like — defaults to today's date.
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              onPress={() => setDefaultRestSeconds(defaultRestSeconds + 15)}
+            >
+              <Text style={styles.hydrationBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.settingHint, { marginTop: 8 }]}>
+            Used for the rest countdown during a workout. Adjust in 15-second steps
+            (you can still tap +30s or Skip mid-workout).
           </Text>
         </View>
 
@@ -442,48 +484,6 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
               <Text style={styles.hydrationBtnText}>+</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Workout Settings */}
-        <Text style={styles.sectionTitle}>Workout Settings</Text>
-        <View style={styles.card}>
-          <View style={styles.waterToggleRow}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={styles.waterToggleLabel}>Auto-start rest timer</Text>
-              <Text style={styles.settingHint}>
-                Starts the rest countdown automatically when you check off a set.
-              </Text>
-            </View>
-            <Switch
-              value={autoRestTimer}
-              onValueChange={setAutoRestTimer}
-              trackColor={{ false: '#E5E7EB', true: '#6EE7B7' }}
-              thumbColor={autoRestTimer ? '#10B981' : '#9CA3AF'}
-            />
-          </View>
-
-          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
-            <TouchableOpacity
-              style={styles.hydrationBtn}
-              onPress={() => setDefaultRestSeconds(defaultRestSeconds - 15)}
-            >
-              <Text style={styles.hydrationBtnText}>−</Text>
-            </TouchableOpacity>
-            <View style={styles.hydrationCenter}>
-              <Text style={styles.hydrationLabel}>Default Rest Time</Text>
-              <Text style={styles.hydrationValue}>{formatRest(defaultRestSeconds)}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.hydrationBtn}
-              onPress={() => setDefaultRestSeconds(defaultRestSeconds + 15)}
-            >
-              <Text style={styles.hydrationBtnText}>+</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={[styles.settingHint, { marginTop: 8 }]}>
-            Used for the rest countdown during a workout. Adjust in 15-second steps
-            (you can still tap +30s or Skip mid-workout).
-          </Text>
         </View>
 
         {/* Account */}
