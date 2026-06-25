@@ -45,6 +45,25 @@ function rowToWorkout(row: any): WorkoutSession {
   };
 }
 
+// zustand's persist middleware rehydrates the store from AsyncStorage
+// asynchronously. syncOnLogin reads local state to decide what to push up, so
+// it must wait for rehydration to finish first — otherwise it reads the initial
+// empty state, uploads nothing, and may overwrite good local data with cloud.
+async function waitForStoreHydration(): Promise<void> {
+  if (useStore.persist.hasHydrated()) return;
+  await new Promise<void>((resolve) => {
+    const unsub = useStore.persist.onFinishHydration(() => {
+      unsub();
+      resolve();
+    });
+    // Guard the gap between the check above and subscribing.
+    if (useStore.persist.hasHydrated()) {
+      unsub();
+      resolve();
+    }
+  });
+}
+
 /**
  * Reconcile local and remote state when a user signs in.
  * - Brand-new account (nothing in the cloud): push the current local state up.
@@ -53,6 +72,10 @@ function rowToWorkout(row: any): WorkoutSession {
 export async function syncOnLogin(userId: string): Promise<void> {
   if (lastSyncedUser === userId) return;
   lastSyncedUser = userId;
+
+  // Ensure the local store is fully loaded from disk before we read it to
+  // decide what to migrate up to the cloud.
+  await waitForStoreHydration();
 
   setSuspended(true);
   setSyncUser(userId);
