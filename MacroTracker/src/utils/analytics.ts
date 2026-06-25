@@ -14,20 +14,19 @@ export interface WeightPoint {
   lbs: number;
 }
 
-// One point per day (the latest reading that day), oldest → newest, limited to
-// roughly the last `days` calendar days.
+// One point per reading, oldest → newest, limited to roughly the last `days`
+// calendar days. Multiple readings on the same day each get their own point so
+// every logged weight shows up on the trend.
 export function weightTrend(log: BodyWeightEntry[], days: number): WeightPoint[] {
   if (log.length === 0) return [];
   const cutoff = formatDate(new Date(Date.now() - (days - 1) * 86400000));
-  // log is newest-first, so the first sighting of a date is its latest reading.
-  const seen = new Map<string, number>();
-  for (const e of log) {
-    if (e.date < cutoff) continue;
-    if (!seen.has(e.date)) seen.set(e.date, e.lbs);
-  }
-  return [...seen.entries()]
-    .map(([date, lbs]) => ({ date, lbs }))
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  return log
+    .filter((e) => e.date >= cutoff)
+    .slice()
+    .sort((a, b) =>
+      a.date === b.date ? a.loggedAt - b.loggedAt : a.date < b.date ? -1 : 1
+    )
+    .map((e) => ({ date: e.date, lbs: e.lbs }));
 }
 
 // ── Nutrition adherence ──────────────────────────────────────────────────────
