@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Polyline, Line, Circle, Text as SvgText } from 'react-native-svg';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   /** Y values, oldest → newest (left → right). */
@@ -26,6 +28,7 @@ function fmt(v: number): string {
 // A lightweight SVG line chart for a per-session metric over time. Handles the
 // single-point case (one dot + value) and a flat series (sensible Y padding).
 export function ProgressLineChart({ values, labels, color }: Props) {
+  const c = useTheme();
   if (values.length === 0) return null;
 
   const plotW = W - PAD_L - PAD_R;
@@ -51,8 +54,8 @@ export function ProgressLineChart({ values, labels, color }: Props) {
     <Svg viewBox={`0 0 ${W} ${H}`} width="100%" height={184}>
       {gridValues.map((v, idx) => (
         <React.Fragment key={`${v}-${idx}`}>
-          <Line x1={PAD_L} y1={y(v)} x2={W - PAD_R} y2={y(v)} stroke="#F3F4F6" strokeWidth={1} />
-          <SvgText x={4} y={y(v) + 3} fontSize={9} fill="#9CA3AF">
+          <Line x1={PAD_L} y1={y(v)} x2={W - PAD_R} y2={y(v)} stroke={c.border} strokeWidth={1} />
+          <SvgText x={4} y={y(v) + 3} fontSize={9} fill={c.textFaint}>
             {fmt(v)}
           </SvgText>
         </React.Fragment>
@@ -74,11 +77,11 @@ export function ProgressLineChart({ values, labels, color }: Props) {
       ))}
 
       {/* X endpoints */}
-      <SvgText x={PAD_L} y={H - 6} fontSize={9} fill="#9CA3AF">
+      <SvgText x={PAD_L} y={H - 6} fontSize={9} fill={c.textFaint}>
         {labels[0] ?? ''}
       </SvgText>
       {labels.length > 1 && (
-        <SvgText x={W - PAD_R} y={H - 6} fontSize={9} fill="#9CA3AF" textAnchor="end">
+        <SvgText x={W - PAD_R} y={H - 6} fontSize={9} fill={c.textFaint} textAnchor="end">
           {labels[labels.length - 1]}
         </SvgText>
       )}
@@ -89,6 +92,8 @@ export function ProgressLineChart({ values, labels, color }: Props) {
 // Small helper kept here so screens can render a "no data" placeholder with a
 // consistent look next to the chart.
 export function ChartEmpty({ text }: { text: string }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyText}>{text}</Text>
@@ -96,7 +101,7 @@ export function ChartEmpty({ text }: { text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   empty: { paddingVertical: 32, alignItems: 'center' },
-  emptyText: { fontSize: 13, color: '#9CA3AF' },
+  emptyText: { fontSize: 13, color: c.textFaint },
 });

@@ -5,6 +5,8 @@ import { useStore } from '../store/useStore';
 import { ProgressLineChart, ChartEmpty } from '../components/ProgressLineChart';
 import { MiniBarChart } from '../components/MiniBarChart';
 import { weightTrend, nutritionAdherence, weeklyVolume } from '../utils/analytics';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   navigation: any;
@@ -21,6 +23,8 @@ function shortDate(dateStr: string): string {
 }
 
 export function AnalyticsScreen({ navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
   const logs = useStore((s) => s.logs);
   const goals = useStore((s) => s.goals);
@@ -66,12 +70,12 @@ export function AnalyticsScreen({ navigation }: Props) {
                 <Stat
                   label="Current"
                   value={`${weight[weight.length - 1].lbs} lb`}
-                  color="#111827"
+                  color={c.text}
                 />
                 <Stat
                   label="Change"
                   value={`${weightDelta >= 0 ? '+' : ''}${weightDelta.toFixed(1)} lb`}
-                  color={weightDelta > 0 ? '#DC2626' : weightDelta < 0 ? '#059669' : '#6B7280'}
+                  color={weightDelta > 0 ? c.danger : weightDelta < 0 ? c.primaryDark : c.textMuted}
                 />
               </View>
               {weight.length < 2 ? (
@@ -126,7 +130,7 @@ export function AnalyticsScreen({ navigation }: Props) {
                   value={`${Math.round(thisWeek.volume).toLocaleString()} lb`}
                   color="#F59E0B"
                 />
-                <Stat label="Avg / week" value={`${avgWeekVol.toLocaleString()} lb`} color="#6B7280" />
+                <Stat label="Avg / week" value={`${avgWeekVol.toLocaleString()} lb`} color={c.textMuted} />
               </View>
               <MiniBarChart
                 values={weeks.map((w) => w.volume)}
@@ -145,6 +149,8 @@ export function AnalyticsScreen({ navigation }: Props) {
 }
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.statCard}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
@@ -153,8 +159,8 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+const makeStyles = (c: Theme) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -162,29 +168,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    backgroundColor: '#fff',
+    borderBottomColor: c.border,
+    backgroundColor: c.card,
   },
-  back: { fontSize: 16, color: '#10B981', fontWeight: '600', width: 64 },
+  back: { fontSize: 16, color: c.primary, fontWeight: '600', width: 64 },
   backSpacer: { width: 64 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800', color: '#111827' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800', color: c.text },
   content: { padding: 16, paddingBottom: 40 },
 
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: c.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 8,
     marginBottom: 10,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -193,6 +199,6 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   statCard: { flex: 1 },
   statValue: { fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  statLabel: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  caption: { fontSize: 11, color: '#9CA3AF', marginTop: 8, lineHeight: 16 },
+  statLabel: { fontSize: 12, color: c.textFaint, marginTop: 2 },
+  caption: { fontSize: 11, color: c.textFaint, marginTop: 8, lineHeight: 16 },
 });

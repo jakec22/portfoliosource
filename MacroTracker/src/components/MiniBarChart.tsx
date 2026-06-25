@@ -1,5 +1,6 @@
 import React from 'react';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
+import { useTheme } from '../theme/useTheme';
 
 interface Props {
   /** Bar values, oldest → newest. */
@@ -30,6 +31,7 @@ function fmt(v: number): string {
 // HeartRateGraph. Bars are evenly spaced; an optional dashed goal line and Y
 // gridlines give the values context.
 export function MiniBarChart({ values, labels, color, goal, dimEmpty }: Props) {
+  const c = useTheme();
   if (values.length === 0) return null;
 
   const plotW = W - PAD_L - PAD_R;
@@ -49,8 +51,8 @@ export function MiniBarChart({ values, labels, color, goal, dimEmpty }: Props) {
     <Svg viewBox={`0 0 ${W} ${H}`} width="100%" height={184}>
       {gridValues.map((v, idx) => (
         <React.Fragment key={`${v}-${idx}`}>
-          <Line x1={PAD_L} y1={y(v)} x2={W - PAD_R} y2={y(v)} stroke="#F3F4F6" strokeWidth={1} />
-          <SvgText x={4} y={y(v) + 3} fontSize={9} fill="#9CA3AF">
+          <Line x1={PAD_L} y1={y(v)} x2={W - PAD_R} y2={y(v)} stroke={c.border} strokeWidth={1} />
+          <SvgText x={4} y={y(v) + 3} fontSize={9} fill={c.textFaint}>
             {fmt(v)}
           </SvgText>
         </React.Fragment>
@@ -81,17 +83,17 @@ export function MiniBarChart({ values, labels, color, goal, dimEmpty }: Props) {
           y1={y(goal)}
           x2={W - PAD_R}
           y2={y(goal)}
-          stroke="#9CA3AF"
+          stroke={c.textFaint}
           strokeWidth={1}
           strokeDasharray="4 3"
         />
       )}
 
-      <SvgText x={PAD_L} y={H - 6} fontSize={9} fill="#9CA3AF">
+      <SvgText x={PAD_L} y={H - 6} fontSize={9} fill={c.textFaint}>
         {labels[0] ?? ''}
       </SvgText>
       {labels.length > 1 && (
-        <SvgText x={W - PAD_R} y={H - 6} fontSize={9} fill="#9CA3AF" textAnchor="end">
+        <SvgText x={W - PAD_R} y={H - 6} fontSize={9} fill={c.textFaint} textAnchor="end">
           {labels[labels.length - 1]}
         </SvgText>
       )}
