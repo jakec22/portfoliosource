@@ -66,6 +66,7 @@ function HistoryStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HistoryHome" component={HistoryScreen as any} />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
+      <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
     </Stack.Navigator>
   );
 }

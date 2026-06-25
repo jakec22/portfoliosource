@@ -67,6 +67,21 @@ export function HistoryScreen({ navigation }: Props) {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>History</Text>
+
+        {/* Trends */}
+        <TouchableOpacity
+          style={styles.trendsBtn}
+          onPress={() => navigation.navigate('Analytics')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.trendsIcon}>📊</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.trendsTitle}>Trends</Text>
+            <Text style={styles.trendsSub}>Weight, nutrition & workout volume over time</Text>
+          </View>
+          <Text style={styles.trendsArrow}>›</Text>
+        </TouchableOpacity>
+
         <Text style={styles.subtitle}>Past {visibleDays} days</Text>
 
         {days.map((date) => {
@@ -328,4 +343,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#10B981',
   },
+  trendsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  trendsIcon: { fontSize: 28 },
+  trendsTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  trendsSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  trendsArrow: { fontSize: 26, color: '#D1D5DB', fontWeight: '300' },
 });
