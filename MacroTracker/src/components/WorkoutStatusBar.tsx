@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Vibration, AppState } from 'react-native';
 import { formatDuration } from '../utils/date';
 import { useStore } from '../store/useStore';
 import { AnimatedHeart } from './AnimatedHeart';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   bpm: number | null;
@@ -30,6 +32,8 @@ function zoneColor(bpm: number): string {
 // off (using the Profile default rest length), with +30s / Skip while running,
 // or a manual "Rest" button when idle.
 export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [endAt, setEndAt] = useState<number | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [, tick] = useState(0); // drives re-renders for the age label
@@ -127,41 +131,41 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: c.border,
   },
-  barRunning: { backgroundColor: '#ECFDF5' },
+  barRunning: { backgroundColor: c.primarySoft },
 
   // Heart rate (left)
   hrSide: { flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 110 },
   hrText: { justifyContent: 'center' },
   hrValue: { fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  hrUnit: { fontSize: 12, fontWeight: '600', color: '#9CA3AF' },
-  hrLabel: { fontSize: 10, color: '#9CA3AF', marginTop: 1 },
-  hrIdle: { fontSize: 18, fontWeight: '700', color: '#D1D5DB' },
+  hrUnit: { fontSize: 12, fontWeight: '600', color: c.textFaint },
+  hrLabel: { fontSize: 10, color: c.textFaint, marginTop: 1 },
+  hrIdle: { fontSize: 18, fontWeight: '700', color: c.textFaint },
 
   // Rest (right)
   restSide: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  countdown: { fontSize: 22, fontWeight: '800', color: '#065F46', fontVariant: ['tabular-nums'] },
-  addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#D1FAE5' },
-  addText: { fontSize: 14, fontWeight: '700', color: '#059669' },
-  skipBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#10B981' },
-  skipText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  countdown: { fontSize: 22, fontWeight: '800', color: c.scheme === 'dark' ? c.primary : '#065F46', fontVariant: ['tabular-nums'] },
+  addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: c.primarySoft },
+  addText: { fontSize: 14, fontWeight: '700', color: c.primaryDark },
+  skipBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: c.primary },
+  skipText: { fontSize: 14, fontWeight: '700', color: c.onPrimary },
   restBtn: {
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 10,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: c.primarySoft,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
   },
-  restBtnText: { fontSize: 14, fontWeight: '700', color: '#059669' },
+  restBtnText: { fontSize: 14, fontWeight: '700', color: c.primaryDark },
 });

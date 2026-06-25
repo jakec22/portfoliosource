@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   InputAccessoryView,
   Keyboard,
@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 export const DONE_ACCESSORY_ID = 'keyboard-done-accessory';
 
@@ -15,6 +17,8 @@ export const DONE_ACCESSORY_ID = 'keyboard-done-accessory';
 // Attach to a TextInput via inputAccessoryViewID={DONE_ACCESSORY_ID}.
 // Returns null on Android (which already has a dismiss key).
 export function KeyboardDoneAccessory() {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   if (Platform.OS !== 'ios') return null;
   return (
     <InputAccessoryView nativeID={DONE_ACCESSORY_ID}>
@@ -30,21 +34,21 @@ export function KeyboardDoneAccessory() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   bar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: c.border,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   done: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#10B981',
+    color: c.primary,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
