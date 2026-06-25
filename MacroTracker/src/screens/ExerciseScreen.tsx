@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import { useStore } from '../store/useStore';
 import { WorkoutTemplate } from '../types';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
+import { exerciseSummaries } from '../utils/exerciseHistory';
+import { relativeDateLabel } from '../utils/date';
 
 interface Props {
   navigation: any;
@@ -27,6 +29,9 @@ export function ExerciseScreen({ navigation }: Props) {
   const deleteTemplate = useStore((s) => s.deleteTemplate);
   const deleteWorkout = useStore((s) => s.deleteWorkout);
   const saveTemplate = useStore((s) => s.saveTemplate);
+
+  // Distinct exercises performed across history, for the progress browser.
+  const exercises = useMemo(() => exerciseSummaries(history), [history]);
 
   function handleStartEmpty() {
     if (activeWorkout) {
@@ -201,6 +206,40 @@ export function ExerciseScreen({ navigation }: Props) {
           ))
         )}
 
+        {/* Exercise progress */}
+        {exercises.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Progress</Text>
+            </View>
+            {exercises.map((ex) => (
+              <TouchableOpacity
+                key={ex.key}
+                style={styles.progressCard}
+                onPress={() => navigation.navigate('ExerciseProgress', { name: ex.name })}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.progressName} numberOfLines={1}>
+                    {ex.name}
+                  </Text>
+                  <Text style={styles.progressMeta}>
+                    {ex.sessions} session{ex.sessions === 1 ? '' : 's'} · last{' '}
+                    {relativeDateLabel(ex.lastDate)}
+                  </Text>
+                </View>
+                {ex.bestWeight > 0 && (
+                  <View style={styles.progressBest}>
+                    <Text style={styles.progressBestValue}>{ex.bestWeight}</Text>
+                    <Text style={styles.progressBestLabel}>lb top</Text>
+                  </View>
+                )}
+                <Text style={styles.progressArrow}>›</Text>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+
         {/* History */}
         {history.length > 0 && (
           <>
@@ -306,6 +345,28 @@ const styles = StyleSheet.create({
     borderTopColor: '#F3F4F6',
   },
   templateActionBtn: {},
+
+  progressCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  progressName: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  progressMeta: { fontSize: 12, color: '#9CA3AF', marginTop: 3 },
+  progressBest: { alignItems: 'flex-end', marginRight: 12 },
+  progressBestValue: { fontSize: 16, fontWeight: '800', color: '#10B981', fontVariant: ['tabular-nums'] },
+  progressBestLabel: { fontSize: 10, color: '#9CA3AF', marginTop: 1 },
+  progressArrow: { fontSize: 24, color: '#D1D5DB', fontWeight: '300' },
+
   editText: { fontSize: 13, fontWeight: '600', color: '#10B981' },
   shareText: { fontSize: 13, fontWeight: '600', color: '#6366F1' },
   deleteText: { fontSize: 13, fontWeight: '600', color: '#EF4444' },

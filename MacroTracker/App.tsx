@@ -14,6 +14,7 @@ import { ExerciseScreen } from './src/screens/ExerciseScreen';
 import { WorkoutTemplateScreen } from './src/screens/WorkoutTemplateScreen';
 import { ActiveWorkoutScreen } from './src/screens/ActiveWorkoutScreen';
 import { WorkoutSummaryScreen } from './src/screens/WorkoutSummaryScreen';
+import { ExerciseProgressScreen } from './src/screens/ExerciseProgressScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -53,6 +54,7 @@ function ExerciseStack() {
       />
       <Stack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen as any} />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
+      <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
     </Stack.Navigator>
   );
 }

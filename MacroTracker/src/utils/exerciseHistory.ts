@@ -206,3 +206,99 @@ export function detectSessionPRs(
   }
   return prs;
 }
+
+// One session's worth of metrics for an exercise, for plotting progress.
+export interface ExerciseSessionPoint {
+  sessionId: string;
+  date: string;
+  completedAt: number;
+  topWeight: number; // heaviest working set
+  best1RM: number; // best estimated one-rep max (rounded)
+  volume: number; // Σ weight × reps (rounded)
+  maxReps: number; // most reps in a single set
+  sets: PerformedSet[];
+}
+
+// Per-session metric series for one exercise, oldest first (left→right for a
+// chart). Only sessions where the exercise has working sets are included.
+export function exerciseSeries(
+  history: WorkoutSession[],
+  exerciseName: string
+): ExerciseSessionPoint[] {
+  // exerciseHistory is newest-first; reverse to oldest-first for charting.
+  return exerciseHistory(history, exerciseName)
+    .map((p) => {
+      let topWeight = 0;
+      let best1RM = 0;
+      let volume = 0;
+      let maxReps = 0;
+      for (const s of p.sets) {
+        if (s.weight > topWeight) topWeight = s.weight;
+        if (s.reps > maxReps) maxReps = s.reps;
+        const orm = estimate1RM(s.weight, s.reps);
+        if (orm > best1RM) best1RM = orm;
+        volume += s.weight * s.reps;
+      }
+      return {
+        sessionId: p.sessionId,
+        date: p.date,
+        completedAt: p.completedAt,
+        topWeight,
+        best1RM: Math.round(best1RM),
+        volume: Math.round(volume),
+        maxReps,
+        sets: p.sets,
+      };
+    })
+    .reverse();
+}
+
+// A one-line roll-up of an exercise for a browsable list.
+export interface ExerciseSummary {
+  name: string; // display name (most recent casing)
+  key: string; // normalized match key
+  sessions: number; // times performed
+  lastDate: string;
+  lastCompletedAt: number;
+  bestWeight: number;
+  best1RM: number;
+}
+
+// Roll up every exercise the user has performed into summary rows, most
+// recently performed first. Relies on `history` being newest-first so the
+// first sighting of a name supplies its display casing and last date.
+export function exerciseSummaries(history: WorkoutSession[]): ExerciseSummary[] {
+  const map = new Map<string, ExerciseSummary>();
+  for (const session of history) {
+    const completedAt = session.completedAt ?? session.startedAt;
+    for (const ex of session.exercises) {
+      const sets = effectiveSets(ex);
+      if (sets.length === 0) continue;
+      let topWeight = 0;
+      let best1RM = 0;
+      for (const s of sets) {
+        if (s.weight > topWeight) topWeight = s.weight;
+        const orm = estimate1RM(s.weight, s.reps);
+        if (orm > best1RM) best1RM = orm;
+      }
+      const key = normalizeExerciseName(ex.name);
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, {
+          name: ex.name,
+          key,
+          sessions: 1,
+          lastDate: session.date,
+          lastCompletedAt: completedAt,
+          bestWeight: topWeight,
+          best1RM: Math.round(best1RM),
+        });
+      } else {
+        existing.sessions += 1;
+        if (topWeight > existing.bestWeight) existing.bestWeight = topWeight;
+        if (Math.round(best1RM) > existing.best1RM) existing.best1RM = Math.round(best1RM);
+      }
+    }
+  }
+  return [...map.values()].sort((a, b) => b.lastCompletedAt - a.lastCompletedAt);
+}
