@@ -256,12 +256,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
             <Text style={styles.backText}>‹ Back</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Add to {MEAL_LABELS[meal]}</Text>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.navigate('BuildMeal', { meal, date })}
-          >
-            <Text style={[styles.backText, { textAlign: 'right' }]}>Build Meal</Text>
-          </TouchableOpacity>
+          <View style={styles.backBtn} />
         </View>
 
         <View style={styles.searchRow}>
@@ -290,7 +285,14 @@ export function LogFoodScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate('MealPhoto', { meal, date })}
             activeOpacity={0.8}
           >
-            <Text style={styles.scanBtnIcon}>📷</Text>
+            <Text style={styles.scanBtnIcon}>✨</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.mealBtn}
+            onPress={() => navigation.navigate('BuildMeal', { meal, date })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.scanBtnIcon}>🍽️</Text>
           </TouchableOpacity>
         </View>
 
@@ -654,9 +656,23 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
+    backgroundColor: '#6366F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  mealBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     backgroundColor: '#0284C7',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 8,
     shadowColor: '#0284C7',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,

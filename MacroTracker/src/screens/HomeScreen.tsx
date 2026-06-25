@@ -267,12 +267,12 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.trendsArrow}>›</Text>
         </TouchableOpacity>
 
-        {/* Snap a Meal */}
+        {/* AI Meal Logger */}
         <TouchableOpacity style={styles.snapBtn} onPress={handleSnapMeal} activeOpacity={0.85}>
-          <Text style={styles.snapIcon}>📸</Text>
+          <Text style={styles.snapIcon}>✨</Text>
           <View>
-            <Text style={styles.snapTitle}>Snap a Meal</Text>
-            <Text style={styles.snapSub}>AI identifies foods & estimates macros</Text>
+            <Text style={styles.snapTitle}>AI Meal Logger</Text>
+            <Text style={styles.snapSub}>Snap a photo or describe your meal in words</Text>
           </View>
         </TouchableOpacity>
 
