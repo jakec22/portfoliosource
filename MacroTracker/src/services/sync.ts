@@ -5,6 +5,7 @@ import type {
   DailyGoals,
   Food,
   FoodEntry,
+  ReminderSettings,
   SavedMeal,
   UserProfile,
   WorkoutSession,
@@ -58,6 +59,7 @@ export interface SettingsSnapshot {
   bodyWeightLbs?: number;
   bodyWeightLog: BodyWeightEntry[];
   profile?: UserProfile;
+  reminderSettings: ReminderSettings;
   recentFoods: Food[];
   favoriteFoods: Food[];
   customFoods: Food[];
@@ -118,6 +120,7 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     body_weight_lbs: s.bodyWeightLbs ?? null,
     body_weight_log: s.bodyWeightLog,
     profile: s.profile ?? null,
+    reminder_settings: s.reminderSettings,
     recent_foods: s.recentFoods,
     favorite_foods: s.favoriteFoods,
     custom_foods: s.customFoods,

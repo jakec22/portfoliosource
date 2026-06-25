@@ -8,6 +8,7 @@ import {
   FoodEntry,
   MacroNutrients,
   MealType,
+  ReminderSettings,
   SavedMeal,
   UserProfile,
   WorkoutSession,
@@ -23,6 +24,14 @@ import {
   deleteWorkoutRemote,
   type SettingsSnapshot,
 } from '../services/sync';
+
+const DEFAULT_REMINDERS: ReminderSettings = {
+  breakfastEnabled: false, breakfastTime: '08:00',
+  lunchEnabled: false,     lunchTime: '12:30',
+  dinnerEnabled: false,    dinnerTime: '19:00',
+  weighInEnabled: false,   weighInTime: '07:00',
+  eveningEnabled: false,   eveningTime: '20:00',
+};
 
 const DEFAULT_GOALS: DailyGoals = {
   calories: 2000,
@@ -71,6 +80,7 @@ export const useStore = create<AppState>()(
           bodyWeightLbs: s.bodyWeightLbs,
           bodyWeightLog: s.bodyWeightLog,
           profile: s.profile,
+          reminderSettings: s.reminderSettings,
           recentFoods: s.recentFoods,
           favoriteFoods: s.favoriteFoods,
           customFoods: s.customFoods,
@@ -94,6 +104,7 @@ export const useStore = create<AppState>()(
       bodyWeightLbs: undefined,
       bodyWeightLog: [],
       profile: undefined,
+      reminderSettings: DEFAULT_REMINDERS,
       recentFoods: [],
       favoriteFoods: [],
       customFoods: [],
@@ -213,6 +224,11 @@ export const useStore = create<AppState>()(
 
       setProfile: (profile) => {
         set({ profile });
+        syncSettings();
+      },
+
+      setReminderSettings: (reminderSettings) => {
+        set({ reminderSettings });
         syncSettings();
       },
 

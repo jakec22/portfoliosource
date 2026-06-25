@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -23,6 +23,15 @@ import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
 import { useTemplateImport } from './src/hooks/useTemplateImport';
+import { useStore } from './src/store/useStore';
+import {
+  configureNotificationHandler,
+  applyReminderSettings,
+} from './src/services/notifications';
+
+// Configure how notifications are shown when the app is foregrounded.
+// Must be called before the navigation tree renders.
+configureNotificationHandler();
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -96,6 +105,11 @@ function MainTabs() {
   const insets = useSafeAreaInsets();
   // Handle incoming "import-template" share links once the user is in the app.
   useTemplateImport();
+  // Re-apply saved reminder schedules each time the user is logged in.
+  useEffect(() => {
+    const rs = useStore.getState().reminderSettings;
+    void applyReminderSettings(rs);
+  }, []);
   return (
     <NavigationContainer>
         <Tab.Navigator

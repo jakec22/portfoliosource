@@ -126,6 +126,20 @@ export interface SavedMeal {
   createdAt: number;
 }
 
+// Per-reminder configuration: enabled flag + time of day ("HH:MM" in 24h).
+export interface ReminderSettings {
+  breakfastEnabled: boolean;
+  breakfastTime: string;
+  lunchEnabled: boolean;
+  lunchTime: string;
+  dinnerEnabled: boolean;
+  dinnerTime: string;
+  weighInEnabled: boolean;
+  weighInTime: string;
+  eveningEnabled: boolean;
+  eveningTime: string;
+}
+
 // The inputs the Goal Wizard collects, persisted so re-running it pre-fills the
 // user's last answers. `heightCm`/`weightLbs` are stored canonically; `units`
 // only controls how they're displayed/edited.
@@ -154,6 +168,7 @@ export interface AppState {
   bodyWeightLbs?: number; // most recent body weight, used for the TDEE calc
   bodyWeightLog: BodyWeightEntry[]; // dated weight history, newest first
   profile?: UserProfile; // saved Goal Wizard inputs, used to pre-fill on re-run
+  reminderSettings: ReminderSettings;
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
   favoriteFoods: Food[]; // user-starred foods, shown above recents
   customFoods: Food[]; // user-created foods with custom macros
@@ -181,6 +196,7 @@ export interface AppState {
   setDefaultRestSeconds: (seconds: number) => void;
   setBodyWeight: (lbs: number) => void;
   setProfile: (profile: UserProfile) => void;
+  setReminderSettings: (s: ReminderSettings) => void;
   logBodyWeight: (lbs: number, date?: string) => void;
   deleteBodyWeightEntry: (loggedAt: number) => void;
   getEntriesForDate: (date: string) => FoodEntry[];

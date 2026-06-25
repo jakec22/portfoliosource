@@ -9,13 +9,43 @@ import {
   Alert,
   Switch,
   PanResponder,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { DailyGoals } from '../types';
+import { DailyGoals, ReminderSettings } from '../types';
 import { displayDate } from '../utils/date';
 import { supabase } from '../services/supabase';
 import { signOut } from '../services/auth';
+import {
+  requestNotificationPermissions,
+  getNotificationPermissionStatus,
+  applyReminderSettings,
+} from '../services/notifications';
+
+const PRESET_TIMES = [
+  '05:00', '06:00', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
+  '10:00', '11:00', '12:00', '12:30', '13:00', '14:00', '15:00', '16:00',
+  '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30',
+  '21:00', '22:00',
+];
+
+function fmt12(timeStr: string): string {
+  const [h, m] = timeStr.split(':').map(Number);
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function nextPreset(current: string, dir: 1 | -1): string {
+  const idx = PRESET_TIMES.indexOf(current);
+  const base = idx === -1 ? 0 : idx;
+  const next = base + dir;
+  if (next < 0) return PRESET_TIMES[PRESET_TIMES.length - 1];
+  if (next >= PRESET_TIMES.length) return PRESET_TIMES[0];
+  return PRESET_TIMES[next];
+}
 
 // mm:ss for the rest-time stepper (e.g. 120 -> "2:00", 90 -> "1:30").
 function formatRest(seconds: number): string {
@@ -169,6 +199,72 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
     }
   }
 
+  // --- Reminders ---
+  const reminderSettings = useStore((s) => s.reminderSettings);
+  const setReminderSettings = useStore((s) => s.setReminderSettings);
+  const [notifStatus, setNotifStatus] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
+
+  useEffect(() => {
+    getNotificationPermissionStatus().then(setNotifStatus);
+  }, []);
+
+  async function handleReminderToggle(
+    key: keyof Pick<
+      ReminderSettings,
+      'breakfastEnabled' | 'lunchEnabled' | 'dinnerEnabled' | 'weighInEnabled' | 'eveningEnabled'
+    >,
+    value: boolean,
+  ) {
+    if (value && notifStatus !== 'granted') {
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(
+          'Notifications disabled',
+          'Enable notifications for HolyMacro in your device settings to use reminders.',
+          [{ text: 'OK' }],
+        );
+        return;
+      }
+      setNotifStatus('granted');
+    }
+    const next = { ...reminderSettings, [key]: value };
+    setReminderSettings(next);
+    void applyReminderSettings(next);
+  }
+
+  function handleTimeChange(
+    timeKey: keyof Pick<
+      ReminderSettings,
+      'breakfastTime' | 'lunchTime' | 'dinnerTime' | 'weighInTime' | 'eveningTime'
+    >,
+    dir: 1 | -1,
+  ) {
+    const next = { ...reminderSettings, [timeKey]: nextPreset(reminderSettings[timeKey], dir) };
+    setReminderSettings(next);
+    void applyReminderSettings(next);
+  }
+
+  function handleTimeSheet(
+    timeKey: keyof Pick<
+      ReminderSettings,
+      'breakfastTime' | 'lunchTime' | 'dinnerTime' | 'weighInTime' | 'eveningTime'
+    >,
+  ) {
+    if (Platform.OS !== 'ios') return;
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['Cancel', ...PRESET_TIMES.map(fmt12)],
+        cancelButtonIndex: 0,
+      },
+      (idx) => {
+        if (idx === 0) return;
+        const next = { ...reminderSettings, [timeKey]: PRESET_TIMES[idx - 1] };
+        setReminderSettings(next);
+        void applyReminderSettings(next);
+      },
+    );
+  }
+
   // --- Account ---
   const [email, setEmail] = useState<string | null>(null);
   useEffect(() => {
@@ -210,6 +306,60 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
     ]);
+  }
+
+  function ReminderRow({
+    label,
+    emoji,
+    enabled,
+    time,
+    onToggle,
+    onTimeChange,
+    onTimeTap,
+  }: {
+    label: string;
+    emoji: string;
+    enabled: boolean;
+    time: string;
+    onToggle: (v: boolean) => void;
+    onTimeChange: (dir: 1 | -1) => void;
+    onTimeTap: () => void;
+  }) {
+    return (
+      <View style={styles.reminderRow}>
+        <View style={styles.reminderLabelRow}>
+          <Text style={styles.reminderEmoji}>{emoji}</Text>
+          <Text style={styles.reminderLabel}>{label}</Text>
+          <Switch
+            value={enabled}
+            onValueChange={onToggle}
+            trackColor={{ false: '#E5E7EB', true: '#6EE7B7' }}
+            thumbColor={enabled ? '#10B981' : '#9CA3AF'}
+          />
+        </View>
+        {enabled && (
+          <View style={styles.reminderTimeRow}>
+            <TouchableOpacity
+              onPress={() => onTimeChange(-1)}
+              style={styles.reminderTimeBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.reminderTimeBtnText}>‹</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onTimeTap} activeOpacity={0.7}>
+              <Text style={styles.reminderTimeVal}>{fmt12(time)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onTimeChange(1)}
+              style={styles.reminderTimeBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.reminderTimeBtnText}>›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
   }
 
   function GoalField({
@@ -486,6 +636,70 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           </View>
         </View>
 
+        {/* Reminders */}
+        <Text style={styles.sectionTitle}>Reminders</Text>
+        <View style={styles.card}>
+          {notifStatus === 'denied' && (
+            <View style={styles.notifBanner}>
+              <Text style={styles.notifBannerText}>
+                Notifications are disabled in system settings. Enable them to use reminders.
+              </Text>
+            </View>
+          )}
+          <ReminderRow
+            label="Breakfast"
+            emoji="🥣"
+            enabled={reminderSettings.breakfastEnabled}
+            time={reminderSettings.breakfastTime}
+            onToggle={(v) => handleReminderToggle('breakfastEnabled', v)}
+            onTimeChange={(d) => handleTimeChange('breakfastTime', d)}
+            onTimeTap={() => handleTimeSheet('breakfastTime')}
+          />
+          <View style={styles.reminderDivider} />
+          <ReminderRow
+            label="Lunch"
+            emoji="🥗"
+            enabled={reminderSettings.lunchEnabled}
+            time={reminderSettings.lunchTime}
+            onToggle={(v) => handleReminderToggle('lunchEnabled', v)}
+            onTimeChange={(d) => handleTimeChange('lunchTime', d)}
+            onTimeTap={() => handleTimeSheet('lunchTime')}
+          />
+          <View style={styles.reminderDivider} />
+          <ReminderRow
+            label="Dinner"
+            emoji="🍽️"
+            enabled={reminderSettings.dinnerEnabled}
+            time={reminderSettings.dinnerTime}
+            onToggle={(v) => handleReminderToggle('dinnerEnabled', v)}
+            onTimeChange={(d) => handleTimeChange('dinnerTime', d)}
+            onTimeTap={() => handleTimeSheet('dinnerTime')}
+          />
+          <View style={styles.reminderDivider} />
+          <ReminderRow
+            label="Daily weigh-in"
+            emoji="⚖️"
+            enabled={reminderSettings.weighInEnabled}
+            time={reminderSettings.weighInTime}
+            onToggle={(v) => handleReminderToggle('weighInEnabled', v)}
+            onTimeChange={(d) => handleTimeChange('weighInTime', d)}
+            onTimeTap={() => handleTimeSheet('weighInTime')}
+          />
+          <View style={styles.reminderDivider} />
+          <ReminderRow
+            label="Evening check-in"
+            emoji="📊"
+            enabled={reminderSettings.eveningEnabled}
+            time={reminderSettings.eveningTime}
+            onToggle={(v) => handleReminderToggle('eveningEnabled', v)}
+            onTimeChange={(d) => handleTimeChange('eveningTime', d)}
+            onTimeTap={() => handleTimeSheet('eveningTime')}
+          />
+          <Text style={[styles.settingHint, { marginTop: 12 }]}>
+            Tap ‹ › to pick a time, or tap the time itself for a full list (iOS).
+          </Text>
+        </View>
+
         {/* Account */}
         <Text style={styles.sectionTitle}>Account</Text>
         <View style={styles.card}>
@@ -657,6 +871,52 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#FEE2E2', backgroundColor: '#FEF2F2',
   },
   signOutText: { color: '#EF4444', fontSize: 16, fontWeight: '700' },
+  // Reminders
+  notifBanner: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  notifBannerText: { fontSize: 13, color: '#92400E', lineHeight: 18 },
+  reminderRow: {
+    paddingVertical: 8,
+  },
+  reminderLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  reminderEmoji: { fontSize: 20, width: 26 },
+  reminderLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: '#374151' },
+  reminderDivider: { height: 1, backgroundColor: '#F3F4F6', marginVertical: 4 },
+  reminderTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 10,
+    marginBottom: 2,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingVertical: 8,
+  },
+  reminderTimeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reminderTimeBtnText: { fontSize: 26, color: '#10B981', fontWeight: '300', lineHeight: 30 },
+  reminderTimeVal: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    minWidth: 90,
+    textAlign: 'center',
+  },
 });
 
 const sliderStyles = StyleSheet.create({

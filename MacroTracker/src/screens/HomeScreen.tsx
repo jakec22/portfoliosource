@@ -16,6 +16,7 @@ import { MacroRing } from '../components/MacroRing';
 import { MealSection } from '../components/MealSection';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { MealType } from '../types';
+import { computeStreak } from '../utils/streak';
 
 interface Props {
   navigation: any;
@@ -40,6 +41,20 @@ export function HomeScreen({ navigation }: Props) {
 
   const totals = useMemo(() => sumMacros(dateEntries ?? []), [dateEntries]);
   const water = waterIntake[selectedDate] ?? 0;
+
+  const allLogs = useStore((s) => s.logs);
+  const { current: currentStreak, best: bestStreak } = useMemo(
+    () => computeStreak(allLogs),
+    [allLogs]
+  );
+
+  const calPct = goals.calories > 0
+    ? Math.min(Math.round((totals.calories / goals.calories) * 100), 100)
+    : 0;
+
+  function macroStatus(current: number, goal: number) {
+    return goal > 0 && current / goal >= 0.8;
+  }
 
   const OZ_PER_BUBBLE = waterIncrement;
   const numBubbles = Math.max(4, Math.round(waterGoal / OZ_PER_BUBBLE));
@@ -140,6 +155,68 @@ export function HomeScreen({ navigation }: Props) {
             />
           </View>
         </View>
+
+        {/* Today's Summary + Streak */}
+        {isToday && (
+          <View style={styles.card}>
+            <View style={styles.summaryHeader}>
+              <Text style={styles.cardTitle}>Today's Summary</Text>
+              {currentStreak > 0 && (
+                <View style={styles.streakBadge}>
+                  <Text style={styles.streakBadgeText}>
+                    🔥 {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Calorie progress bar */}
+            <View style={styles.summaryCalRow}>
+              <Text style={styles.summaryCalNum}>{Math.round(totals.calories)}</Text>
+              <Text style={styles.summaryCalSep}> / {goals.calories} kcal</Text>
+              <View style={{ flex: 1 }} />
+              <Text style={calPct >= 90 ? styles.summaryHit : styles.summaryMiss}>
+                {calPct >= 100
+                  ? '🎯 Goal hit!'
+                  : calPct >= 80
+                  ? '💪 Almost there'
+                  : `${calPct}%`}
+              </Text>
+            </View>
+            <View style={styles.summaryBarTrack}>
+              <View style={[styles.summaryBarFill, { width: `${calPct}%` as any }]} />
+            </View>
+
+            {/* Macro status dots */}
+            <View style={styles.summaryMacroRow}>
+              {[
+                { label: 'Protein', hit: macroStatus(totals.protein, goals.protein),        color: '#3B82F6' },
+                { label: 'Carbs',   hit: macroStatus(totals.carbs, goals.carbs),            color: '#F59E0B' },
+                { label: 'Fat',     hit: macroStatus(totals.fat, goals.fat),                color: '#EF4444' },
+                { label: 'Fiber',   hit: macroStatus(totals.fiber ?? 0, goals.fiber),       color: '#8B5CF6' },
+              ].map(({ label, hit, color }) => (
+                <View key={label} style={styles.summaryMacro}>
+                  <View style={[styles.summaryMacroDot, { backgroundColor: hit ? color : '#E5E7EB' }]} />
+                  <Text style={[styles.summaryMacroLabel, hit && { color }]}>{label}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Workout status & best streak note */}
+            <View style={styles.summaryFooter}>
+              {dayWorkouts.length > 0 ? (
+                <Text style={styles.summaryWorkout}>
+                  💪 {dayWorkouts.length} workout{dayWorkouts.length !== 1 ? 's' : ''} logged
+                </Text>
+              ) : (
+                <Text style={styles.summaryNoWorkout}>No workout logged yet</Text>
+              )}
+              {bestStreak > 1 && currentStreak < bestStreak && (
+                <Text style={styles.summaryBest}>Best: {bestStreak} days</Text>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Water Tracker */}
         {showWaterTracker && (
@@ -413,5 +490,102 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     marginBottom: 10,
+  },
+  // Today's Summary card
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  streakBadge: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  streakBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#C2410C',
+  },
+  summaryCalRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 6,
+  },
+  summaryCalNum: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  summaryCalSep: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    marginLeft: 2,
+  },
+  summaryHit: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  summaryMiss: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  summaryBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F3F4F6',
+    overflow: 'hidden',
+    marginBottom: 14,
+  },
+  summaryBarFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  summaryMacroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  summaryMacro: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  summaryMacroDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  summaryMacroLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  summaryFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  summaryWorkout: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  summaryNoWorkout: {
+    fontSize: 13,
+    color: '#D1D5DB',
+  },
+  summaryBest: {
+    fontSize: 12,
+    color: '#9CA3AF',
   },
 });
