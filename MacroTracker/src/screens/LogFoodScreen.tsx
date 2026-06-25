@@ -22,6 +22,8 @@ import { BarcodeScanner } from '../components/BarcodeScanner';
 import Svg, { Rect } from 'react-native-svg';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -57,6 +59,8 @@ function BarcodeIcon({ size = 22, color = '#fff' }: { size?: number; color?: str
 }
 
 export function LogFoodScreen({ route, navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { meal, date } = route.params;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Food[]>(() => searchFoods(''));
@@ -269,9 +273,9 @@ export function LogFoodScreen({ route, navigation }: Props) {
               onChangeText={setQuery}
               autoCapitalize="none"
               clearButtonMode="while-editing"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={c.textFaint}
             />
-            {loading && <ActivityIndicator size="small" color="#10B981" />}
+            {loading && <ActivityIndicator size="small" color={c.primary} />}
           </View>
           <TouchableOpacity
             style={styles.scanBtn}
@@ -472,7 +476,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
           ListEmptyComponent={
             loading ? (
               <View style={styles.empty}>
-                <ActivityIndicator color="#10B981" />
+                <ActivityIndicator color={c.primary} />
                 <Text style={styles.emptySubtext}>Searching foods…</Text>
               </View>
             ) : (
@@ -501,19 +505,19 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   <Text style={styles.previewLabel}>kcal</Text>
                 </View>
                 <View style={styles.previewItem}>
-                  <Text style={[styles.previewValue, { color: '#3B82F6' }]}>
+                  <Text style={[styles.previewValue, { color: c.info }]}>
                     {preview.protein}g
                   </Text>
                   <Text style={styles.previewLabel}>protein</Text>
                 </View>
                 <View style={styles.previewItem}>
-                  <Text style={[styles.previewValue, { color: '#F59E0B' }]}>
+                  <Text style={[styles.previewValue, { color: c.warning }]}>
                     {preview.carbs}g
                   </Text>
                   <Text style={styles.previewLabel}>carbs</Text>
                 </View>
                 <View style={styles.previewItem}>
-                  <Text style={[styles.previewValue, { color: '#EF4444' }]}>
+                  <Text style={[styles.previewValue, { color: c.danger }]}>
                     {preview.fat}g
                   </Text>
                   <Text style={styles.previewLabel}>fat</Text>
@@ -578,7 +582,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
       {scanLoading && (
         <View style={styles.scanOverlay}>
           <View style={styles.scanOverlayBox}>
-            <ActivityIndicator size="large" color="#10B981" />
+            <ActivityIndicator size="large" color={c.primary} />
             <Text style={styles.scanOverlayText}>Looking up product…</Text>
           </View>
         </View>
@@ -587,10 +591,10 @@ export function LogFoodScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.bg,
   },
   flex: {
     flex: 1,
@@ -601,9 +605,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: c.border,
   },
   backBtn: {
     padding: 4,
@@ -611,13 +615,13 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: '#10B981',
+    color: c.primary,
     fontWeight: '600',
   },
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
   },
   searchRow: {
     flexDirection: 'row',
@@ -631,10 +635,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     height: 46,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -687,12 +691,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: c.overlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scanOverlayBox: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 28,
     alignItems: 'center',
@@ -701,7 +705,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: c.gray700,
   },
   searchIcon: {
     fontSize: 16,
@@ -710,7 +714,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#111827',
+    color: c.text,
   },
   listContent: {
     paddingHorizontal: 12,
@@ -722,7 +726,7 @@ const styles = StyleSheet.create({
   recentTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: c.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 8,
@@ -734,29 +738,29 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   recentChip: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
     maxWidth: 160,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
   recentChipName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#111827',
+    color: c.text,
   },
   recentChipCals: {
     fontSize: 11,
-    color: '#10B981',
+    color: c.primary,
     fontWeight: '600',
     marginTop: 2,
   },
   allFoodsLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#9CA3AF',
+    color: c.textFaint,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginTop: 14,
@@ -770,43 +774,43 @@ const styles = StyleSheet.create({
   },
   shortcutBtn: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     alignItems: 'center',
   },
   shortcutBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: c.gray700,
   },
   savedMealRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
   savedMealName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: c.text,
   },
   savedMealMeta: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: c.textFaint,
     marginTop: 2,
   },
   savedMealDelete: {
     fontSize: 15,
-    color: '#D1D5DB',
+    color: c.textFaint,
     paddingLeft: 12,
     fontWeight: '600',
   },
@@ -817,10 +821,10 @@ const styles = StyleSheet.create({
   },
   starBtnText: {
     fontSize: 20,
-    color: '#D1D5DB',
+    color: c.textFaint,
   },
   starBtnActive: {
-    color: '#F59E0B',
+    color: c.warning,
   },
   unitRow: {
     flexDirection: 'row',
@@ -831,30 +835,30 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
   unitBtnActive: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#10B981',
+    backgroundColor: c.primarySoft,
+    borderColor: c.primary,
   },
   unitBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: c.textMuted,
   },
   unitBtnTextActive: {
-    color: '#10B981',
+    color: c.primary,
   },
   foodItem: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
@@ -862,7 +866,7 @@ const styles = StyleSheet.create({
   },
   foodItemSelected: {
     borderWidth: 2,
-    borderColor: '#10B981',
+    borderColor: c.primary,
   },
   foodItemLeft: {
     flex: 1,
@@ -870,16 +874,16 @@ const styles = StyleSheet.create({
   foodName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: c.text,
   },
   foodBrand: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: c.textFaint,
     marginTop: 2,
   },
   foodServing: {
     fontSize: 12,
-    color: '#6B7280',
+    color: c.textMuted,
     marginTop: 4,
   },
   foodItemRight: {
@@ -889,11 +893,11 @@ const styles = StyleSheet.create({
   foodCals: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
   },
   foodMacro: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: c.textFaint,
   },
   empty: {
     alignItems: 'center',
@@ -901,20 +905,20 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: c.textMuted,
     fontWeight: '600',
   },
   emptySubtext: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: c.textFaint,
     marginTop: 4,
   },
   addPanel: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -926,12 +930,12 @@ const styles = StyleSheet.create({
   selectedName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
   },
   previewRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -942,11 +946,11 @@ const styles = StyleSheet.create({
   previewValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
   },
   previewLabel: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: c.textFaint,
   },
   servingsRow: {
     flexDirection: 'row',
@@ -956,7 +960,7 @@ const styles = StyleSheet.create({
   },
   servingsLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: c.textMuted,
     flex: 1,
   },
   servingsControl: {
@@ -968,34 +972,35 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   servingsBtnText: {
     fontSize: 20,
     fontWeight: '300',
-    color: '#374151',
+    color: c.gray700,
   },
   servingsInput: {
     width: 60,
     height: 36,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     borderRadius: 10,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: c.text,
+    backgroundColor: c.input,
   },
   addBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
   },
   addBtnText: {
-    color: '#fff',
+    color: c.onPrimary,
     fontSize: 17,
     fontWeight: '700',
   },

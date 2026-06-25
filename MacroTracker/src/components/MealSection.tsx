@@ -22,6 +22,8 @@ import Reanimated, {
 import { FoodEntry, MealType, ServingUnit } from '../types';
 import { useStore, sumMacros } from '../store/useStore';
 import { availableUnits, defaultAmount, formatAmount, toMultiplier } from '../utils/serving';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 const ACTION_WIDTH = 72;
 
@@ -32,6 +34,8 @@ function RightDeleteAction({
   drag: SharedValue<number>;
   onDelete: () => void;
 }) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: drag.value + ACTION_WIDTH }],
   }));
@@ -68,6 +72,8 @@ interface Props {
 }
 
 export function MealSection({ meal, date, onAddFood }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState<EditState | null>(null);
   const [amountFocused, setAmountFocused] = useState(false);
@@ -266,19 +272,19 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                     <Text style={styles.previewLabel}>kcal</Text>
                   </View>
                   <View style={styles.previewItem}>
-                    <Text style={[styles.previewValue, { color: '#3B82F6' }]}>
+                    <Text style={[styles.previewValue, { color: c.info }]}>
                       {editPreview.protein}g
                     </Text>
                     <Text style={styles.previewLabel}>protein</Text>
                   </View>
                   <View style={styles.previewItem}>
-                    <Text style={[styles.previewValue, { color: '#F59E0B' }]}>
+                    <Text style={[styles.previewValue, { color: c.warning }]}>
                       {editPreview.carbs}g
                     </Text>
                     <Text style={styles.previewLabel}>carbs</Text>
                   </View>
                   <View style={styles.previewItem}>
-                    <Text style={[styles.previewValue, { color: '#EF4444' }]}>
+                    <Text style={[styles.previewValue, { color: c.danger }]}>
                       {editPreview.fat}g
                     </Text>
                     <Text style={styles.previewLabel}>fat</Text>
@@ -363,13 +369,13 @@ export function MealSection({ meal, date, onAddFood }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 16,
     marginBottom: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -383,15 +389,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   headerLeft: { flex: 1 },
-  mealName: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  mealMacros: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  mealName: { fontSize: 16, fontWeight: '600', color: c.text },
+  mealMacros: { fontSize: 12, color: c.textFaint, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  mealCals: { fontSize: 14, color: '#6B7280', fontWeight: '500' },
-  chevron: { fontSize: 10, color: '#9CA3AF' },
-  body: { borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  mealCals: { fontSize: 14, color: c.textMuted, fontWeight: '500' },
+  chevron: { fontSize: 10, color: c.textFaint },
+  body: { borderTopWidth: 1, borderTopColor: c.border },
   empty: {
     textAlign: 'center',
-    color: '#9CA3AF',
+    color: c.textFaint,
     fontSize: 13,
     paddingVertical: 12,
   },
@@ -401,22 +407,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: c.border,
   },
   entryLeft: { flex: 1 },
-  entryName: { fontSize: 14, fontWeight: '500', color: '#1F2937' },
-  entryDetail: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  entryName: { fontSize: 14, fontWeight: '500', color: c.text },
+  entryDetail: { fontSize: 12, color: c.textFaint, marginTop: 2 },
   entryMacros: { alignItems: 'flex-end', marginRight: 6 },
-  entryCals: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  entryMacroDetail: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
-  editChevron: { fontSize: 20, color: '#D1D5DB', fontWeight: '300' },
+  entryCals: { fontSize: 14, fontWeight: '600', color: c.text },
+  entryMacroDetail: { fontSize: 11, color: c.textFaint, marginTop: 2 },
+  editChevron: { fontSize: 20, color: c.textFaint, fontWeight: '300' },
   deleteAction: {
     width: ACTION_WIDTH,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: c.danger,
   },
   deleteActionInner: {
     flex: 1,
@@ -426,23 +432,23 @@ const styles = StyleSheet.create({
   },
   deleteActionText: { fontSize: 20, fontWeight: '700', color: '#fff' },
   addButton: { paddingVertical: 12, alignItems: 'center' },
-  addButtonText: { fontSize: 14, fontWeight: '600', color: '#10B981' },
+  addButtonText: { fontSize: 14, fontWeight: '600', color: c.primary },
 
   // Modal
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: c.overlay,
   },
   modalKAV: {
     justifyContent: 'flex-end',
   },
   editPanel: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 36,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -454,82 +460,83 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  editCancel: { fontSize: 15, color: '#6B7280', fontWeight: '500', width: 60 },
+  editCancel: { fontSize: 15, color: c.textMuted, fontWeight: '500', width: 60 },
   editTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 8,
   },
-  editSave: { fontSize: 15, color: '#10B981', fontWeight: '700', width: 60, textAlign: 'right' },
+  editSave: { fontSize: 15, color: c.primary, fontWeight: '700', width: 60, textAlign: 'right' },
   previewRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
   },
   previewItem: { alignItems: 'center' },
-  previewValue: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  previewLabel: { fontSize: 11, color: '#9CA3AF' },
+  previewValue: { fontSize: 18, fontWeight: '700', color: c.text },
+  previewLabel: { fontSize: 11, color: c.textFaint },
   unitRow: { gap: 8, marginBottom: 16, paddingRight: 4 },
   unitBtn: {
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
   },
-  unitBtnActive: { backgroundColor: '#ECFDF5', borderColor: '#10B981' },
-  unitBtnText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
-  unitBtnTextActive: { color: '#10B981' },
+  unitBtnActive: { backgroundColor: c.primarySoft, borderColor: c.primary },
+  unitBtnText: { fontSize: 14, fontWeight: '600', color: c.textMuted },
+  unitBtnTextActive: { color: c.primary },
   servingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 20,
   },
-  servingsLabel: { fontSize: 13, color: '#6B7280', flex: 1 },
+  servingsLabel: { fontSize: 13, color: c.textMuted, flex: 1 },
   servingsControl: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   servingsBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  servingsBtnText: { fontSize: 20, fontWeight: '300', color: '#374151' },
+  servingsBtnText: { fontSize: 20, fontWeight: '300', color: c.gray700 },
   servingsInput: {
     width: 60,
     height: 36,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: c.border,
     borderRadius: 10,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: c.text,
+    backgroundColor: c.input,
   },
   deleteBtn: {
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: c.dangerSoft,
     alignItems: 'center',
   },
-  deleteBtnText: { fontSize: 15, fontWeight: '600', color: '#EF4444' },
+  deleteBtnText: { fontSize: 15, fontWeight: '600', color: c.danger },
   inlineDoneBtn: {
     alignSelf: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 6,
     marginBottom: 8,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: c.primarySoft,
     borderRadius: 10,
   },
-  inlineDoneText: { fontSize: 14, fontWeight: '700', color: '#10B981' },
+  inlineDoneText: { fontSize: 14, fontWeight: '700', color: c.primary },
 });

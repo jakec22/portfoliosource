@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   current: number;
@@ -21,6 +23,8 @@ export function MacroRing({
   size = 80,
   strokeWidth = 8,
 }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = Math.min(current / goal, 1);
@@ -34,7 +38,7 @@ export function MacroRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#E5E7EB"
+          stroke={c.border}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -42,7 +46,7 @@ export function MacroRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={over ? '#EF4444' : color}
+          stroke={over ? c.danger : color}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
@@ -53,7 +57,7 @@ export function MacroRing({
         />
       </Svg>
       <View style={[styles.center, { width: size, height: size, top: 0 }]}>
-        <Text style={[styles.value, { color: over ? '#EF4444' : '#111827' }]}>
+        <Text style={[styles.value, { color: over ? c.danger : c.text }]}>
           {Math.round(current)}
         </Text>
         <Text style={styles.unit}>{unit}</Text>
@@ -64,7 +68,7 @@ export function MacroRing({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   container: {
     alignItems: 'center',
     position: 'relative',
@@ -81,17 +85,17 @@ const styles = StyleSheet.create({
   },
   unit: {
     fontSize: 10,
-    color: '#6B7280',
+    color: c.textMuted,
     lineHeight: 12,
   },
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: c.gray700,
     marginTop: 4,
   },
   goal: {
     fontSize: 10,
-    color: '#9CA3AF',
+    color: c.textFaint,
   },
 });

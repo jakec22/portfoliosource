@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { WorkoutSession } from '../types';
 import { displayDate } from '../utils/date';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   session: WorkoutSession;
@@ -15,6 +17,8 @@ interface Props {
 // A single past-workout row: tap to open its summary, or swipe left to reveal
 // a Delete button.
 export function WorkoutHistoryItem({ session, onPress, onDelete, showDate = true }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const totalSets = session.exercises.reduce((n, e) => n + e.sets.length, 0);
   const doneSets = session.exercises.reduce(
     (n, e) => n + e.sets.filter((s) => s.completed).length,
@@ -48,24 +52,24 @@ export function WorkoutHistoryItem({ session, onPress, onDelete, showDate = true
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#EEF0F2',
+    borderColor: c.border,
     paddingVertical: 12,
     paddingHorizontal: 14,
     marginBottom: 10,
   },
   main: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  meta: { fontSize: 12, color: '#9CA3AF', marginTop: 3 },
-  chevron: { fontSize: 22, color: '#D1D5DB', fontWeight: '300', marginLeft: 6 },
+  name: { fontSize: 15, fontWeight: '600', color: c.text },
+  meta: { fontSize: 12, color: c.textFaint, marginTop: 3 },
+  chevron: { fontSize: 22, color: c.textFaint, fontWeight: '300', marginLeft: 6 },
   swipeDelete: {
-    backgroundColor: '#EF4444',
+    backgroundColor: c.danger,
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,

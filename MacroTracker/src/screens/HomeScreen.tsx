@@ -17,12 +17,16 @@ import { MealSection } from '../components/MealSection';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { MealType } from '../types';
 import { computeStreak } from '../utils/streak';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   navigation: any;
 }
 
 export function HomeScreen({ navigation }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [selectedDate, setSelectedDate] = useState(todayString());
   const goals = useStore((s) => s.goals);
   const dateEntries = useStore((s) => s.logs[selectedDate]);
@@ -102,7 +106,10 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+      <StatusBar
+        barStyle={c.scheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={c.bg}
+      />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         {/* Date Navigation */}
         <View style={styles.dateNav}>
@@ -196,7 +203,7 @@ export function HomeScreen({ navigation }: Props) {
                 { label: 'Fiber',   hit: macroStatus(totals.fiber ?? 0, goals.fiber),       color: '#8B5CF6' },
               ].map(({ label, hit, color }) => (
                 <View key={label} style={styles.summaryMacro}>
-                  <View style={[styles.summaryMacroDot, { backgroundColor: hit ? color : '#E5E7EB' }]} />
+                  <View style={[styles.summaryMacroDot, { backgroundColor: hit ? color : c.border }]} />
                   <Text style={[styles.summaryMacroLabel, hit && { color }]}>{label}</Text>
                 </View>
               ))}
@@ -313,10 +320,10 @@ export function HomeScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: c.bg,
   },
   scroll: {
     flex: 1,
@@ -340,25 +347,25 @@ const styles = StyleSheet.create({
   },
   navArrow: {
     fontSize: 28,
-    color: '#374151',
+    color: c.gray700,
     fontWeight: '300',
   },
   navArrowDisabled: {
-    color: '#D1D5DB',
+    color: c.textFaint,
   },
   dateLabel: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
     minWidth: 120,
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -367,7 +374,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#374151',
+    color: c.gray700,
     marginBottom: 16,
   },
   macroRow: {
@@ -383,11 +390,11 @@ const styles = StyleSheet.create({
   waterAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#3B82F6',
+    color: c.info,
   },
   waterBarTrack: {
     height: 8,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: c.infoSoft,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 4,
@@ -395,11 +402,11 @@ const styles = StyleSheet.create({
   waterBarFill: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#3B82F6',
+    backgroundColor: c.info,
   },
   waterPctText: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: c.textFaint,
     marginBottom: 12,
   },
   waterDots: {
@@ -412,21 +419,21 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: c.infoSoft,
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.3,
   },
   waterDotFilled: {
     opacity: 1,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: c.scheme === 'dark' ? 'rgba(59,130,246,0.35)' : '#DBEAFE',
   },
   waterDotText: {
     fontSize: 18,
   },
   waterGoal: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: c.textFaint,
     textAlign: 'center',
   },
   snapBtn: {
@@ -460,27 +467,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#fff',
+    backgroundColor: c.card,
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
   },
   trendsIcon: { fontSize: 28 },
-  trendsTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  trendsSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
-  trendsArrow: { fontSize: 26, color: '#D1D5DB', fontWeight: '300' },
+  trendsTitle: { fontSize: 16, fontWeight: '700', color: c.text },
+  trendsSub: { fontSize: 12, color: c.textFaint, marginTop: 2 },
+  trendsArrow: { fontSize: 26, color: c.textFaint, fontWeight: '300' },
   mealsHeader: {
     marginBottom: 8,
   },
   mealsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
   },
   workoutsSection: {
     marginTop: 8,
@@ -488,7 +495,7 @@ const styles = StyleSheet.create({
   workoutsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
     marginBottom: 10,
   },
   // Today's Summary card
@@ -499,17 +506,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   streakBadge: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: c.warningSoft,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.4)' : '#FED7AA',
   },
   streakBadgeText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#C2410C',
+    color: c.scheme === 'dark' ? c.warning : '#C2410C',
   },
   summaryCalRow: {
     flexDirection: 'row',
@@ -519,34 +526,34 @@ const styles = StyleSheet.create({
   summaryCalNum: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#111827',
+    color: c.text,
   },
   summaryCalSep: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: c.textFaint,
     marginLeft: 2,
   },
   summaryHit: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#10B981',
+    color: c.primary,
   },
   summaryMiss: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: c.textFaint,
   },
   summaryBarTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: c.cardMuted,
     overflow: 'hidden',
     marginBottom: 14,
   },
   summaryBarFill: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#10B981',
+    backgroundColor: c.primary,
   },
   summaryMacroRow: {
     flexDirection: 'row',
@@ -565,7 +572,7 @@ const styles = StyleSheet.create({
   summaryMacroLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: c.textFaint,
   },
   summaryFooter: {
     flexDirection: 'row',
@@ -573,19 +580,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: c.border,
   },
   summaryWorkout: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: c.gray700,
   },
   summaryNoWorkout: {
     fontSize: 13,
-    color: '#D1D5DB',
+    color: c.textFaint,
   },
   summaryBest: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: c.textFaint,
   },
 });

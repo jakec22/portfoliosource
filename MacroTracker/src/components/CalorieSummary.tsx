@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { useTheme } from '../theme/useTheme';
+import type { Theme } from '../theme';
 
 interface Props {
   consumed: number;
@@ -9,6 +11,8 @@ interface Props {
 }
 
 export function CalorieSummary({ consumed, goal, size = 160 }: Props) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -25,7 +29,7 @@ export function CalorieSummary({ consumed, goal, size = 160 }: Props) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#F3F4F6"
+            stroke={c.cardMuted}
             strokeWidth={strokeWidth}
             fill="none"
           />
@@ -33,7 +37,7 @@ export function CalorieSummary({ consumed, goal, size = 160 }: Props) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={over ? '#EF4444' : '#10B981'}
+            stroke={over ? c.danger : c.primary}
             strokeWidth={strokeWidth}
             fill="none"
             strokeDasharray={circumference}
@@ -79,7 +83,7 @@ export function CalorieSummary({ consumed, goal, size = 160 }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Theme) => StyleSheet.create({
   wrapper: {
     alignItems: 'center',
   },
@@ -96,32 +100,32 @@ const styles = StyleSheet.create({
   consumedValue: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#111827',
+    color: c.text,
     lineHeight: 36,
   },
   consumedLabel: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: c.textFaint,
     marginBottom: 4,
   },
   divider: {
     width: 40,
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: c.border,
     marginVertical: 6,
   },
   remainingValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#10B981',
+    color: c.primary,
     lineHeight: 24,
   },
   remainingLabel: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: c.textFaint,
   },
   overValue: {
-    color: '#EF4444',
+    color: c.danger,
   },
   stats: {
     flexDirection: 'row',
@@ -135,20 +139,20 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: c.text,
   },
   statLabel: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: c.textFaint,
   },
   minus: {
     fontSize: 18,
-    color: '#D1D5DB',
+    color: c.textFaint,
     fontWeight: '300',
   },
   equals: {
     fontSize: 18,
-    color: '#D1D5DB',
+    color: c.textFaint,
     fontWeight: '300',
   },
 });
