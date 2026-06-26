@@ -115,3 +115,22 @@ begin
     end if;
   end loop;
 end $$;
+
+-- ── delete_user RPC ───────────────────────────────────────────────────────────
+-- Lets a signed-in user delete their own auth record. SECURITY DEFINER runs as
+-- the function owner (postgres) which can delete from auth.users. The ON DELETE
+-- CASCADE on all three data tables wipes the user's food logs, workouts, and
+-- settings automatically when the auth row goes away.
+create or replace function public.delete_user()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+
+revoke all on function public.delete_user() from public;
+grant execute on function public.delete_user() to authenticated;

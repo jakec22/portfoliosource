@@ -15,7 +15,7 @@ import { useStore } from '../store/useStore';
 import { DailyGoals, ThemeMode } from '../types';
 import { displayDate } from '../utils/date';
 import { supabase } from '../services/supabase';
-import { signOut } from '../services/auth';
+import { signOut, deleteAccount } from '../services/auth';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -140,6 +140,9 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const setAutoRestTimer = useStore((s) => s.setAutoRestTimer);
   const defaultRestSeconds = useStore((s) => s.defaultRestSeconds);
   const setDefaultRestSeconds = useStore((s) => s.setDefaultRestSeconds);
+  const clearLocalData = useStore((s) => s.clearLocalData);
+
+  const [busy, setBusy] = useState(false);
 
   // --- Goals editing ---
   const [form, setForm] = useState({
@@ -218,6 +221,34 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
     ]);
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Delete Account',
+      'This permanently erases your account and all your data — food logs, workouts, goals, and settings. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete My Account',
+          style: 'destructive',
+          onPress: performDelete,
+        },
+      ]
+    );
+  }
+
+  async function performDelete() {
+    setBusy(true);
+    try {
+      clearLocalData();
+      const { error } = await deleteAccount();
+      if (error) {
+        Alert.alert('Error', `Could not delete account: ${error.message}`);
+      }
+    } finally {
+      setBusy(false);
+    }
   }
 
   function GoalField({
@@ -536,6 +567,16 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteAccountBtn}
+            onPress={handleDeleteAccount}
+            disabled={busy}
+            activeOpacity={0.6}
+          >
+            <Text style={styles.deleteAccountText}>
+              {busy ? 'Deleting…' : 'Delete Account'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -721,6 +762,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderWidth: 1.5, borderColor: c.dangerSoft, backgroundColor: c.dangerSoft,
   },
   signOutText: { color: c.danger, fontSize: 16, fontWeight: '700' },
+  deleteAccountBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  deleteAccountText: { color: c.textFaint, fontSize: 13, fontWeight: '500' },
 });
 
 const makeSliderStyles = (c: Theme) => StyleSheet.create({

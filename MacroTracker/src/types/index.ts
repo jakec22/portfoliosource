@@ -211,4 +211,5 @@ export interface AppState {
   toggleWorkoutSet: (exerciseId: string, setId: string) => void;
   removeWorkoutSet: (exerciseId: string, setId: string) => void;
   reorderWorkoutExercise: (exerciseId: string, direction: 'up' | 'down') => void;
+  clearLocalData: () => void;
 }

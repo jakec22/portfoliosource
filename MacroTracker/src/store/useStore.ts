@@ -538,6 +538,31 @@ export const useStore = create<AppState>()(
         });
       },
 
+      clearLocalData: () => {
+        set({
+          goals: DEFAULT_GOALS,
+          logs: {},
+          waterIntake: {},
+          waterGoal: 64,
+          waterIncrement: 8,
+          showWaterTracker: true,
+          themeMode: 'system',
+          autoRestTimer: true,
+          defaultRestSeconds: 120,
+          restTrigger: 0,
+          bodyWeightLbs: undefined,
+          bodyWeightLog: [],
+          profile: undefined,
+          recentFoods: [],
+          favoriteFoods: [],
+          customFoods: [],
+          savedMeals: [],
+          workoutTemplates: [],
+          activeWorkout: null,
+          workoutHistory: [],
+        });
+      },
+
       getEntriesForDate: (date) => get().logs[date] ?? [],
 
       getTotalsForDate: (date) => {

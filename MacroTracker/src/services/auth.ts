@@ -17,6 +17,17 @@ export function signOut() {
   return supabase.auth.signOut();
 }
 
+export async function deleteAccount(): Promise<{ error: Error | null }> {
+  try {
+    const { error } = await supabase.rpc('delete_user');
+    if (error) return { error: new Error(error.message) };
+    await supabase.auth.signOut();
+    return { error: null };
+  } catch (e: any) {
+    return { error: e instanceof Error ? e : new Error(String(e)) };
+  }
+}
+
 /**
  * Google sign-in via Supabase OAuth. Opens a web auth session, then exchanges
  * the returned PKCE `code` for a Supabase session. Requires the Google provider
