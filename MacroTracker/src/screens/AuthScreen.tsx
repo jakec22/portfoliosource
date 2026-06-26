@@ -93,9 +93,9 @@ export function AuthScreen() {
         <View style={styles.content}>
           <View style={styles.logoWrap}>
             <Image
-              source={require('../../assets/icon.png')}
+              source={require('../../assets/logo-fish.png')}
               style={styles.logo}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           </View>
           <Text style={styles.title}>Holy Macro</Text>
@@ -189,7 +189,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     paddingHorizontal: 28,
   },
   logoWrap: { alignItems: 'center', marginBottom: 4 },
-  logo: { width: 96, height: 96, borderRadius: 21 },
+  logo: { width: 112, height: 96 },
   title: {
     fontSize: 30,
     fontWeight: '800',
