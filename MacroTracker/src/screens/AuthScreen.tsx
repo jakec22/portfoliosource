@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path, Ellipse, Circle } from 'react-native-svg';
 import {
   signInWithEmail,
   signUpWithEmail,
@@ -19,6 +20,18 @@ import {
 } from '../services/auth';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+
+function FishLogo({ size = 80 }: { size?: number }) {
+  const h = Math.round(size * 0.625);
+  return (
+    <Svg width={size} height={h} viewBox="0 0 80 50">
+      <Path d="M22,25 L2,5 L2,45 Z" fill="#10B981" />
+      <Ellipse cx="46" cy="25" rx="28" ry="18" fill="#10B981" />
+      <Circle cx="62" cy="20" r="4" fill="white" />
+      <Circle cx="62" cy="20" r="2" fill="rgba(0,0,0,0.55)" />
+    </Svg>
+  );
+}
 
 export function AuthScreen() {
   const c = useTheme();
@@ -90,11 +103,11 @@ export function AuthScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.content}>
-          <Text style={styles.logo}>🍎</Text>
-          <Text style={styles.title}>MacroTracker</Text>
-          <Text style={styles.subtitle}>
-            {isSignup ? 'Create an account to sync your data' : 'Sign in to sync your data'}
-          </Text>
+          <View style={styles.logoWrap}>
+            <FishLogo size={88} />
+          </View>
+          <Text style={styles.title}>Holy Macro</Text>
+          <Text style={styles.subtitle}>Health Simplified</Text>
 
           <TextInput
             style={styles.input}
@@ -183,7 +196,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 28,
   },
-  logo: { fontSize: 48, textAlign: 'center' },
+  logoWrap: { alignItems: 'center', marginBottom: 4 },
   title: {
     fontSize: 30,
     fontWeight: '800',
