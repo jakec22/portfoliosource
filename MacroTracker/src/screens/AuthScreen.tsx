@@ -12,10 +12,12 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import {
   signInWithEmail,
   signUpWithEmail,
   signInWithGoogle,
+  signInWithApple,
   resetPasswordForEmail,
 } from '../services/auth';
 import { useTheme } from '../theme/useTheme';
@@ -79,6 +81,17 @@ export function AuthScreen() {
       await signInWithGoogle();
     } catch (e: any) {
       Alert.alert('Google sign-in failed', e?.message ?? 'Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleApple() {
+    setBusy(true);
+    try {
+      await signInWithApple();
+    } catch (e: any) {
+      Alert.alert('Apple sign-in failed', e?.message ?? 'Please try again.');
     } finally {
       setBusy(false);
     }
@@ -152,6 +165,22 @@ export function AuthScreen() {
             <Text style={styles.dividerText}>or</Text>
             <View style={styles.divider} />
           </View>
+
+          {Platform.OS === 'ios' && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={
+                AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
+              }
+              buttonStyle={
+                c.scheme === 'dark'
+                  ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                  : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+              }
+              cornerRadius={12}
+              style={styles.appleBtn}
+              onPress={handleApple}
+            />
+          )}
 
           <TouchableOpacity
             style={[styles.googleBtn, busy && styles.btnDisabled]}
@@ -232,6 +261,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   divider: { flex: 1, height: 1, backgroundColor: c.border },
   dividerText: { color: c.textFaint, fontSize: 13 },
+  appleBtn: { height: 50, width: '100%', marginBottom: 12 },
   googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -29,7 +29,8 @@
           "NSHealthUpdateUsageDescription": "HolyMacro does not write data to Apple Health.",
           "background": false
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -39,6 +40,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.jacobclover.macrotracker",
+      "usesAppleSignIn": true,
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
