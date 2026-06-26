@@ -11,9 +11,14 @@ export function useSession() {
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      // PASSWORD_RECOVERY only fires in the implicit flow. Under PKCE the reset
+      // link is handled by exchangeCodeForSession (which fires SIGNED_IN), so
+      // App.tsx flips the flag via startPasswordReset() instead. Only clear it
+      // here on an explicit sign-out so a SIGNED_IN from the code exchange
+      // doesn't wipe out the reset state.
       if (event === 'PASSWORD_RECOVERY') {
         setNeedsPasswordReset(true);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setNeedsPasswordReset(false);
       }
       setSession(s);
@@ -39,6 +44,7 @@ export function useSession() {
     session,
     loading,
     needsPasswordReset,
+    startPasswordReset: () => setNeedsPasswordReset(true),
     clearPasswordReset: () => setNeedsPasswordReset(false),
   };
 }

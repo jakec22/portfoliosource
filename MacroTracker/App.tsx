@@ -6,7 +6,7 @@ import {
 } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, ActivityIndicator, StatusBar } from 'react-native';
+import { View, ActivityIndicator, StatusBar, Alert } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useTheme } from './src/theme/useTheme';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -155,18 +155,37 @@ function MainTabs() {
 }
 
 export default function App() {
-  const { session, loading, needsPasswordReset, clearPasswordReset } = useSession();
+  const {
+    session,
+    loading,
+    needsPasswordReset,
+    startPasswordReset,
+    clearPasswordReset,
+  } = useSession();
   const c = useTheme();
   const url = Linking.useURL();
 
-  // Exchange a PKCE reset-password deep link code for a Supabase session.
-  // Supabase then fires the PASSWORD_RECOVERY auth event which sets
-  // needsPasswordReset=true and shows the ResetPasswordScreen.
+  // Handle the reset-password deep link. With a custom scheme,
+  // holymacro://reset-password?code=... parses "reset-password" as the
+  // hostname (not the path), so accept either. Under the PKCE flow the code
+  // exchange fires SIGNED_IN (not PASSWORD_RECOVERY), so we explicitly flip
+  // into the reset screen ourselves once the session is established.
   useEffect(() => {
     if (!url) return;
-    const { path, queryParams } = Linking.parse(url);
-    if (path === 'reset-password' && typeof queryParams?.code === 'string') {
-      supabase.auth.exchangeCodeForSession(queryParams.code);
+    const { hostname, path, queryParams } = Linking.parse(url);
+    const isReset = path === 'reset-password' || hostname === 'reset-password';
+    if (!isReset) return;
+
+    if (typeof queryParams?.code === 'string') {
+      supabase.auth.exchangeCodeForSession(queryParams.code).then(({ error }) => {
+        if (error) {
+          Alert.alert('Reset link problem', error.message);
+        } else {
+          startPasswordReset();
+        }
+      });
+    } else if (typeof queryParams?.error_description === 'string') {
+      Alert.alert('Reset link problem', String(queryParams.error_description));
     }
   }, [url]);
 
