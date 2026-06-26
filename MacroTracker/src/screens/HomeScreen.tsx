@@ -105,7 +105,7 @@ export function HomeScreen({ navigation }: Props) {
   const isToday = selectedDate === todayString();
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <StatusBar
         barStyle={c.scheme === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={c.bg}

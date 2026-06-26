@@ -286,7 +286,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
     parseInt(form.fat || '0') * 9;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Profile</Text>
         <Text style={styles.subtitle}>Your goals, body weight, and app settings</Text>
