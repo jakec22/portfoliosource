@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Food, MealType, SavedMeal, ServingUnit } from '../types';
 import { useStore } from '../store/useStore';
-import { searchFoods } from '../data/foods';
-import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
+import { lookupBarcode } from '../services/foodApi';
+import { analyzeMealText, AnalyzedItem } from '../services/mealPhoto';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import Svg, { Rect } from 'react-native-svg';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
@@ -58,13 +58,37 @@ function BarcodeIcon({ size = 22, color = '#fff' }: { size?: number; color?: str
   );
 }
 
+// Convert an AI-estimated item into a Food so it flows through the existing
+// select → adjust serving → add panel exactly like any other food. When Gemini
+// returns a gram weight, macros are "per that many grams" (so g/oz conversion
+// works); otherwise the item is a unitless single serving.
+function aiItemToFood(it: AnalyzedItem, idx: number): Food {
+  const grams = it.serving_grams;
+  return {
+    id: `ai-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+    name: it.name,
+    brand: 'AI estimate',
+    serving_size: grams ?? 1,
+    serving_unit: grams ? 'g' : 'serving',
+    macros: {
+      calories: it.calories,
+      protein: it.protein,
+      carbs: it.carbs,
+      fat: it.fat,
+      fiber: 0,
+      sugar: 0,
+    },
+  };
+}
+
 export function LogFoodScreen({ route, navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const { meal, date } = route.params;
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Food[]>(() => searchFoods(''));
+  const [aiResults, setAiResults] = useState<Food[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
@@ -88,42 +112,53 @@ export function LogFoodScreen({ route, navigation }: Props) {
     [logs, date, meal]
   );
 
-  // Debounced live search against USDA (falls back to local foods offline).
-  // Custom foods are merged in front of API results when their name matches.
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
+  // Custom foods are filtered locally and instantly — they're exact user data,
+  // so they don't need (or want) an AI estimate.
+  const q = query.trim().toLowerCase();
+  const customMatches = useMemo(
+    () =>
+      q
+        ? customFoods.filter(
+            (f) =>
+              f.name.toLowerCase().includes(q) ||
+              (f.brand && f.brand.toLowerCase().includes(q))
+          )
+        : [],
+    [q, customFoods]
+  );
+
+  // Your custom foods first, then anything the AI returned for this query.
+  const results = useMemo(() => {
+    const ids = new Set(customMatches.map((f) => f.id));
+    return [...customMatches, ...aiResults.filter((f) => !ids.has(f.id))];
+  }, [customMatches, aiResults]);
+
+  function handleQueryChange(v: string) {
+    setQuery(v);
+    // Typing invalidates the previous AI estimate.
+    setAiResults([]);
+    setSearched(false);
+  }
+
+  // Send the typed description to the AI for a macro estimate. Explicit (a tap
+  // or keyboard "search"), so it's bounded and intentional rather than firing
+  // on every keystroke.
+  async function runAiSearch() {
+    const text = query.trim();
+    if (text.length < 2) return;
+    Keyboard.dismiss();
     setLoading(true);
-    const t = setTimeout(() => {
-      searchFoodsApi(query, controller.signal)
-        .then((r) => {
-          if (active) {
-            const q = query.toLowerCase().trim();
-            const customMatches = q
-              ? customFoods.filter(
-                  (f) =>
-                    f.name.toLowerCase().includes(q) ||
-                    (f.brand && f.brand.toLowerCase().includes(q))
-                )
-              : customFoods;
-            const apiIds = new Set(r.map((f) => f.id));
-            setResults([
-              ...customMatches.filter((f) => !apiIds.has(f.id)),
-              ...r,
-            ]);
-            setLoading(false);
-          }
-        })
-        .catch(() => {
-          /* aborted by a newer query — ignore */
-        });
-    }, 350);
-    return () => {
-      active = false;
-      clearTimeout(t);
-      controller.abort();
-    };
-  }, [query, customFoods]);
+    setSearched(false);
+    try {
+      const items = await analyzeMealText(text);
+      setAiResults(items.map(aiItemToFood));
+      setSearched(true);
+    } catch (e: any) {
+      Alert.alert('AI estimate failed', e?.message ?? 'Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function handleSelectFood(food: Food) {
     // Dismiss the search keyboard first so the amount field opens its own
@@ -265,17 +300,18 @@ export function LogFoodScreen({ route, navigation }: Props) {
 
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Text style={styles.searchIcon}>✨</Text>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search foods..."
+              placeholder="Describe a food, e.g. 6 oz grilled chicken"
               value={query}
-              onChangeText={setQuery}
+              onChangeText={handleQueryChange}
               autoCapitalize="none"
               clearButtonMode="while-editing"
               placeholderTextColor={c.textFaint}
+              returnKeyType="search"
+              onSubmitEditing={runAiSearch}
             />
-            {loading && <ActivityIndicator size="small" color={c.primary} />}
           </View>
           <TouchableOpacity
             style={styles.scanBtn}
@@ -423,9 +459,31 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   </>
                 )}
 
-                <Text style={styles.allFoodsLabel}>All Foods</Text>
               </View>
-            ) : null
+            ) : (
+              <View style={styles.aiHeader}>
+                <TouchableOpacity
+                  style={[styles.aiCta, loading && styles.aiCtaDisabled]}
+                  onPress={runAiSearch}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.aiCtaText} numberOfLines={1}>
+                      ✨  Estimate "{query.trim()}" with AI
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.aiHint}>
+                  Include the amount for a sharper estimate — "1 cup", "200g", "2 slices".
+                </Text>
+                {customMatches.length > 0 && (
+                  <Text style={styles.allFoodsLabel}>Your custom foods</Text>
+                )}
+              </View>
+            )
           }
           renderItem={({ item }) => {
             const isFav = favoriteFoods.some((f) => f.id === item.id);
@@ -477,16 +535,16 @@ export function LogFoodScreen({ route, navigation }: Props) {
             loading ? (
               <View style={styles.empty}>
                 <ActivityIndicator color={c.primary} />
-                <Text style={styles.emptySubtext}>Searching foods…</Text>
+                <Text style={styles.emptySubtext}>Estimating macros…</Text>
               </View>
-            ) : (
+            ) : query.trim() !== '' && searched ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>No foods found</Text>
+                <Text style={styles.emptyText}>No foods recognized</Text>
                 <Text style={styles.emptySubtext}>
-                  Try a different search term or scan a barcode
+                  Try describing the food and amount differently, or scan a barcode.
                 </Text>
               </View>
-            )
+            ) : null
           }
         />
 
@@ -766,6 +824,39 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginTop: 14,
     marginBottom: 4,
     marginLeft: 2,
+  },
+  aiHeader: {
+    marginBottom: 4,
+  },
+  aiCta: {
+    backgroundColor: '#6366F1',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  aiCtaDisabled: {
+    opacity: 0.7,
+  },
+  aiCtaText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  aiHint: {
+    fontSize: 12,
+    color: c.textFaint,
+    marginTop: 8,
+    marginBottom: 4,
+    marginLeft: 2,
+    lineHeight: 16,
   },
   shortcutRow: {
     flexDirection: 'row',
