@@ -26,7 +26,7 @@
         "@kingstinct/react-native-healthkit",
         {
           "NSHealthShareUsageDescription": "HolyMacro reads your heart rate from Apple Health to display and chart it during workouts.",
-          "NSHealthUpdateUsageDescription": false,
+          "NSHealthUpdateUsageDescription": "HolyMacro does not write data to Apple Health.",
           "background": false
         }
       ]
