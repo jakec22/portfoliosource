@@ -37,7 +37,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-# NOTE: ios/ is committed so the Xcode project is ready to open.
-# To regenerate it from app.json config, run: npx expo prebuild --clean
+# generated native folders — EAS regenerates these from app.json on every build
+# (Continuous Native Generation). Do not commit them; doing so makes the native
+# project the source of truth and silently overrides app.json config.
+/ios
 /android
