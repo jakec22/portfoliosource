@@ -15,6 +15,7 @@ import {
   signInWithEmail,
   signUpWithEmail,
   signInWithGoogle,
+  resetPasswordForEmail,
 } from '../services/auth';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
@@ -50,6 +51,25 @@ export function AuthScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleForgotPassword() {
+    Alert.prompt(
+      'Reset Password',
+      'Enter the email address for your account.',
+      async (input) => {
+        if (!input?.trim()) return;
+        const { error } = await resetPasswordForEmail(input);
+        if (error) {
+          Alert.alert('Error', error.message);
+        } else {
+          Alert.alert('Email sent', `Check ${input.trim()} for a password reset link.`);
+        }
+      },
+      'plain-text',
+      email,
+      'email-address'
+    );
   }
 
   async function handleGoogle() {
@@ -96,6 +116,16 @@ export function AuthScreen() {
             onChangeText={setPassword}
             editable={!busy}
           />
+
+          {!isSignup && (
+            <TouchableOpacity
+              style={styles.forgotBtn}
+              onPress={handleForgotPassword}
+              disabled={busy}
+            >
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={[styles.primaryBtn, busy && styles.btnDisabled]}
@@ -215,4 +245,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   googleBtnText: { color: c.gray700, fontSize: 16, fontWeight: '600' },
   toggle: { marginTop: 24, alignItems: 'center' },
   toggleText: { color: c.primary, fontSize: 14, fontWeight: '600' },
+  forgotBtn: { alignItems: 'flex-end', marginTop: -4, marginBottom: 12 },
+  forgotText: { color: c.primary, fontSize: 13, fontWeight: '500' },
 });

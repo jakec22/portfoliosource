@@ -2,6 +2,16 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { supabase } from './supabase';
 
+export function resetPasswordForEmail(email: string) {
+  return supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: Linking.createURL('reset-password'),
+  });
+}
+
+export function updatePassword(newPassword: string) {
+  return supabase.auth.updateUser({ password: newPassword });
+}
+
 // Required so the auth popup dismisses cleanly when it redirects back.
 WebBrowser.maybeCompleteAuthSession();
 

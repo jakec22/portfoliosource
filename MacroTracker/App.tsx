@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   NavigationContainer,
   DefaultTheme as NavLightTheme,
@@ -7,6 +7,7 @@ import {
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { View, ActivityIndicator, StatusBar } from 'react-native';
+import * as Linking from 'expo-linking';
 import { useTheme } from './src/theme/useTheme';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon } from './src/components/TabIcon';
@@ -24,10 +25,12 @@ import { AnalyticsScreen } from './src/screens/AnalyticsScreen';
 import { BuildMealScreen } from './src/screens/BuildMealScreen';
 import { GoalWizardScreen } from './src/screens/GoalWizardScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
+import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
 import { useTemplateImport } from './src/hooks/useTemplateImport';
+import { supabase } from './src/services/supabase';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -152,8 +155,20 @@ function MainTabs() {
 }
 
 export default function App() {
-  const { session, loading } = useSession();
+  const { session, loading, needsPasswordReset, clearPasswordReset } = useSession();
   const c = useTheme();
+  const url = Linking.useURL();
+
+  // Exchange a PKCE reset-password deep link code for a Supabase session.
+  // Supabase then fires the PASSWORD_RECOVERY auth event which sets
+  // needsPasswordReset=true and shows the ResetPasswordScreen.
+  useEffect(() => {
+    if (!url) return;
+    const { path, queryParams } = Linking.parse(url);
+    if (path === 'reset-password' && typeof queryParams?.code === 'string') {
+      supabase.auth.exchangeCodeForSession(queryParams.code);
+    }
+  }, [url]);
 
   return (
     <SafeAreaProvider>
@@ -170,6 +185,8 @@ export default function App() {
           >
             <ActivityIndicator size="large" color={c.primary} />
           </View>
+        ) : needsPasswordReset ? (
+          <ResetPasswordScreen onDone={clearPasswordReset} />
         ) : session ? (
           <MainTabs />
         ) : (
