@@ -4,7 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { ProgressLineChart, ChartEmpty } from '../components/ProgressLineChart';
 import { MiniBarChart } from '../components/MiniBarChart';
-import { weightTrend, nutritionAdherence, weeklyVolume } from '../utils/analytics';
+import {
+  weightTrend,
+  nutritionAdherence,
+  weeklyVolume,
+  weeklyInsights,
+} from '../utils/analytics';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -22,6 +27,12 @@ function shortDate(dateStr: string): string {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// "Wednesday" from a YYYY-MM-DD string (used for the best-day callout).
+function weekdayLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long' });
+}
+
 export function AnalyticsScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -36,6 +47,10 @@ export function AnalyticsScreen({ navigation }: Props) {
     [logs, goals]
   );
   const weeks = useMemo(() => weeklyVolume(workoutHistory, WORKOUT_WEEKS), [workoutHistory]);
+  const insights = useMemo(
+    () => weeklyInsights(logs, goals, workoutHistory, bodyWeightLog),
+    [logs, goals, workoutHistory, bodyWeightLog]
+  );
 
   const weightDelta =
     weight.length >= 2 ? weight[weight.length - 1].lbs - weight[0].lbs : 0;
@@ -59,6 +74,80 @@ export function AnalyticsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* ── This week's insights ── */}
+        <Text style={styles.sectionTitle}>This Week</Text>
+        <View style={styles.insightCard}>
+          {!insights.hasData ? (
+            <Text style={styles.insightEmpty}>
+              Log food or finish a workout this week and your personalized
+              summary will show up here.
+            </Text>
+          ) : (
+            <>
+              <View style={styles.insightStatRow}>
+                <InsightStat
+                  label="Avg / day"
+                  value={insights.loggedDays ? `${insights.avgCalories}` : '—'}
+                  unit="kcal"
+                  color="#10B981"
+                />
+                <InsightStat
+                  label="Avg protein"
+                  value={insights.loggedDays ? `${insights.avgProtein}` : '—'}
+                  unit="g"
+                  color="#3B82F6"
+                />
+                <InsightStat
+                  label="Workouts"
+                  value={`${insights.workouts}`}
+                  unit={insights.workouts === 1 ? 'session' : 'sessions'}
+                  color="#F59E0B"
+                />
+              </View>
+
+              <View style={styles.insightMetaRow}>
+                <Text style={styles.insightMeta}>
+                  Logged {insights.loggedDays}/7 days
+                </Text>
+                {insights.streak > 0 && (
+                  <Text style={styles.insightMeta}>· 🔥 {insights.streak}-day streak</Text>
+                )}
+                {insights.weightChange != null && (
+                  <Text style={styles.insightMeta}>
+                    {' '}· {insights.weightChange >= 0 ? '+' : ''}
+                    {insights.weightChange} lb
+                  </Text>
+                )}
+              </View>
+
+              {insights.bestDay && (
+                <Text style={styles.insightBest}>
+                  Best day: {weekdayLabel(insights.bestDay.date)} —{' '}
+                  {insights.bestDay.calories} kcal, {insights.bestDay.protein}g protein
+                </Text>
+              )}
+
+              {insights.highlights.length > 0 && (
+                <View style={styles.highlightList}>
+                  {insights.highlights.map((h, i) => (
+                    <View key={i} style={styles.highlightRow}>
+                      <Text style={styles.highlightIcon}>{h.icon}</Text>
+                      <Text
+                        style={[
+                          styles.highlightText,
+                          h.tone === 'positive' && styles.highlightPositive,
+                        ]}
+                      >
+                        {h.text}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
         {/* ── Body weight ── */}
         <Text style={styles.sectionTitle}>Body Weight</Text>
         <View style={styles.card}>
@@ -159,6 +248,28 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
   );
 }
 
+function InsightStat({
+  label,
+  value,
+  unit,
+  color,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  color: string;
+}) {
+  const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
+  return (
+    <View style={styles.insightStat}>
+      <Text style={[styles.insightStatValue, { color }]}>{value}</Text>
+      <Text style={styles.insightStatUnit}>{unit}</Text>
+      <Text style={styles.insightStatLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const makeStyles = (c: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.bg },
   header: {
@@ -201,4 +312,46 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   statValue: { fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'] },
   statLabel: { fontSize: 12, color: c.textFaint, marginTop: 2 },
   caption: { fontSize: 11, color: c.textFaint, marginTop: 8, lineHeight: 16 },
+
+  // Weekly insights card
+  insightCard: {
+    backgroundColor: c.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.25)' : '#D1FAE5',
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  insightEmpty: { fontSize: 13, color: c.textMuted, lineHeight: 19 },
+  insightStatRow: { flexDirection: 'row', gap: 12 },
+  insightStat: { flex: 1, alignItems: 'flex-start' },
+  insightStatValue: { fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  insightStatUnit: { fontSize: 11, color: c.textFaint, marginTop: -2 },
+  insightStatLabel: { fontSize: 12, color: c.textMuted, marginTop: 3, fontWeight: '500' },
+  insightMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  insightMeta: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
+  insightBest: {
+    fontSize: 13,
+    color: c.text,
+    fontWeight: '600',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: c.border,
+  },
+  highlightList: { marginTop: 12, gap: 8 },
+  highlightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  highlightIcon: { fontSize: 15, lineHeight: 20 },
+  highlightText: { flex: 1, fontSize: 13, color: c.textMuted, lineHeight: 19 },
+  highlightPositive: { color: c.primaryDark, fontWeight: '600' },
 });

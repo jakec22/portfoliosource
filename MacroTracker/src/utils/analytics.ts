@@ -91,6 +91,179 @@ export function nutritionAdherence(
   };
 }
 
+// ── Weekly insights ──────────────────────────────────────────────────────────
+// A plain-English synthesis of the last 7 days, combining nutrition, workouts,
+// streaks, and weight into a few headline stats plus prioritized coaching
+// callouts. Pure — fed entirely from store data the Trends screen already has.
+
+export interface InsightHighlight {
+  tone: 'positive' | 'suggest';
+  icon: string;
+  text: string;
+}
+
+export interface WeeklyInsights {
+  hasData: boolean; // anything logged or trained this week
+  loggedDays: number; // days (0-7) with any food logged
+  avgCalories: number; // averaged over logged days
+  avgProtein: number;
+  caloriePctOfGoal: number; // avg calories as a % of goal (rounded)
+  daysOnTarget: number; // logged days within ±10% of the calorie goal
+  bestDay: { date: string; calories: number; protein: number } | null;
+  workouts: number; // completed sessions this week
+  workoutVolume: number; // Σ weight × reps over those sessions
+  streak: number; // consecutive logged days ending today/yesterday
+  weightChange: number | null; // lbs change across the week, if ≥2 readings
+  highlights: InsightHighlight[];
+}
+
+// Consecutive days with food logged, counting back from today. Today being
+// empty doesn't break the streak (the day isn't over) — we start from yesterday
+// in that case so an unfinished today never reads as a miss.
+function loggingStreak(logs: Record<string, FoodEntry[]>): number {
+  const todayLogged = (logs[todayString()] ?? []).length > 0;
+  let streak = 0;
+  for (let d = todayLogged ? 0 : 1; ; d++) {
+    const date = formatDate(new Date(Date.now() - d * 86400000));
+    if ((logs[date] ?? []).length > 0) streak += 1;
+    else break;
+  }
+  return streak;
+}
+
+export function weeklyInsights(
+  logs: Record<string, FoodEntry[]>,
+  goals: DailyGoals,
+  history: WorkoutSession[],
+  weightLog: BodyWeightEntry[]
+): WeeklyInsights {
+  const DAYS = 7;
+  const tol = goals.calories * 0.1;
+
+  let calSum = 0;
+  let proSum = 0;
+  let loggedDays = 0;
+  let daysOnTarget = 0;
+  let bestDay: WeeklyInsights['bestDay'] = null;
+  let bestScore = Infinity;
+
+  for (let i = DAYS - 1; i >= 0; i--) {
+    const date = formatDate(new Date(Date.now() - i * 86400000));
+    const entries = logs[date] ?? [];
+    if (entries.length === 0) continue;
+    loggedDays += 1;
+    const { calories, protein } = dayTotals(entries);
+    calSum += calories;
+    proSum += protein;
+    if (Math.abs(calories - goals.calories) <= tol) daysOnTarget += 1;
+
+    // "Best" = closest to the calorie goal while not falling short on protein.
+    const calDev = goals.calories > 0 ? Math.abs(calories - goals.calories) / goals.calories : 0;
+    const proShort = goals.protein > 0 ? Math.max(0, goals.protein - protein) / goals.protein : 0;
+    const score = calDev + proShort;
+    if (score < bestScore) {
+      bestScore = score;
+      bestDay = { date, calories: Math.round(calories), protein: Math.round(protein) };
+    }
+  }
+
+  const avgCalories = loggedDays ? Math.round(calSum / loggedDays) : 0;
+  const avgProtein = loggedDays ? Math.round(proSum / loggedDays) : 0;
+  const caloriePctOfGoal =
+    loggedDays && goals.calories > 0 ? Math.round((avgCalories / goals.calories) * 100) : 0;
+
+  // Workouts completed within the last 7 calendar days.
+  const cutoff = formatDate(new Date(Date.now() - (DAYS - 1) * 86400000));
+  let workouts = 0;
+  let workoutVolume = 0;
+  for (const s of history) {
+    if (s.completedAt == null) continue;
+    if (s.date < cutoff) continue;
+    workouts += 1;
+    workoutVolume += sessionVolume(s);
+  }
+
+  // Weight change across readings inside the window.
+  const weekWeights = weightTrend(weightLog, DAYS);
+  const weightChange =
+    weekWeights.length >= 2
+      ? Math.round((weekWeights[weekWeights.length - 1].lbs - weekWeights[0].lbs) * 10) / 10
+      : null;
+
+  const streak = loggingStreak(logs);
+  const hasData = loggedDays > 0 || workouts > 0;
+
+  // ── Coaching callouts, prioritized: lead with a win, then the most useful
+  // nudge. Capped at three so the card stays scannable.
+  const wins: InsightHighlight[] = [];
+  const nudges: InsightHighlight[] = [];
+
+  if (streak >= 3) {
+    wins.push({ tone: 'positive', icon: '🔥', text: `${streak}-day logging streak — keep it going.` });
+  }
+  if (workouts >= 3) {
+    wins.push({ tone: 'positive', icon: '💪', text: `${workouts} workouts this week — strong consistency.` });
+  }
+  if (loggedDays >= 2 && daysOnTarget >= Math.ceil(loggedDays * 0.6)) {
+    wins.push({
+      tone: 'positive',
+      icon: '🎯',
+      text: `On your calorie goal ${daysOnTarget} of ${loggedDays} logged days.`,
+    });
+  }
+
+  if (loggedDays >= 2 && avgProtein < goals.protein * 0.9) {
+    const short = Math.round(goals.protein - avgProtein);
+    nudges.push({
+      tone: 'suggest',
+      icon: '🥚',
+      text: `Protein ran ~${short}g/day under your ${goals.protein}g goal — a scoop of whey or Greek yogurt closes it.`,
+    });
+  }
+  if (loggedDays >= 3 && caloriePctOfGoal > 110) {
+    const over = Math.round(avgCalories - goals.calories);
+    nudges.push({
+      tone: 'suggest',
+      icon: '📈',
+      text: `Averaging ${avgCalories} kcal/day — about ${over} over your goal.`,
+    });
+  } else if (loggedDays >= 3 && caloriePctOfGoal > 0 && caloriePctOfGoal < 85) {
+    const under = Math.round(goals.calories - avgCalories);
+    nudges.push({
+      tone: 'suggest',
+      icon: '📉',
+      text: `Averaging ${avgCalories} kcal/day — about ${under} under your goal. Make sure you're fueling enough.`,
+    });
+  }
+  if (workouts === 0) {
+    nudges.push({ tone: 'suggest', icon: '🏋️', text: 'No workouts logged this week — even one session counts.' });
+  }
+  if (loggedDays > 0 && loggedDays < 4) {
+    nudges.push({
+      tone: 'suggest',
+      icon: '📝',
+      text: `Only ${loggedDays} ${loggedDays === 1 ? 'day' : 'days'} logged — consistency is what makes the trends meaningful.`,
+    });
+  }
+
+  const highlights = [...wins, ...nudges].slice(0, 3);
+
+  return {
+    hasData,
+    loggedDays,
+    avgCalories,
+    avgProtein,
+    caloriePctOfGoal,
+    daysOnTarget,
+    bestDay,
+    workouts,
+    workoutVolume,
+    streak,
+    weightChange,
+    highlights,
+  };
+}
+
 // ── Workout volume ───────────────────────────────────────────────────────────
 
 export interface WeekVolume {
