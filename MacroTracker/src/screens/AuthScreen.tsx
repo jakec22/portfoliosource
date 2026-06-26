@@ -7,11 +7,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Ellipse, Circle } from 'react-native-svg';
 import {
   signInWithEmail,
   signUpWithEmail,
@@ -20,18 +20,6 @@ import {
 } from '../services/auth';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
-
-function FishLogo({ size = 80 }: { size?: number }) {
-  const h = Math.round(size * 0.625);
-  return (
-    <Svg width={size} height={h} viewBox="0 0 80 50">
-      <Path d="M22,25 L2,5 L2,45 Z" fill="#10B981" />
-      <Ellipse cx="46" cy="25" rx="28" ry="18" fill="#10B981" />
-      <Circle cx="62" cy="20" r="4" fill="white" />
-      <Circle cx="62" cy="20" r="2" fill="rgba(0,0,0,0.55)" />
-    </Svg>
-  );
-}
 
 export function AuthScreen() {
   const c = useTheme();
@@ -104,7 +92,11 @@ export function AuthScreen() {
       >
         <View style={styles.content}>
           <View style={styles.logoWrap}>
-            <FishLogo size={88} />
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logo}
+              resizeMode="cover"
+            />
           </View>
           <Text style={styles.title}>Holy Macro</Text>
           <Text style={styles.subtitle}>Health Simplified</Text>
@@ -197,6 +189,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     paddingHorizontal: 28,
   },
   logoWrap: { alignItems: 'center', marginBottom: 4 },
+  logo: { width: 96, height: 96, borderRadius: 21 },
   title: {
     fontSize: 30,
     fontWeight: '800',
