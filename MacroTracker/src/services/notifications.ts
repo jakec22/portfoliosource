@@ -1,37 +1,29 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import type { ReminderPrefs } from '../types';
+import type { ReminderPrefs, ReminderKey, ReminderTime } from '../types';
 
-// Default times for each daily reminder (24h local time). Times are fixed in
-// v1; the per-reminder on/off toggles live in settings. Customizable times are
-// a natural follow-up.
-const SCHEDULE: Record<
-  keyof Omit<ReminderPrefs, 'enabled'>,
-  { hour: number; minute: number; title: string; body: string }
-> = {
+// Notification copy per reminder. The trigger time comes from the user's saved
+// prefs (editable in settings); these defaults are only a fallback.
+const COPY: Record<ReminderKey, { title: string; body: string; fallback: ReminderTime }> = {
   breakfast: {
-    hour: 9,
-    minute: 0,
     title: 'Good morning 🍳',
     body: 'Log your breakfast to start the day on track.',
+    fallback: { hour: 9, minute: 0 },
   },
   lunch: {
-    hour: 13,
-    minute: 0,
     title: 'Lunchtime 🥗',
     body: "Don't forget to log your lunch.",
+    fallback: { hour: 13, minute: 0 },
   },
   dinner: {
-    hour: 19,
-    minute: 0,
     title: 'Dinner time 🍽️',
     body: 'Tap to log your dinner before you forget.',
+    fallback: { hour: 19, minute: 0 },
   },
   streak: {
-    hour: 20,
-    minute: 30,
     title: 'Keep your streak alive 🔥',
     body: 'Log today before the day ends to keep your streak going.',
+    fallback: { hour: 20, minute: 30 },
   },
 };
 
@@ -78,10 +70,11 @@ export async function applyReminderSchedule(prefs: ReminderPrefs): Promise<void>
 
   await ensureAndroidChannel();
 
-  const keys = ['breakfast', 'lunch', 'dinner', 'streak'] as const;
+  const keys: ReminderKey[] = ['breakfast', 'lunch', 'dinner', 'streak'];
   for (const key of keys) {
     if (!prefs[key]) continue;
-    const { hour, minute, title, body } = SCHEDULE[key];
+    const { title, body, fallback } = COPY[key];
+    const { hour, minute } = prefs.times?.[key] ?? fallback;
     await Notifications.scheduleNotificationAsync({
       content: { title, body },
       trigger: {

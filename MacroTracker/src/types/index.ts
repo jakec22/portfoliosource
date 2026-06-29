@@ -3,12 +3,20 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 // Appearance preference: explicit light/dark, or follow the OS setting.
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+export interface ReminderTime {
+  hour: number; // 0-23
+  minute: number; // 0-59
+}
+
+export type ReminderKey = 'breakfast' | 'lunch' | 'dinner' | 'streak';
+
 export interface ReminderPrefs {
   enabled: boolean; // master switch for daily reminders
   breakfast: boolean;
   lunch: boolean;
   dinner: boolean;
   streak: boolean; // evening "keep your streak" nudge
+  times: Record<ReminderKey, ReminderTime>; // per-reminder trigger time
 }
 
 // How a logged amount is expressed. 'serving' = multiples of the food's

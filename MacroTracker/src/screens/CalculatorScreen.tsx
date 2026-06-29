@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { DailyGoals, ThemeMode } from '../types';
+import { DailyGoals, ThemeMode, ReminderKey, ReminderTime } from '../types';
 import { displayDate } from '../utils/date';
 import { supabase } from '../services/supabase';
 import { signOut, deleteAccount } from '../services/auth';
@@ -26,6 +26,26 @@ function formatRest(seconds: number): string {
   const s = seconds % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
 }
+
+function formatTime({ hour, minute }: ReminderTime): string {
+  const period = hour < 12 ? 'AM' : 'PM';
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}:${String(minute).padStart(2, '0')} ${period}`;
+}
+
+// Shift a time by a number of minutes, wrapping around midnight.
+function shiftTime({ hour, minute }: ReminderTime, deltaMin: number): ReminderTime {
+  let total = (hour * 60 + minute + deltaMin) % (24 * 60);
+  if (total < 0) total += 24 * 60;
+  return { hour: Math.floor(total / 60), minute: total % 60 };
+}
+
+const REMINDER_ROWS: { key: ReminderKey; label: string }[] = [
+  { key: 'breakfast', label: 'Breakfast' },
+  { key: 'lunch', label: 'Lunch' },
+  { key: 'dinner', label: 'Dinner' },
+  { key: 'streak', label: 'Streak reminder' },
+];
 
 type MacroKey = 'protein' | 'carbs' | 'fat';
 type MacroPct = Record<MacroKey, number>;
@@ -233,11 +253,18 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
     setNotificationPrefs({ ...notificationPrefs, enabled: on });
   }
 
-  function setReminder(
-    key: 'breakfast' | 'lunch' | 'dinner' | 'streak',
-    on: boolean
-  ) {
+  function setReminder(key: ReminderKey, on: boolean) {
     setNotificationPrefs({ ...notificationPrefs, [key]: on });
+  }
+
+  function adjustReminderTime(key: ReminderKey, deltaMin: number) {
+    setNotificationPrefs({
+      ...notificationPrefs,
+      times: {
+        ...notificationPrefs.times,
+        [key]: shiftTime(notificationPrefs.times[key], deltaMin),
+      },
+    });
   }
 
   function handleSignOut() {
@@ -517,29 +544,48 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           </View>
 
           {notificationPrefs.enabled &&
-            ([
-              { key: 'breakfast', label: 'Breakfast', time: '9:00 AM' },
-              { key: 'lunch', label: 'Lunch', time: '1:00 PM' },
-              { key: 'dinner', label: 'Dinner', time: '7:00 PM' },
-              { key: 'streak', label: 'Streak reminder', time: '8:30 PM' },
-            ] as const).map(({ key, label, time }) => (
+            REMINDER_ROWS.map(({ key, label }) => (
               <View
                 key={key}
-                style={[
-                  styles.waterToggleRow,
-                  { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border },
-                ]}
+                style={{
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: c.border,
+                }}
               >
-                <View style={{ flex: 1, paddingRight: 12 }}>
+                <View style={styles.waterToggleRow}>
                   <Text style={styles.waterToggleLabel}>{label}</Text>
-                  <Text style={styles.settingHint}>{time}</Text>
+                  <Switch
+                    value={notificationPrefs[key]}
+                    onValueChange={(v) => setReminder(key, v)}
+                    trackColor={{ false: c.border, true: '#6EE7B7' }}
+                    thumbColor={notificationPrefs[key] ? c.primary : c.textFaint}
+                  />
                 </View>
-                <Switch
-                  value={notificationPrefs[key]}
-                  onValueChange={(v) => setReminder(key, v)}
-                  trackColor={{ false: c.border, true: '#6EE7B7' }}
-                  thumbColor={notificationPrefs[key] ? c.primary : c.textFaint}
-                />
+
+                {notificationPrefs[key] && (
+                  <View style={[styles.hydrationRow, { marginTop: 12 }]}>
+                    <TouchableOpacity
+                      style={styles.hydrationBtn}
+                      onPress={() => adjustReminderTime(key, -15)}
+                    >
+                      <Text style={styles.hydrationBtnText}>−</Text>
+                    </TouchableOpacity>
+                    <View style={styles.hydrationCenter}>
+                      <Text style={styles.hydrationLabel}>Reminder time</Text>
+                      <Text style={styles.hydrationValue}>
+                        {formatTime(notificationPrefs.times[key])}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.hydrationBtn}
+                      onPress={() => adjustReminderTime(key, 15)}
+                    >
+                      <Text style={styles.hydrationBtnText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             ))}
         </View>

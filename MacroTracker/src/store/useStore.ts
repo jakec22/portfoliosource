@@ -97,6 +97,12 @@ export const useStore = create<AppState>()(
         lunch: true,
         dinner: true,
         streak: true,
+        times: {
+          breakfast: { hour: 9, minute: 0 },
+          lunch: { hour: 13, minute: 0 },
+          dinner: { hour: 19, minute: 0 },
+          streak: { hour: 20, minute: 30 },
+        },
       },
       defaultRestSeconds: 120,
       restTrigger: 0,
@@ -592,7 +598,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 5,
+      version: 6,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -644,6 +650,23 @@ export const useStore = create<AppState>()(
         // following the OS setting.
         if (version < 5 && state && state.themeMode == null) {
           state = { ...state, themeMode: 'system' };
+        }
+        // v6 made reminder times user-editable. Backfill default times for
+        // anyone who saved the first version of notificationPrefs (booleans
+        // only, no times), so reads of prefs.times never hit undefined.
+        if (version < 6 && state?.notificationPrefs && !state.notificationPrefs.times) {
+          state = {
+            ...state,
+            notificationPrefs: {
+              ...state.notificationPrefs,
+              times: {
+                breakfast: { hour: 9, minute: 0 },
+                lunch: { hour: 13, minute: 0 },
+                dinner: { hour: 19, minute: 0 },
+                streak: { hour: 20, minute: 30 },
+              },
+            },
+          };
         }
         return state;
       },
