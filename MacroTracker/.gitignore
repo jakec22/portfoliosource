@@ -42,3 +42,4 @@ yarn-error.*
 # project the source of truth and silently overrides app.json config.
 /ios
 /android
+supabase/.temp/
