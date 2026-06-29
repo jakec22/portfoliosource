@@ -16,6 +16,7 @@ import { DailyGoals, ThemeMode } from '../types';
 import { displayDate } from '../utils/date';
 import { supabase } from '../services/supabase';
 import { signOut, deleteAccount } from '../services/auth';
+import { requestNotificationPermission } from '../services/notifications';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -138,6 +139,8 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const setShowWaterTracker = useStore((s) => s.setShowWaterTracker);
   const autoRestTimer = useStore((s) => s.autoRestTimer);
   const setAutoRestTimer = useStore((s) => s.setAutoRestTimer);
+  const notificationPrefs = useStore((s) => s.notificationPrefs);
+  const setNotificationPrefs = useStore((s) => s.setNotificationPrefs);
   const defaultRestSeconds = useStore((s) => s.defaultRestSeconds);
   const setDefaultRestSeconds = useStore((s) => s.setDefaultRestSeconds);
   const clearLocalData = useStore((s) => s.clearLocalData);
@@ -214,6 +217,27 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
     }
     setGoals(parsed);
     Alert.alert('Saved', 'Your goals have been updated!');
+  }
+
+  async function toggleReminders(on: boolean) {
+    if (on) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          'Notifications are off',
+          'To get reminders, enable notifications for Holy Macro in your device Settings.'
+        );
+        return;
+      }
+    }
+    setNotificationPrefs({ ...notificationPrefs, enabled: on });
+  }
+
+  function setReminder(
+    key: 'breakfast' | 'lunch' | 'dinner' | 'streak',
+    on: boolean
+  ) {
+    setNotificationPrefs({ ...notificationPrefs, [key]: on });
   }
 
   function handleSignOut() {
@@ -472,6 +496,52 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             Used for the rest countdown during a workout. Adjust in 15-second steps
             (you can still tap +30s or Skip mid-workout).
           </Text>
+        </View>
+
+        {/* Reminders */}
+        <Text style={styles.sectionTitle}>Reminders</Text>
+        <View style={styles.card}>
+          <View style={styles.waterToggleRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.waterToggleLabel}>Daily Reminders</Text>
+              <Text style={styles.settingHint}>
+                Gentle nudges to log your meals and keep your streak alive.
+              </Text>
+            </View>
+            <Switch
+              value={notificationPrefs.enabled}
+              onValueChange={toggleReminders}
+              trackColor={{ false: c.border, true: '#6EE7B7' }}
+              thumbColor={notificationPrefs.enabled ? c.primary : c.textFaint}
+            />
+          </View>
+
+          {notificationPrefs.enabled &&
+            ([
+              { key: 'breakfast', label: 'Breakfast', time: '9:00 AM' },
+              { key: 'lunch', label: 'Lunch', time: '1:00 PM' },
+              { key: 'dinner', label: 'Dinner', time: '7:00 PM' },
+              { key: 'streak', label: 'Streak reminder', time: '8:30 PM' },
+            ] as const).map(({ key, label, time }) => (
+              <View
+                key={key}
+                style={[
+                  styles.waterToggleRow,
+                  { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border },
+                ]}
+              >
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.waterToggleLabel}>{label}</Text>
+                  <Text style={styles.settingHint}>{time}</Text>
+                </View>
+                <Switch
+                  value={notificationPrefs[key]}
+                  onValueChange={(v) => setReminder(key, v)}
+                  trackColor={{ false: c.border, true: '#6EE7B7' }}
+                  thumbColor={notificationPrefs[key] ? c.primary : c.textFaint}
+                />
+              </View>
+            ))}
         </View>
 
         {/* Hydration Settings */}

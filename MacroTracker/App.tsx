@@ -31,6 +31,15 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
 import { useTemplateImport } from './src/hooks/useTemplateImport';
 import { supabase } from './src/services/supabase';
+import { useStore } from './src/store/useStore';
+import {
+  configureNotificationHandler,
+  applyReminderSchedule,
+} from './src/services/notifications';
+
+// Set how notifications are presented while the app is foregrounded. Done at
+// module load so it's in place before the first notification can fire.
+configureNotificationHandler();
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -164,6 +173,13 @@ export default function App() {
   } = useSession();
   const c = useTheme();
   const url = Linking.useURL();
+  const notificationPrefs = useStore((s) => s.notificationPrefs);
+
+  // Keep the OS-scheduled reminders in sync with the saved preferences. Runs on
+  // launch (so they persist across reboots) and whenever the prefs change.
+  useEffect(() => {
+    applyReminderSchedule(notificationPrefs);
+  }, [notificationPrefs]);
 
   // Handle the reset-password deep link. With a custom scheme,
   // holymacro://reset-password?code=... parses "reset-password" as the

@@ -91,6 +91,13 @@ export const useStore = create<AppState>()(
       showWaterTracker: true,
       themeMode: 'system',
       autoRestTimer: true,
+      notificationPrefs: {
+        enabled: false,
+        breakfast: true,
+        lunch: true,
+        dinner: true,
+        streak: true,
+      },
       defaultRestSeconds: 120,
       restTrigger: 0,
       bodyWeightLbs: undefined,
@@ -206,6 +213,12 @@ export const useStore = create<AppState>()(
       setAutoRestTimer: (on) => {
         set({ autoRestTimer: on });
         syncSettings();
+      },
+
+      // Reminder prefs are device-local (not part of the cloud settings
+      // snapshot), so this intentionally does not call syncSettings.
+      setNotificationPrefs: (prefs) => {
+        set({ notificationPrefs: prefs });
       },
 
       setDefaultRestSeconds: (seconds) => {

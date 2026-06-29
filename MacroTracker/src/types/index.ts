@@ -3,6 +3,14 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 // Appearance preference: explicit light/dark, or follow the OS setting.
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+export interface ReminderPrefs {
+  enabled: boolean; // master switch for daily reminders
+  breakfast: boolean;
+  lunch: boolean;
+  dinner: boolean;
+  streak: boolean; // evening "keep your streak" nudge
+}
+
 // How a logged amount is expressed. 'serving' = multiples of the food's
 // base serving_size; the rest are absolute mass/volume amounts.
 export type ServingUnit = 'serving' | 'g' | 'oz' | 'ml' | 'fl oz';
@@ -153,6 +161,7 @@ export interface AppState {
   showWaterTracker: boolean;
   themeMode: ThemeMode; // appearance preference (light/dark/system)
   autoRestTimer: boolean; // auto-start rest timer when a set is completed
+  notificationPrefs: ReminderPrefs; // local daily reminder settings (device-only)
   defaultRestSeconds: number; // user's default rest length (configured in Profile)
   restTrigger: number; // bumped to signal the rest timer to auto-start
   bodyWeightLbs?: number; // most recent body weight, used for the TDEE calc
@@ -183,6 +192,7 @@ export interface AppState {
   setShowWaterTracker: (show: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
   setAutoRestTimer: (on: boolean) => void;
+  setNotificationPrefs: (prefs: ReminderPrefs) => void;
   setDefaultRestSeconds: (seconds: number) => void;
   setBodyWeight: (lbs: number) => void;
   setProfile: (profile: UserProfile) => void;
