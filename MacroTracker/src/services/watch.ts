@@ -97,6 +97,24 @@ export function endWatchWorkout(): void {
   } catch {}
 }
 
+// Mirror the rest countdown to the watch using a shared end timestamp, so the
+// wrist shows the same countdown and buzzes when it completes. Real-time, so
+// sendMessage is fine — the watch app is foreground during a workout.
+export function startWatchRest(endAt: number): void {
+  if (Platform.OS !== 'ios') return;
+  try {
+    sendMessage({ type: 'rest', endAt }, () => {}, () => {});
+  } catch {}
+}
+
+// Clear the watch rest countdown without buzzing (e.g. the user skipped rest).
+export function stopWatchRest(): void {
+  if (Platform.OS !== 'ios') return;
+  try {
+    sendMessage({ type: 'restStop' }, () => {}, () => {});
+  } catch {}
+}
+
 // Subscribe to live heart-rate samples streamed from the watch during a
 // workout. Returns an unsubscribe function.
 export function subscribeWatchHeartRate(

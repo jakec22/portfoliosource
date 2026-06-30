@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Vibration, AppState } from 'react-native';
 import { formatDuration } from '../utils/date';
 import { useStore } from '../store/useStore';
+import { startWatchRest, stopWatchRest } from '../services/watch';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -72,7 +73,9 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
   useEffect(() => {
     if (restTrigger === lastTrigger.current) return;
     lastTrigger.current = restTrigger;
-    setEndAt(Date.now() + defaultRest * 1000);
+    const newEnd = Date.now() + defaultRest * 1000;
+    setEndAt(newEnd);
+    startWatchRest(newEnd); // mirror to the watch
   }, [restTrigger, defaultRest]);
 
   const running = endAt != null;
@@ -102,7 +105,11 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
             <Text style={styles.countdown}>{formatDuration(remaining)}</Text>
             <TouchableOpacity
               style={styles.addBtn}
-              onPress={() => setEndAt((p) => (p ?? Date.now()) + 30 * 1000)}
+              onPress={() => {
+                const newEnd = (endAt ?? Date.now()) + 30 * 1000;
+                setEndAt(newEnd);
+                startWatchRest(newEnd);
+              }}
             >
               <Text style={styles.addText}>+30s</Text>
             </TouchableOpacity>
@@ -111,6 +118,7 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
               onPress={() => {
                 setEndAt(null);
                 setRemaining(0);
+                stopWatchRest();
               }}
             >
               <Text style={styles.skipText}>Skip</Text>
@@ -119,7 +127,11 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
         ) : (
           <TouchableOpacity
             style={styles.restBtn}
-            onPress={() => setEndAt(Date.now() + defaultRest * 1000)}
+            onPress={() => {
+              const newEnd = Date.now() + defaultRest * 1000;
+              setEndAt(newEnd);
+              startWatchRest(newEnd);
+            }}
           >
             <Text style={styles.restBtnText}>Rest {formatDuration(defaultRest * 1000)}</Text>
           </TouchableOpacity>

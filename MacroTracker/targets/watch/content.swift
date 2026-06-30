@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import WatchConnectivity
 import HealthKit
+import WatchKit
 
 // Brand + macro colors (match the phone app).
 extension Color {
@@ -129,18 +130,77 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     // Live commands from the phone: start/end the on-wrist workout in step with
     // the phone's workout so heart rate is captured automatically.
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        guard let command = message["command"] as? String else { return }
         DispatchQueue.main.async {
-            switch command {
-            case "startWorkout":
-                WorkoutManager.shared.start(activityType: self.activityType(from: message))
-                self.showWorkout = true
-            case "endWorkout":
-                WorkoutManager.shared.end()
-                self.showWorkout = false
-            default:
-                break
+            if let command = message["command"] as? String {
+                switch command {
+                case "startWorkout":
+                    WorkoutManager.shared.start(activityType: self.activityType(from: message))
+                    self.showWorkout = true
+                case "endWorkout":
+                    WorkoutManager.shared.end()
+                    self.showWorkout = false
+                default:
+                    break
+                }
             }
+            // Rest timer mirrored from the phone.
+            if let type = message["type"] as? String {
+                switch type {
+                case "rest":
+                    if let endAt = (message["endAt"] as? NSNumber)?.doubleValue {
+                        RestManager.shared.start(endAtMs: endAt)
+                    }
+                case "restStop":
+                    RestManager.shared.stop()
+                default:
+                    break
+                }
+            }
+        }
+    }
+}
+
+// Mirrors the phone's rest countdown and buzzes the wrist when it completes.
+// Driven by a shared end timestamp so the watch and phone stay in lockstep.
+final class RestManager: ObservableObject {
+    static let shared = RestManager()
+
+    @Published var active = false
+    @Published var remaining: TimeInterval = 0
+    private var endAt: Date?
+    private var timer: Timer?
+
+    func start(endAtMs: Double) {
+        endAt = Date(timeIntervalSince1970: endAtMs / 1000)
+        active = true
+        tick()
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.tick()
+        }
+    }
+
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+        endAt = nil
+        active = false
+        remaining = 0
+    }
+
+    private func tick() {
+        guard let endAt = endAt else { return }
+        let left = endAt.timeIntervalSinceNow
+        if left <= 0 {
+            remaining = 0
+            timer?.invalidate()
+            timer = nil
+            WKInterfaceDevice.current().play(.notification) // buzz when rest is up
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                if self.remaining == 0 { self.active = false; self.endAt = nil }
+            }
+        } else {
+            remaining = left
         }
     }
 }
@@ -273,6 +333,7 @@ struct MacroRing: View {
 struct WorkoutView: View {
     @ObservedObject private var workout = WorkoutManager.shared
     @ObservedObject private var stats = DayStats.shared
+    @ObservedObject private var rest = RestManager.shared
 
     var body: some View {
         ScrollView {
@@ -293,6 +354,20 @@ struct WorkoutView: View {
     // Live metrics + pause/resume + end.
     private var liveScreen: some View {
         VStack(spacing: 10) {
+            // Rest countdown mirrored from the phone (buzzes when it hits 0).
+            if rest.active {
+                HStack(spacing: 5) {
+                    Image(systemName: "timer").foregroundColor(.hmGreen)
+                    Text("Rest \(timeString(rest.remaining))")
+                        .font(.footnote).fontWeight(.bold)
+                        .monospacedDigit()
+                }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 10)
+                .background(Color.hmGreen.opacity(0.18))
+                .clipShape(Capsule())
+            }
+
             Text(timeString(workout.elapsed))
                 .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundColor(workout.isPaused ? .secondary : .hmGreen)
