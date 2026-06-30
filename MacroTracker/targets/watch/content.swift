@@ -86,22 +86,23 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
 
 struct ContentView: View {
     @StateObject private var stats = DayStats.shared
+    @State private var showWorkout = false
 
     var body: some View {
-        if !stats.hasData {
-            VStack(spacing: 6) {
-                Image(systemName: "iphone.and.arrow.forward")
-                    .font(.title3)
-                    .foregroundColor(.hmGreen)
-                Text("Open Holy Macro on your iPhone to sync.")
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-            }
-            .padding()
-        } else {
-            ScrollView {
-                VStack(spacing: 16) {
+        ScrollView {
+            VStack(spacing: 16) {
+                if !stats.hasData {
+                    VStack(spacing: 6) {
+                        Image(systemName: "iphone.and.arrow.forward")
+                            .font(.title3)
+                            .foregroundColor(.hmGreen)
+                        Text("Open Holy Macro on your iPhone to sync.")
+                            .font(.footnote)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 8)
+                } else {
                     // Hero: calories remaining ring
                     ZStack {
                         Circle()
@@ -152,9 +153,24 @@ struct ContentView: View {
                     }
                     .padding(.top, 2)
                 }
-                .padding(.horizontal)
-                .frame(maxWidth: .infinity)
+
+                // Start a native on-wrist workout (live HR + calories).
+                Button {
+                    showWorkout = true
+                } label: {
+                    Label("Start Workout", systemImage: "figure.run")
+                        .font(.footnote)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.hmGreen)
+                .padding(.top, 2)
             }
+            .padding(.horizontal)
+            .frame(maxWidth: .infinity)
+        }
+        .fullScreenCover(isPresented: $showWorkout) {
+            WorkoutView()
         }
     }
 }
@@ -190,6 +206,67 @@ struct MacroRing: View {
         }
         .frame(maxWidth: .infinity)
     }
+}
+
+// Live workout screen — presented full-screen from the glance. Shows elapsed
+// time, live heart rate, and active calories from the HKWorkoutSession.
+struct WorkoutView: View {
+    @StateObject private var workout = WorkoutManager()
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 10) {
+            if workout.isActive {
+                Text(timeString(workout.elapsed))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundColor(.hmGreen)
+                    .monospacedDigit()
+
+                HStack(spacing: 6) {
+                    Image(systemName: "heart.fill").foregroundColor(.red)
+                    Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
+                        .font(.title3).fontWeight(.bold)
+                    Text("bpm").font(.caption2).foregroundColor(.secondary)
+                }
+
+                HStack(spacing: 5) {
+                    Image(systemName: "flame.fill").foregroundColor(.orange)
+                    Text("\(Int(workout.activeCalories)) cal")
+                        .font(.footnote).fontWeight(.semibold)
+                }
+
+                Button(role: .destructive) {
+                    workout.end()
+                    dismiss()
+                } label: {
+                    Text("End").frame(maxWidth: .infinity)
+                }
+                .padding(.top, 4)
+            } else {
+                Image(systemName: "figure.run")
+                    .font(.largeTitle)
+                    .foregroundColor(.hmGreen)
+                Button {
+                    workout.start()
+                } label: {
+                    Text("Start").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.hmGreen)
+                Button("Cancel") { dismiss() }
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding()
+        .onAppear { workout.requestAuthorization() }
+    }
+}
+
+// Seconds → "m:ss".
+func timeString(_ t: TimeInterval) -> String {
+    let total = Int(t)
+    return String(format: "%d:%02d", total / 60, total % 60)
 }
 
 struct ContentView_Previews: PreviewProvider {

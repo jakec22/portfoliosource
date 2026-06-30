@@ -4,5 +4,7 @@ module.exports = config => ({
   icon: 'https://github.com/expo.png',
   colors: { $accent: "#10B981", },
   deploymentTarget: "9.4",
-  entitlements: { /* Add entitlements */ },
+  entitlements: {
+    "com.apple.developer.healthkit": true,
+  },
 });
