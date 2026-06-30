@@ -22,6 +22,7 @@ import { lastPerformance } from '../utils/exerciseHistory';
 import { DurationInput } from '../components/DurationInput';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
 import { getHeartRateMonitor } from '../services/heartRate';
+import { subscribeWatchHeartRate } from '../services/watch';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -88,6 +89,18 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
       active = false;
       monitor.stop();
     };
+  }, [workoutId]);
+
+  // Live heart rate streamed from the Apple Watch during the workout (on-wrist,
+  // more accurate). Feeds the same live display + sample buffer that gets
+  // attached to the session on finish.
+  useEffect(() => {
+    if (!workoutId) return;
+    return subscribeWatchHeartRate((bpm, timestamp) => {
+      hrSamplesRef.current.push({ bpm, timestamp });
+      setLiveBpm(bpm);
+      setBpmUpdatedAt(timestamp);
+    });
   }, [workoutId]);
 
   // Tracks which set + field is currently focused for the fill-all toolbar.

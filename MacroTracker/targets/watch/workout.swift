@@ -1,11 +1,15 @@
 import Foundation
 import HealthKit
 import Combine
+import WatchConnectivity
 
 // Drives a native on-wrist workout: requests HealthKit access, runs an
 // HKWorkoutSession + HKLiveWorkoutBuilder, and publishes live heart rate,
-// active calories, and elapsed time for the UI to render.
+// active calories, and elapsed time for the UI to render. Shared so the
+// WatchConnectivity delegate (DayStats) can start/end it on phone commands.
 final class WorkoutManager: NSObject, ObservableObject {
+    static let shared = WorkoutManager()
+
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
@@ -82,6 +86,19 @@ final class WorkoutManager: NSObject, ObservableObject {
         timer?.invalidate()
         timer = nil
     }
+
+    // Push a live heart-rate sample to the phone, which feeds it into the active
+    // workout's HR pipeline. Best-effort: only when the phone app is reachable.
+    private func streamHeartRate(_ bpm: Double) {
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isReachable else { return }
+        let timestamp = Date().timeIntervalSince1970 * 1000
+        session.sendMessage(
+            ["type": "heartRate", "bpm": bpm, "timestamp": timestamp],
+            replyHandler: nil,
+            errorHandler: nil
+        )
+    }
 }
 
 extension WorkoutManager: HKWorkoutSessionDelegate {
@@ -113,6 +130,7 @@ extension WorkoutManager: HKLiveWorkoutBuilderDelegate {
                     let unit = HKUnit.count().unitDivided(by: .minute())
                     if let bpm = stats?.mostRecentQuantity()?.doubleValue(for: unit) {
                         self.heartRate = bpm
+                        self.streamHeartRate(bpm)
                     }
                 } else if quantityType == HKQuantityType(.activeEnergyBurned) {
                     let unit = HKUnit.kilocalorie()

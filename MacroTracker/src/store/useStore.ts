@@ -23,6 +23,7 @@ import {
   deleteWorkoutRemote,
   type SettingsSnapshot,
 } from '../services/sync';
+import { startWatchWorkout, endWatchWorkout } from '../services/watch';
 
 const DEFAULT_GOALS: DailyGoals = {
   calories: 2000,
@@ -381,9 +382,14 @@ export const useStore = create<AppState>()(
           }),
         };
         set({ activeWorkout: session });
+        // Kick off the matching workout on the watch so it captures heart rate.
+        startWatchWorkout(session.id);
       },
 
-      cancelWorkout: () => set({ activeWorkout: null }),
+      cancelWorkout: () => {
+        endWatchWorkout();
+        set({ activeWorkout: null });
+      },
 
       deleteWorkout: (id) => {
         set((state) => ({
@@ -405,6 +411,7 @@ export const useStore = create<AppState>()(
       finishWorkout: () => {
         const active = get().activeWorkout;
         if (!active) return;
+        endWatchWorkout();
         const finished: WorkoutSession = { ...active, completedAt: Date.now() };
         set((state) => ({
           activeWorkout: null,

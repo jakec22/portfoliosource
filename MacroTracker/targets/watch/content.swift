@@ -28,6 +28,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var water = 0
     @Published var waterGoal = 0
     @Published var hasData = false
+    @Published var showWorkout = false // drives the full-screen workout cover
 
     var caloriesRemaining: Int { max(0, calorieGoal - caloriesConsumed) }
     var calorieProgress: Double { ratio(caloriesConsumed, calorieGoal) }
@@ -82,11 +83,28 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         apply(applicationContext)
     }
+
+    // Live commands from the phone: start/end the on-wrist workout in step with
+    // the phone's workout so heart rate is captured automatically.
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        guard let command = message["command"] as? String else { return }
+        DispatchQueue.main.async {
+            switch command {
+            case "startWorkout":
+                WorkoutManager.shared.start()
+                self.showWorkout = true
+            case "endWorkout":
+                WorkoutManager.shared.end()
+                self.showWorkout = false
+            default:
+                break
+            }
+        }
+    }
 }
 
 struct ContentView: View {
     @StateObject private var stats = DayStats.shared
-    @State private var showWorkout = false
 
     var body: some View {
         ScrollView {
@@ -156,7 +174,7 @@ struct ContentView: View {
 
                 // Start a native on-wrist workout (live HR + calories).
                 Button {
-                    showWorkout = true
+                    stats.showWorkout = true
                 } label: {
                     Label("Start Workout", systemImage: "figure.run")
                         .font(.footnote)
@@ -169,7 +187,7 @@ struct ContentView: View {
             .padding(.horizontal)
             .frame(maxWidth: .infinity)
         }
-        .fullScreenCover(isPresented: $showWorkout) {
+        .fullScreenCover(isPresented: $stats.showWorkout) {
             WorkoutView()
         }
     }
@@ -211,8 +229,8 @@ struct MacroRing: View {
 // Live workout screen — presented full-screen from the glance. Shows elapsed
 // time, live heart rate, and active calories from the HKWorkoutSession.
 struct WorkoutView: View {
-    @StateObject private var workout = WorkoutManager()
-    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var workout = WorkoutManager.shared
+    @ObservedObject private var stats = DayStats.shared
 
     var body: some View {
         VStack(spacing: 10) {
@@ -237,7 +255,7 @@ struct WorkoutView: View {
 
                 Button(role: .destructive) {
                     workout.end()
-                    dismiss()
+                    stats.showWorkout = false
                 } label: {
                     Text("End").frame(maxWidth: .infinity)
                 }
@@ -253,7 +271,7 @@ struct WorkoutView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.hmGreen)
-                Button("Cancel") { dismiss() }
+                Button("Cancel") { stats.showWorkout = false }
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
