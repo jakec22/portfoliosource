@@ -41,6 +41,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.jacobclover.macrotracker",
+      "appleTeamId": "D8S2K2WAL9",
       "usesAppleSignIn": true,
       "buildNumber": "1",
       "infoPlist": {
