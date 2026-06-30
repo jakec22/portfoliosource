@@ -60,6 +60,7 @@ function HomeStack() {
       />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
       <Stack.Screen
         name="BuildMeal"
         component={BuildMealScreen as any}
@@ -81,6 +82,7 @@ function ExerciseStack() {
       <Stack.Screen name="ActiveWorkout" component={ActiveWorkoutScreen as any} />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
+      <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -91,6 +93,7 @@ function HistoryStack() {
       <Stack.Screen name="HistoryHome" component={HistoryScreen as any} />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -100,6 +103,7 @@ function ProfileStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileHome" component={CalculatorScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
       <Stack.Screen
         name="GoalWizard"
         component={GoalWizardScreen as any}

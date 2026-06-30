@@ -4,12 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { ProgressLineChart, ChartEmpty } from '../components/ProgressLineChart';
 import { MiniBarChart } from '../components/MiniBarChart';
+import { ProgressCardRow } from '../components/ProgressCardRow';
 import {
   weightTrend,
   nutritionAdherence,
   weeklyVolume,
   weeklyInsights,
 } from '../utils/analytics';
+import { exerciseProgressCards } from '../utils/exerciseHistory';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -47,6 +49,7 @@ export function AnalyticsScreen({ navigation }: Props) {
     [logs, goals]
   );
   const weeks = useMemo(() => weeklyVolume(workoutHistory, WORKOUT_WEEKS), [workoutHistory]);
+  const progressCards = useMemo(() => exerciseProgressCards(workoutHistory), [workoutHistory]);
   const insights = useMemo(
     () => weeklyInsights(logs, goals, workoutHistory, bodyWeightLog),
     [logs, goals, workoutHistory, bodyWeightLog]
@@ -69,7 +72,7 @@ export function AnalyticsScreen({ navigation }: Props) {
         >
           <Text style={styles.back}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Trends</Text>
+        <Text style={styles.headerTitle}>Progress & Trends</Text>
         <View style={styles.backSpacer} />
       </View>
 
@@ -232,6 +235,20 @@ export function AnalyticsScreen({ navigation }: Props) {
             </>
           )}
         </View>
+
+        {/* ── Strength progress (per-exercise) ── */}
+        {progressCards.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Exercise Progress</Text>
+            {progressCards.map((card) => (
+              <ProgressCardRow
+                key={card.key}
+                card={card}
+                onPress={() => navigation.navigate('ExerciseProgress', { name: card.name })}
+              />
+            ))}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

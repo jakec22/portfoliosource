@@ -241,6 +241,7 @@ export interface ExerciseSessionPoint {
   best1RM: number; // best estimated one-rep max (rounded)
   volume: number; // Σ weight × reps (rounded)
   maxReps: number; // most reps in a single set
+  maxDuration: number; // longest single set, seconds (time-based exercises)
   sets: PerformedSet[];
 }
 
@@ -257,12 +258,14 @@ export function exerciseSeries(
       let best1RM = 0;
       let volume = 0;
       let maxReps = 0;
+      let maxDuration = 0;
       for (const s of p.sets) {
         if (s.weight > topWeight) topWeight = s.weight;
         if (s.reps > maxReps) maxReps = s.reps;
         const orm = estimate1RM(s.weight, s.reps);
         if (orm > best1RM) best1RM = orm;
         volume += s.weight * s.reps;
+        if ((s.durationSeconds ?? 0) > maxDuration) maxDuration = s.durationSeconds!;
       }
       return {
         sessionId: p.sessionId,
@@ -272,6 +275,7 @@ export function exerciseSeries(
         best1RM: Math.round(best1RM),
         volume: Math.round(volume),
         maxReps,
+        maxDuration,
         sets: p.sets,
       };
     })
@@ -326,4 +330,100 @@ export function exerciseSummaries(history: WorkoutSession[]): ExerciseSummary[] 
     }
   }
   return [...map.values()].sort((a, b) => b.lastCompletedAt - a.lastCompletedAt);
+}
+
+// A sparkline-ready progress summary for one exercise: the headline metric's
+// per-session series plus its latest value and change since last session.
+export interface ProgressCard {
+  name: string;
+  key: string;
+  values: number[]; // headline metric per session, oldest → newest
+  latest: number;
+  previous: number | null;
+  metricLabel: string; // e.g. "Est. 1RM", "Best hold"
+  isTime: boolean; // true → values are seconds (format as m:ss)
+  unit: string; // "lb" for weight metrics, "" otherwise
+}
+
+// Pick the most meaningful headline metric for an exercise: hold time for
+// time-based work, else estimated 1RM / top weight for weighted lifts, else
+// reps for bodyweight rep work.
+function pickProgressMetric(series: ExerciseSessionPoint[]): {
+  get: (p: ExerciseSessionPoint) => number;
+  label: string;
+  isTime: boolean;
+  unit: string;
+} {
+  if (series.some((p) => p.maxDuration > 0))
+    return { get: (p) => p.maxDuration, label: 'Best hold', isTime: true, unit: '' };
+  if (series.some((p) => p.best1RM > 0))
+    return { get: (p) => p.best1RM, label: 'Est. 1RM', isTime: false, unit: 'lb' };
+  if (series.some((p) => p.topWeight > 0))
+    return { get: (p) => p.topWeight, label: 'Top weight', isTime: false, unit: 'lb' };
+  return { get: (p) => p.maxReps, label: 'Max reps', isTime: false, unit: '' };
+}
+
+// Build progress cards for every exercise with history, most-recently performed
+// first (mirrors exerciseSummaries ordering).
+export function exerciseProgressCards(history: WorkoutSession[]): ProgressCard[] {
+  const cards: ProgressCard[] = [];
+  for (const s of exerciseSummaries(history)) {
+    const series = exerciseSeries(history, s.name); // oldest → newest
+    if (series.length === 0) continue;
+    const m = pickProgressMetric(series);
+    const values = series.map(m.get);
+    cards.push({
+      name: s.name,
+      key: s.key,
+      values,
+      latest: values[values.length - 1],
+      previous: values.length >= 2 ? values[values.length - 2] : null,
+      metricLabel: m.label,
+      isTime: m.isTime,
+      unit: m.unit,
+    });
+  }
+  return cards;
+}
+
+// The exercises that improved most in their latest session, for a "top movers"
+// highlight. Only exercises with at least two sessions and a positive change
+// qualify; ranked by absolute gain in the headline metric.
+export function topMovers(history: WorkoutSession[], limit = 3): ProgressCard[] {
+  return exerciseProgressCards(history)
+    .filter((c) => c.previous != null && c.latest > c.previous)
+    .sort((a, b) => b.latest - b.previous! - (a.latest - a.previous!))
+    .slice(0, limit);
+}
+
+// A single recently-set personal record, formatted for display.
+export interface RecentPR {
+  name: string;
+  label: string; // metric that was beaten
+  value: string; // new record, formatted
+  prev: string; // previous best, formatted
+}
+
+// Personal records set across the most recent sessions, newest first, one entry
+// per exercise (its best/most-impressive dimension).
+export function recentPRs(history: WorkoutSession[], sessionLimit = 4): RecentPR[] {
+  const out: RecentPR[] = [];
+  const seen = new Set<string>();
+  for (const session of history.slice(0, sessionLimit)) {
+    for (const pr of detectSessionPRs(session, history)) {
+      const k = normalizeExerciseName(pr.name);
+      if (seen.has(k)) continue; // keep only the most recent PR per exercise
+      seen.add(k);
+      if (pr.newWeight != null) {
+        out.push({ name: pr.name, label: 'Top weight', value: `${pr.newWeight} lb`, prev: `${pr.prevWeight} lb` });
+      } else if (pr.new1RM != null) {
+        out.push({ name: pr.name, label: 'Est. 1RM', value: `${pr.new1RM} lb`, prev: `${pr.prev1RM} lb` });
+      } else if (pr.newDuration != null) {
+        out.push({ name: pr.name, label: 'Longest hold', value: formatDuration(pr.newDuration), prev: formatDuration(pr.prevDuration!) });
+      } else if (pr.newVolume != null) {
+        out.push({ name: pr.name, label: 'Volume', value: `${pr.newVolume.toLocaleString()} lb`, prev: `${pr.prevVolume!.toLocaleString()} lb` });
+      }
+    }
+  }
+  return out;
 }

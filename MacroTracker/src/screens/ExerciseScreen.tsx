@@ -14,9 +14,9 @@ import { useStore } from '../store/useStore';
 import { WorkoutTemplate } from '../types';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
-import { exerciseSummaries } from '../utils/exerciseHistory';
-import { relativeDateLabel } from '../utils/date';
+import { recentPRs, topMovers } from '../utils/exerciseHistory';
 import { formatDuration as formatSetTime } from '../utils/duration';
+import { ProgressCardRow } from '../components/ProgressCardRow';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -35,8 +35,11 @@ export function ExerciseScreen({ navigation }: Props) {
   const deleteWorkout = useStore((s) => s.deleteWorkout);
   const saveTemplate = useStore((s) => s.saveTemplate);
 
-  // Distinct exercises performed across history, for the progress browser.
-  const exercises = useMemo(() => exerciseSummaries(history), [history]);
+  // Compact progress highlights for the Exercise tab: recent PRs and the
+  // exercises that improved most. Full browsing lives under Progress & Trends.
+  const prs = useMemo(() => recentPRs(history), [history]);
+  const movers = useMemo(() => topMovers(history), [history]);
+  const hasProgress = prs.length > 0 || movers.length > 0;
 
   function handleStartEmpty() {
     if (activeWorkout) {
@@ -221,37 +224,46 @@ export function ExerciseScreen({ navigation }: Props) {
           ))
         )}
 
-        {/* Exercise progress */}
-        {exercises.length > 0 && (
+        {/* Progress highlights — recent PRs + top movers. Full browsing is in
+            Progress & Trends. */}
+        {hasProgress && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Progress</Text>
-            </View>
-            {exercises.map((ex) => (
-              <TouchableOpacity
-                key={ex.key}
-                style={styles.progressCard}
-                onPress={() => navigation.navigate('ExerciseProgress', { name: ex.name })}
-                activeOpacity={0.7}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.progressName} numberOfLines={1}>
-                    {ex.name}
-                  </Text>
-                  <Text style={styles.progressMeta}>
-                    {ex.sessions} session{ex.sessions === 1 ? '' : 's'} · last{' '}
-                    {relativeDateLabel(ex.lastDate)}
-                  </Text>
-                </View>
-                {ex.bestWeight > 0 && (
-                  <View style={styles.progressBest}>
-                    <Text style={styles.progressBestValue}>{ex.bestWeight}</Text>
-                    <Text style={styles.progressBestLabel}>lb top</Text>
-                  </View>
-                )}
-                <Text style={styles.progressArrow}>›</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Analytics')}>
+                <Text style={styles.seeAll}>See all ›</Text>
               </TouchableOpacity>
-            ))}
+            </View>
+
+            {prs.length > 0 && (
+              <View style={styles.prCard}>
+                <Text style={styles.prHeader}>🏆 Recent PRs</Text>
+                {prs.slice(0, 3).map((pr, i) => (
+                  <View key={`${pr.name}-${i}`} style={styles.prRow}>
+                    <Text style={styles.prName} numberOfLines={1}>
+                      {pr.name}
+                    </Text>
+                    <Text style={styles.prValue}>
+                      {pr.label} {pr.value}
+                      <Text style={styles.prPrev}> (was {pr.prev})</Text>
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {movers.length > 0 && (
+              <>
+                <Text style={styles.subHeader}>Top movers</Text>
+                {movers.map((card) => (
+                  <ProgressCardRow
+                    key={card.key}
+                    card={card}
+                    onPress={() => navigation.navigate('ExerciseProgress', { name: card.name })}
+                  />
+                ))}
+              </>
+            )}
           </>
         )}
 
@@ -325,6 +337,21 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text },
+  seeAll: { fontSize: 14, fontWeight: '600', color: c.primary },
+  subHeader: { fontSize: 13, fontWeight: '600', color: c.textMuted, marginBottom: 8 },
+  prCard: {
+    backgroundColor: c.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.border,
+    padding: 14,
+    marginBottom: 14,
+  },
+  prHeader: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 8 },
+  prRow: { marginBottom: 6 },
+  prName: { fontSize: 14, fontWeight: '600', color: c.text },
+  prValue: { fontSize: 13, color: c.primaryDark, fontWeight: '600' },
+  prPrev: { color: c.textFaint, fontWeight: '400' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   importLink: { fontSize: 15, fontWeight: '700', color: c.accent },
   createLink: { fontSize: 15, fontWeight: '700', color: c.primary },
@@ -361,26 +388,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   templateActionBtn: {},
 
-  progressCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: c.card,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  progressName: { fontSize: 15, fontWeight: '700', color: c.text },
-  progressMeta: { fontSize: 12, color: c.textFaint, marginTop: 3 },
-  progressBest: { alignItems: 'flex-end', marginRight: 12 },
-  progressBestValue: { fontSize: 16, fontWeight: '800', color: c.primary, fontVariant: ['tabular-nums'] },
-  progressBestLabel: { fontSize: 10, color: c.textFaint, marginTop: 1 },
-  progressArrow: { fontSize: 24, color: c.textFaint, fontWeight: '300' },
 
   editText: { fontSize: 13, fontWeight: '600', color: c.primary },
   shareText: { fontSize: 13, fontWeight: '600', color: c.accent },
