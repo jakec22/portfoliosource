@@ -14,21 +14,28 @@ const IMPORT_PATH = 'import-template';
 const TYPE_CODES: Record<SetType, number> = { normal: 0, warmup: 1, failure: 2, dropset: 3 };
 const CODE_TYPES: SetType[] = ['normal', 'warmup', 'failure', 'dropset'];
 
-// Wire shape: versioned, with short keys. Each set is [weight, reps, typeCode].
+// Wire shape: versioned, with short keys. Each set is [weight, reps, typeCode]
+// or, for time-based exercises, [weight, reps, typeCode, durationSeconds]. An
+// exercise carries m:1 when it's time-based (omitted for the default rep mode).
+// v2 added m + the optional 4th set element; v1 links still decode (no time).
 interface WireTemplate {
-  v: 1;
+  v: 1 | 2;
   n: string;
-  e: { n: string; s: [number, number, number][] }[];
+  e: { n: string; m?: number; s: number[][] }[];
 }
 
 /** Build a deep link that encodes the entire template. */
 export function encodeTemplateLink(t: WorkoutTemplate): string {
   const wire: WireTemplate = {
-    v: 1,
+    v: 2,
     n: t.name,
     e: t.exercises.map((ex) => ({
       n: ex.name,
-      s: ex.sets.map((s) => [s.weight || 0, s.reps || 0, TYPE_CODES[s.type ?? 'normal']]),
+      ...(ex.mode === 'time' ? { m: 1 } : {}),
+      s: ex.sets.map((s) => {
+        const base = [s.weight || 0, s.reps || 0, TYPE_CODES[s.type ?? 'normal']];
+        return s.durationSeconds ? [...base, s.durationSeconds] : base;
+      }),
     })),
   };
   return Linking.createURL(IMPORT_PATH, { queryParams: { d: JSON.stringify(wire) } });
@@ -50,18 +57,21 @@ export function decodeTemplateLink(url: string): WorkoutTemplate | null {
     if (typeof raw !== 'string') return null;
 
     const wire = JSON.parse(raw) as WireTemplate;
-    if (!wire || wire.v !== 1 || !Array.isArray(wire.e)) return null;
+    if (!wire || (wire.v !== 1 && wire.v !== 2) || !Array.isArray(wire.e)) return null;
 
     const now = Date.now();
     const exercises: TemplateExercise[] = wire.e.map((ex, ei) => ({
       id: `imp-${now}-${ei}`,
       name: String(ex.n ?? 'Exercise'),
+      mode: Number(ex.m) === 1 ? 'time' : undefined,
       sets: (Array.isArray(ex.s) ? ex.s : []).map((s, si) => {
         const type = CODE_TYPES[Number(s?.[2])] ?? 'normal';
+        const dur = s?.[3];
         return {
           id: `imp-${now}-${ei}-${si}`,
           weight: Number(s?.[0]) || 0,
           reps: Number(s?.[1]) || 0,
+          durationSeconds: dur != null ? Number(dur) || 0 : undefined,
           // Keep the app convention: undefined === normal.
           type: type === 'normal' ? undefined : type,
         };

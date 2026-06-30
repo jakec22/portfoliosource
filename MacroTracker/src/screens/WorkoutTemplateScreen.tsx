@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
 import { TemplateExercise, TemplateSet, WorkoutTemplate, SetType } from '../types';
+import { DurationInput } from '../components/DurationInput';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
@@ -202,11 +203,32 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               </View>
 
+              {/* Reps vs. time-based logging for this exercise. */}
+              <View style={styles.modeToggle}>
+                {(['reps', 'time'] as const).map((m) => {
+                  const active = (e.mode ?? 'reps') === m;
+                  return (
+                    <TouchableOpacity
+                      key={m}
+                      style={[styles.modeBtn, active && styles.modeBtnActive]}
+                      onPress={() => updateExercise(e.id, { mode: m })}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.modeBtnText, active && styles.modeBtnTextActive]}>
+                        {m === 'reps' ? 'Reps' : 'Time'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               {/* Column labels */}
               <View style={styles.setRowHead}>
                 <Text style={[styles.colSet, styles.headText]}>Set</Text>
                 <Text style={[styles.colNum, styles.headText]}>lbs</Text>
-                <Text style={[styles.colNum, styles.headText]}>Reps</Text>
+                <Text style={[styles.colNum, styles.headText]}>
+                  {(e.mode ?? 'reps') === 'time' ? 'Time' : 'Reps'}
+                </Text>
               </View>
 
               {e.sets.map((s, i) => (
@@ -250,18 +272,29 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                       placeholder="0"
                       placeholderTextColor={c.textFaint}
                     />
-                    <TextInput
-                      style={[styles.colNum, styles.setInput]}
-                      value={s.reps === 0 ? '' : String(s.reps)}
-                      onChangeText={(v) => {
-                        const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
-                        updateSet(e.id, s.id, { reps: Number.isNaN(n) ? 0 : n });
-                      }}
-                      keyboardType="number-pad"
-                      inputAccessoryViewID={DONE_ACCESSORY_ID}
-                      placeholder="0"
-                      placeholderTextColor={c.textFaint}
-                    />
+                    {(e.mode ?? 'reps') === 'time' ? (
+                      <DurationInput
+                        style={[styles.colNum, styles.setInput]}
+                        seconds={s.durationSeconds ?? 0}
+                        onChange={(secs) => updateSet(e.id, s.id, { durationSeconds: secs })}
+                        inputAccessoryViewID={DONE_ACCESSORY_ID}
+                        placeholder="0:00"
+                        placeholderTextColor={c.textFaint}
+                      />
+                    ) : (
+                      <TextInput
+                        style={[styles.colNum, styles.setInput]}
+                        value={s.reps === 0 ? '' : String(s.reps)}
+                        onChangeText={(v) => {
+                          const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                          updateSet(e.id, s.id, { reps: Number.isNaN(n) ? 0 : n });
+                        }}
+                        keyboardType="number-pad"
+                        inputAccessoryViewID={DONE_ACCESSORY_ID}
+                        placeholder="0"
+                        placeholderTextColor={c.textFaint}
+                      />
+                    )}
                   </View>
                 </ReanimatedSwipeable>
               ))}
@@ -341,6 +374,19 @@ const makeStyles = (c: Theme) => StyleSheet.create({
 
   setRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 },
   headText: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
+  modeToggle: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    backgroundColor: c.bg,
+    borderRadius: 8,
+    padding: 2,
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  modeBtn: { paddingVertical: 5, paddingHorizontal: 14, borderRadius: 6 },
+  modeBtnActive: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border },
+  modeBtnText: { fontSize: 13, fontWeight: '600', color: c.textFaint },
+  modeBtnTextActive: { color: c.primary },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',

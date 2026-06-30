@@ -368,10 +368,12 @@ export const useStore = create<AppState>()(
             return {
               id: `we-${now}-${i}-${Math.random()}`,
               name: te.name,
+              mode: te.mode,
               sets: prefilled.map((ts, si) => ({
                 id: `ws-${now}-${i}-${si}-${Math.random()}`,
                 weight: ts.weight,
                 reps: ts.reps,
+                durationSeconds: ts.durationSeconds,
                 type: ts.type,
                 completed: false,
               })),
@@ -428,6 +430,7 @@ export const useStore = create<AppState>()(
               id: `ws-${now}-${si}-${Math.random()}`,
               weight: ts.weight,
               reps: ts.reps,
+              durationSeconds: ts.durationSeconds,
               type: ts.type,
               completed: false,
             })),
@@ -471,6 +474,7 @@ export const useStore = create<AppState>()(
                       id: `ws-${Date.now()}-${Math.random()}`,
                       weight: last?.weight ?? 0,
                       reps: last?.reps ?? 0,
+                      durationSeconds: last?.durationSeconds,
                       completed: false,
                     },
                   ],
@@ -494,6 +498,20 @@ export const useStore = create<AppState>()(
                       ...e,
                       sets: e.sets.map((s) => (s.id === setId ? { ...s, ...patch } : s)),
                     }
+              ),
+            },
+          };
+        });
+      },
+
+      setExerciseMode: (exerciseId, mode) => {
+        set((state) => {
+          if (!state.activeWorkout) return {};
+          return {
+            activeWorkout: {
+              ...state.activeWorkout,
+              exercises: state.activeWorkout.exercises.map((e) =>
+                e.id === exerciseId ? { ...e, mode } : e
               ),
             },
           };

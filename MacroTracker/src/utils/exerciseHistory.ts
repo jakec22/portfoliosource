@@ -1,4 +1,5 @@
 import type { SetType, WorkoutExercise, WorkoutSession } from '../types';
+import { formatDuration } from './duration';
 
 /**
  * Progressive-overload helpers: derive per-exercise history, bests, and
@@ -12,6 +13,7 @@ import type { SetType, WorkoutExercise, WorkoutSession } from '../types';
 export interface PerformedSet {
   weight: number; // lbs (0 = bodyweight / unspecified)
   reps: number;
+  durationSeconds?: number; // set for time-based exercises
 }
 
 // One exercise's working sets within a single session.
@@ -27,6 +29,7 @@ export interface ExerciseBests {
   best1RM: number; // best estimated one-rep max
   maxReps: number; // most reps in a single set
   maxVolume: number; // highest single-session volume (Σ weight × reps)
+  maxDuration: number; // longest single set, seconds (time-based exercises)
 }
 
 export function normalizeExerciseName(name: string): string {
@@ -49,8 +52,8 @@ function effectiveSets(ex: WorkoutExercise): PerformedSet[] {
     ? completed
     : ex.sets.filter((s) => s.type !== 'warmup');
   return base
-    .filter((s) => s.reps > 0)
-    .map((s) => ({ weight: s.weight, reps: s.reps }));
+    .filter((s) => s.reps > 0 || (s.durationSeconds ?? 0) > 0)
+    .map((s) => ({ weight: s.weight, reps: s.reps, durationSeconds: s.durationSeconds }));
 }
 
 // All past performances of an exercise across history, newest first.
@@ -91,6 +94,7 @@ export function lastPerformance(
 export interface PrefillSet {
   weight: number;
   reps: number;
+  durationSeconds?: number;
   type?: SetType;
 }
 
@@ -111,10 +115,13 @@ export function prefillFromLastPerformance(
   const out: PrefillSet[] = planned.map((ps) => {
     if (ps.type === 'warmup') return ps;
     const prev = last.sets[i++];
-    return prev ? { ...ps, weight: prev.weight, reps: prev.reps } : ps;
+    return prev
+      ? { ...ps, weight: prev.weight, reps: prev.reps, durationSeconds: prev.durationSeconds }
+      : ps;
   });
   for (; i < last.sets.length; i++) {
-    out.push({ weight: last.sets[i].weight, reps: last.sets[i].reps });
+    const s = last.sets[i];
+    out.push({ weight: s.weight, reps: s.reps, durationSeconds: s.durationSeconds });
   }
   return out;
 }
@@ -130,6 +137,7 @@ export function exerciseBests(
   let best1RM = 0;
   let maxReps = 0;
   let maxVolume = 0;
+  let maxDuration = 0;
   for (const p of perfs) {
     let volume = 0;
     for (const s of p.sets) {
@@ -138,10 +146,11 @@ export function exerciseBests(
       const orm = estimate1RM(s.weight, s.reps);
       if (orm > best1RM) best1RM = orm;
       volume += s.weight * s.reps;
+      if ((s.durationSeconds ?? 0) > maxDuration) maxDuration = s.durationSeconds!;
     }
     if (volume > maxVolume) maxVolume = volume;
   }
-  return { maxWeight, best1RM, maxReps, maxVolume };
+  return { maxWeight, best1RM, maxReps, maxVolume, maxDuration };
 }
 
 // A personal record set in a session, relative to all prior history.
@@ -153,12 +162,21 @@ export interface ExercisePR {
   prev1RM?: number;
   newVolume?: number;
   prevVolume?: number;
+  newDuration?: number; // seconds (time-based exercises)
+  prevDuration?: number;
 }
 
-// Format a list of performed sets compactly, e.g. "135×8, 135×8, 135×7".
+// Format a list of performed sets compactly, e.g. "135×8, 135×8, 135×7" for
+// rep sets, or "1:00, 0:45" / "25×1:00" for time-based sets.
 export function formatPerformedSets(sets: PerformedSet[]): string {
   return sets
-    .map((s) => (s.weight > 0 ? `${s.weight}×${s.reps}` : `${s.reps}`))
+    .map((s) => {
+      if ((s.durationSeconds ?? 0) > 0) {
+        const t = formatDuration(s.durationSeconds!);
+        return s.weight > 0 ? `${s.weight}×${t}` : t;
+      }
+      return s.weight > 0 ? `${s.weight}×${s.reps}` : `${s.reps}`;
+    })
     .join(', ');
 }
 
@@ -177,11 +195,13 @@ export function detectSessionPRs(
     let curWeight = 0;
     let cur1RM = 0;
     let curVolume = 0;
+    let curDuration = 0;
     for (const s of sets) {
       if (s.weight > curWeight) curWeight = s.weight;
       const orm = estimate1RM(s.weight, s.reps);
       if (orm > cur1RM) cur1RM = orm;
       curVolume += s.weight * s.reps;
+      if ((s.durationSeconds ?? 0) > curDuration) curDuration = s.durationSeconds!;
     }
 
     const prev = exerciseBests(history, ex.name, session.id);
@@ -200,6 +220,11 @@ export function detectSessionPRs(
     if (prev.maxVolume > 0 && curVolume > prev.maxVolume) {
       pr.newVolume = Math.round(curVolume);
       pr.prevVolume = Math.round(prev.maxVolume);
+      isPR = true;
+    }
+    if (prev.maxDuration > 0 && curDuration > prev.maxDuration) {
+      pr.newDuration = curDuration;
+      pr.prevDuration = prev.maxDuration;
       isPR = true;
     }
     if (isPR) prs.push(pr);

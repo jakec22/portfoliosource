@@ -71,11 +71,19 @@ export interface DailyLog {
 // the rest are tags the user can apply per set.
 export type SetType = 'normal' | 'warmup' | 'failure' | 'dropset';
 
-// A single performed set: a weight × reps pair with a done checkbox.
+// How an exercise's sets are measured. 'reps' is the default (weight × reps);
+// 'time' tracks a held/elapsed duration (planks, carries, cardio intervals).
+// Weight stays optional in both modes (e.g. weighted plank, farmer's carry).
+export type ExerciseMode = 'reps' | 'time';
+
+// A single performed set: weight plus either reps or a held duration, with a
+// done checkbox. Which of reps/durationSeconds is used depends on the parent
+// exercise's mode.
 export interface WorkoutSet {
   id: string;
   weight: number; // lbs
   reps: number;
+  durationSeconds?: number; // used when the exercise mode is 'time'
   completed: boolean;
   type?: SetType; // undefined === 'normal'
 }
@@ -84,6 +92,7 @@ export interface WorkoutSet {
 export interface WorkoutExercise {
   id: string;
   name: string;
+  mode?: ExerciseMode; // undefined === 'reps'
   sets: WorkoutSet[];
 }
 
@@ -93,6 +102,7 @@ export interface TemplateSet {
   id: string;
   weight: number; // lbs, 0 if unspecified
   reps: number;
+  durationSeconds?: number; // used when the exercise mode is 'time'
   type?: SetType; // undefined === 'normal'
 }
 
@@ -101,6 +111,7 @@ export interface TemplateSet {
 export interface TemplateExercise {
   id: string;
   name: string;
+  mode?: ExerciseMode; // undefined === 'reps'
   sets: TemplateSet[];
 }
 
@@ -224,8 +235,9 @@ export interface AppState {
   updateWorkoutSet: (
     exerciseId: string,
     setId: string,
-    patch: Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'type'>>
+    patch: Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'durationSeconds' | 'type'>>
   ) => void;
+  setExerciseMode: (exerciseId: string, mode: ExerciseMode) => void;
   toggleWorkoutSet: (exerciseId: string, setId: string) => void;
   removeWorkoutSet: (exerciseId: string, setId: string) => void;
   reorderWorkoutExercise: (exerciseId: string, direction: 'up' | 'down') => void;

@@ -16,6 +16,7 @@ import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { exerciseSummaries } from '../utils/exerciseHistory';
 import { relativeDateLabel } from '../utils/date';
+import { formatDuration as formatSetTime } from '../utils/duration';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -78,7 +79,14 @@ export function ExerciseScreen({ navigation }: Props) {
       ex.sets.forEach((s, i) => {
         const weight = s.weight ? `${s.weight} lbs` : 'BW';
         const tag = s.type && s.type !== 'normal' ? typeLabel[s.type] ?? '' : '';
-        lines.push(`  ${i + 1}. ${weight} × ${s.reps} rep${s.reps === 1 ? '' : 's'}${tag}`);
+        let detail: string;
+        if ((ex.mode ?? 'reps') === 'time') {
+          const t = formatSetTime(s.durationSeconds ?? 0);
+          detail = s.weight ? `${s.weight} lbs × ${t}` : t;
+        } else {
+          detail = `${weight} × ${s.reps} rep${s.reps === 1 ? '' : 's'}`;
+        }
+        lines.push(`  ${i + 1}. ${detail}${tag}`);
       });
       lines.push('');
     }

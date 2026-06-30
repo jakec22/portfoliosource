@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { formatDuration, displayDate } from '../utils/date';
+import { formatDuration as formatSetTime } from '../utils/duration';
 import {
   detectSessionPRs,
   normalizeExerciseName,
@@ -143,16 +144,20 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
                 </Text>
               </View>
               <View style={styles.setPills}>
-                {e.sets.map((s) => (
-                  <View
-                    key={s.id}
-                    style={[styles.setPill, s.completed && styles.setPillDone]}
-                  >
-                    <Text style={[styles.setPillText, s.completed && styles.setPillTextDone]}>
-                      {s.weight ? `${s.weight}×${s.reps}` : `${s.reps}`}
-                    </Text>
-                  </View>
-                ))}
+                {e.sets.map((s) => {
+                  const isTime = (e.mode ?? 'reps') === 'time';
+                  const measure = isTime ? formatSetTime(s.durationSeconds ?? 0) : `${s.reps}`;
+                  return (
+                    <View
+                      key={s.id}
+                      style={[styles.setPill, s.completed && styles.setPillDone]}
+                    >
+                      <Text style={[styles.setPillText, s.completed && styles.setPillTextDone]}>
+                        {s.weight ? `${s.weight}×${measure}` : measure}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
             </View>
           );

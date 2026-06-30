@@ -19,6 +19,7 @@ import { useStore } from '../store/useStore';
 import type { SetType, HeartRateSample } from '../types';
 import { formatDuration, relativeDateLabel } from '../utils/date';
 import { lastPerformance } from '../utils/exerciseHistory';
+import { DurationInput } from '../components/DurationInput';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
 import { getHeartRateMonitor } from '../services/heartRate';
 import { useTheme } from '../theme/useTheme';
@@ -53,6 +54,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   const removeWorkoutExercise = useStore((s) => s.removeWorkoutExercise);
   const addWorkoutSet = useStore((s) => s.addWorkoutSet);
   const updateWorkoutSet = useStore((s) => s.updateWorkoutSet);
+  const setExerciseMode = useStore((s) => s.setExerciseMode);
   const toggleWorkoutSet = useStore((s) => s.toggleWorkoutSet);
   const removeWorkoutSet = useStore((s) => s.removeWorkoutSet);
   const reorderWorkoutExercise = useStore((s) => s.reorderWorkoutExercise);
@@ -287,6 +289,25 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                 </View>
               </View>
 
+              {/* Reps vs. time-based logging for this exercise. */}
+              <View style={styles.modeToggle}>
+                {(['reps', 'time'] as const).map((m) => {
+                  const active = (ex.mode ?? 'reps') === m;
+                  return (
+                    <TouchableOpacity
+                      key={m}
+                      style={[styles.modeBtn, active && styles.modeBtnActive]}
+                      onPress={() => setExerciseMode(ex.id, m)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.modeBtnText, active && styles.modeBtnTextActive]}>
+                        {m === 'reps' ? 'Reps' : 'Time'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               {/* Values were pre-filled from the last session — note when, so
                   the numbers below read as "last time" rather than fresh. */}
               {(() => {
@@ -304,7 +325,9 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
               <View style={styles.setRowHead}>
                 <Text style={[styles.colSet, styles.headText]}>Set</Text>
                 <Text style={[styles.colNum, styles.headText]}>lbs</Text>
-                <Text style={[styles.colNum, styles.headText]}>Reps</Text>
+                <Text style={[styles.colNum, styles.headText]}>
+                  {(ex.mode ?? 'reps') === 'time' ? 'Time' : 'Reps'}
+                </Text>
                 <View style={styles.colCheck} />
               </View>
 
@@ -350,19 +373,31 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       placeholderTextColor={c.textFaint}
                       inputAccessoryViewID="workout-fill-bar"
                     />
-                    <TextInput
-                      style={[styles.colNum, styles.setInput]}
-                      value={set.reps === 0 ? '' : String(set.reps)}
-                      onChangeText={(v) => {
-                        const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
-                        updateWorkoutSet(ex.id, set.id, { reps: Number.isNaN(n) ? 0 : n });
-                      }}
-                      onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'reps' })}
-                      keyboardType="number-pad"
-                      placeholder="0"
-                      placeholderTextColor={c.textFaint}
-                      inputAccessoryViewID="workout-fill-bar"
-                    />
+                    {(ex.mode ?? 'reps') === 'time' ? (
+                      <DurationInput
+                        style={[styles.colNum, styles.setInput]}
+                        seconds={set.durationSeconds ?? 0}
+                        onChange={(secs) =>
+                          updateWorkoutSet(ex.id, set.id, { durationSeconds: secs })
+                        }
+                        placeholder="0:00"
+                        placeholderTextColor={c.textFaint}
+                      />
+                    ) : (
+                      <TextInput
+                        style={[styles.colNum, styles.setInput]}
+                        value={set.reps === 0 ? '' : String(set.reps)}
+                        onChangeText={(v) => {
+                          const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+                          updateWorkoutSet(ex.id, set.id, { reps: Number.isNaN(n) ? 0 : n });
+                        }}
+                        onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'reps' })}
+                        keyboardType="number-pad"
+                        placeholder="0"
+                        placeholderTextColor={c.textFaint}
+                        inputAccessoryViewID="workout-fill-bar"
+                      />
+                    )}
                     <TouchableOpacity
                       style={styles.colCheck}
                       onPress={() => toggleWorkoutSet(ex.id, set.id)}
@@ -475,6 +510,18 @@ const makeStyles = (c: Theme) => StyleSheet.create({
 
   setRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 },
   headText: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
+  modeToggle: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    backgroundColor: c.bg,
+    borderRadius: 8,
+    padding: 2,
+    marginBottom: 12,
+  },
+  modeBtn: { paddingVertical: 5, paddingHorizontal: 14, borderRadius: 6 },
+  modeBtnActive: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border },
+  modeBtnText: { fontSize: 13, fontWeight: '600', color: c.textFaint },
+  modeBtnTextActive: { color: c.primary },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
