@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import {
   updateApplicationContext,
   sendMessage,
+  transferUserInfo,
   watchEvents,
 } from 'react-native-watch-connectivity';
 import { startWatchApp } from '@kingstinct/react-native-healthkit';
@@ -97,13 +98,16 @@ export function endWatchWorkout(): void {
   } catch {}
 }
 
-// Mirror the rest countdown to the watch using a shared end timestamp, so the
-// wrist shows the same countdown and buzzes when it completes. Real-time, so
-// sendMessage is fine — the watch app is foreground during a workout.
+// Mirror the rest countdown to the watch using a shared end timestamp. Uses
+// transferUserInfo (not sendMessage): it's queued and delivered reliably even
+// when the watch screen is off / app is backgrounded — which is exactly the
+// case when you tap a set on the phone with your wrist down. The watch computes
+// the remaining time from the absolute endAt, so a second or two of delivery
+// latency doesn't desync the countdown.
 export function startWatchRest(endAt: number): void {
   if (Platform.OS !== 'ios') return;
   try {
-    sendMessage({ type: 'rest', endAt }, () => {}, () => {});
+    transferUserInfo({ type: 'rest', endAt });
   } catch {}
 }
 
@@ -111,7 +115,7 @@ export function startWatchRest(endAt: number): void {
 export function stopWatchRest(): void {
   if (Platform.OS !== 'ios') return;
   try {
-    sendMessage({ type: 'restStop' }, () => {}, () => {});
+    transferUserInfo({ type: 'restStop' });
   } catch {}
 }
 

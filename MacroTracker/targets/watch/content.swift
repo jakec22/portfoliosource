@@ -143,19 +143,28 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
                     break
                 }
             }
-            // Rest timer mirrored from the phone.
-            if let type = message["type"] as? String {
-                switch type {
-                case "rest":
-                    if let endAt = (message["endAt"] as? NSNumber)?.doubleValue {
-                        RestManager.shared.start(endAtMs: endAt)
-                    }
-                case "restStop":
-                    RestManager.shared.stop()
-                default:
-                    break
-                }
+            // Rest timer may also arrive as a live message when reachable.
+            self.handleRest(message)
+        }
+    }
+
+    // Rest is sent via transferUserInfo so it lands even when the watch screen
+    // is off during a workout (sendMessage would be dropped as unreachable).
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        DispatchQueue.main.async { self.handleRest(userInfo) }
+    }
+
+    private func handleRest(_ info: [String: Any]) {
+        guard let type = info["type"] as? String else { return }
+        switch type {
+        case "rest":
+            if let endAt = (info["endAt"] as? NSNumber)?.doubleValue {
+                RestManager.shared.start(endAtMs: endAt)
             }
+        case "restStop":
+            RestManager.shared.stop()
+        default:
+            break
         }
     }
 }
