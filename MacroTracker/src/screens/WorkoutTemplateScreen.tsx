@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
 import { TemplateExercise, TemplateSet, WorkoutTemplate, SetType } from '../types';
+import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { DurationInput } from '../components/DurationInput';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
 import { useTheme } from '../theme/useTheme';
@@ -63,11 +64,27 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
   const existing = templateId ? templates.find((t) => t.id === templateId) : undefined;
 
   const [name, setName] = useState(existing?.name ?? '');
+  const [activityType, setActivityType] = useState<number>(
+    existing?.activityType ?? DEFAULT_WORKOUT_HK
+  );
   const [exercises, setExercises] = useState<TemplateExercise[]>(
     existing
       ? existing.exercises.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s })) }))
       : [blankExercise()]
   );
+
+  const activityLabel =
+    WORKOUT_TYPES.find((t) => t.hk === activityType)?.label ?? 'Strength';
+
+  function pickActivityType() {
+    const labels = WORKOUT_TYPES.map((t) => t.label);
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: 'Workout type', options: [...labels, 'Cancel'], cancelButtonIndex: labels.length },
+      (index) => {
+        if (index >= 0 && index < WORKOUT_TYPES.length) setActivityType(WORKOUT_TYPES[index].hk);
+      }
+    );
+  }
 
   function updateExercise(id: string, patch: Partial<TemplateExercise>) {
     setExercises((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
@@ -156,6 +173,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
       name: trimmedName,
       exercises: cleaned,
       createdAt: existing?.createdAt ?? Date.now(),
+      activityType,
     };
     saveTemplate(template);
     navigation.goBack();
@@ -186,6 +204,16 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
             placeholder="e.g. Push Day, Leg Day"
             placeholderTextColor={c.textFaint}
           />
+
+          <Text style={[styles.label, { marginTop: 20 }]}>Workout Type</Text>
+          <TouchableOpacity
+            style={styles.typeSelect}
+            onPress={pickActivityType}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.typeSelectText}>{activityLabel}</Text>
+            <Text style={styles.typeSelectChevron}>▾</Text>
+          </TouchableOpacity>
 
           <Text style={[styles.label, { marginTop: 20 }]}>Exercises</Text>
           {exercises.map((e, idx) => (
@@ -346,6 +374,19 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
   },
+  typeSelect: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: c.card,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  typeSelectText: { fontSize: 16, color: c.text, fontWeight: '600' },
+  typeSelectChevron: { fontSize: 14, color: c.textFaint },
   exCard: {
     backgroundColor: c.card,
     borderRadius: 14,

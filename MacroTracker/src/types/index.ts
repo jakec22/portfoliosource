@@ -120,6 +120,7 @@ export interface WorkoutTemplate {
   name: string;
   exercises: TemplateExercise[];
   createdAt: number;
+  activityType?: number; // HKWorkoutActivityType raw value; undefined === Strength
 }
 
 // A single heart-rate reading captured during a workout.

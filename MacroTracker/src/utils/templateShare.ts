@@ -21,6 +21,7 @@ const CODE_TYPES: SetType[] = ['normal', 'warmup', 'failure', 'dropset'];
 interface WireTemplate {
   v: 1 | 2;
   n: string;
+  a?: number; // workout activity type (HKWorkoutActivityType raw value)
   e: { n: string; m?: number; s: number[][] }[];
 }
 
@@ -29,6 +30,7 @@ export function encodeTemplateLink(t: WorkoutTemplate): string {
   const wire: WireTemplate = {
     v: 2,
     n: t.name,
+    ...(t.activityType ? { a: t.activityType } : {}),
     e: t.exercises.map((ex) => ({
       n: ex.name,
       ...(ex.mode === 'time' ? { m: 1 } : {}),
@@ -83,6 +85,7 @@ export function decodeTemplateLink(url: string): WorkoutTemplate | null {
       name: String(wire.n ?? 'Shared workout'),
       exercises,
       createdAt: now,
+      activityType: typeof wire.a === 'number' ? wire.a : undefined,
     };
   } catch {
     return null;

@@ -84,7 +84,9 @@ export function ExerciseScreen({ navigation }: Props) {
       );
       return;
     }
-    pickTypeThenStart(t);
+    // The template already carries its workout type — start straight away.
+    startWorkout(t, t.activityType ?? DEFAULT_WORKOUT_HK);
+    navigation.navigate('ActiveWorkout');
   }
 
   function handleDeleteTemplate(t: WorkoutTemplate) {
