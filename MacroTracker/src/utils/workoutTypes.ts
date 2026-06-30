@@ -10,7 +10,7 @@ export const WORKOUT_TYPES: WorkoutType[] = [
   { label: 'Strength', hk: 50 }, // traditionalStrengthTraining
   { label: 'HIIT', hk: 63 }, // highIntensityIntervalTraining
   { label: 'Circuit', hk: 20 }, // functionalStrengthTraining
-  { label: 'CrossFit', hk: 11 }, // crossTraining
+  { label: 'Cross Training', hk: 11 }, // crossTraining
 ];
 
 export const DEFAULT_WORKOUT_HK = 50; // Strength
