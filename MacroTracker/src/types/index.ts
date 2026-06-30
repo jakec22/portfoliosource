@@ -224,7 +224,7 @@ export interface AppState {
   saveTemplate: (template: WorkoutTemplate) => void;
   deleteTemplate: (id: string) => void;
   // Active workout lifecycle
-  startWorkout: (template?: WorkoutTemplate) => void;
+  startWorkout: (template?: WorkoutTemplate, activityType?: number) => void;
   cancelWorkout: () => void;
   finishWorkout: () => void;
   attachWorkoutHeartRate: (id: string, samples: HeartRateSample[]) => void;

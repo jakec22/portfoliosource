@@ -28,7 +28,12 @@ export interface WatchContext {
 // exact send instant. We keep the last stats so a workout start/end can re-push
 // the full context without losing the glance data.
 let lastStats: WatchContext | null = null;
-let workoutState = { workoutActive: false, workoutId: '', workoutStartedAt: 0 };
+let workoutState = {
+  workoutActive: false,
+  workoutId: '',
+  workoutStartedAt: 0,
+  workoutActivityType: 0, // HKWorkoutActivityType raw value
+};
 
 function pushContext(): void {
   if (Platform.OS !== 'ios') return;
@@ -51,19 +56,33 @@ export function sendWatchContext(ctx: WatchContext): void {
 // Mark a workout active in the context so the watch starts its on-wrist session
 // (live HR/calories) when it next becomes active. Also fire a sendMessage for
 // the case where the watch app is already reachable (instant start).
-export function startWatchWorkout(workoutId: string): void {
+export function startWatchWorkout(workoutId: string, activityType = 0): void {
   if (Platform.OS !== 'ios') return;
-  workoutState = { workoutActive: true, workoutId, workoutStartedAt: Date.now() };
+  workoutState = {
+    workoutActive: true,
+    workoutId,
+    workoutStartedAt: Date.now(),
+    workoutActivityType: activityType,
+  };
   pushContext();
   try {
-    sendMessage({ command: 'startWorkout', workoutId }, () => {}, () => {});
+    sendMessage(
+      { command: 'startWorkout', workoutId, workoutActivityType: activityType },
+      () => {},
+      () => {}
+    );
   } catch {}
 }
 
 // Clear the active workout (when the phone workout finishes/cancels).
 export function endWatchWorkout(): void {
   if (Platform.OS !== 'ios') return;
-  workoutState = { workoutActive: false, workoutId: '', workoutStartedAt: 0 };
+  workoutState = {
+    workoutActive: false,
+    workoutId: '',
+    workoutStartedAt: 0,
+    workoutActivityType: 0,
+  };
   pushContext();
   try {
     sendMessage({ command: 'endWorkout' }, () => {}, () => {});

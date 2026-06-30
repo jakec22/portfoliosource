@@ -32,13 +32,13 @@ final class WorkoutManager: NSObject, ObservableObject {
         healthStore.requestAuthorization(toShare: share, read: read) { _, _ in }
     }
 
-    func start() {
+    func start(activityType: HKWorkoutActivityType = .functionalStrengthTraining) {
         guard !isActive else { return } // ignore duplicate start commands
 
         requestAuthorization()
         let config = HKWorkoutConfiguration()
-        config.activityType = .functionalStrengthTraining
-        config.locationType = .indoor
+        config.activityType = activityType
+        config.locationType = .unknown
 
         do {
             let session = try HKWorkoutSession(healthStore: healthStore, configuration: config)

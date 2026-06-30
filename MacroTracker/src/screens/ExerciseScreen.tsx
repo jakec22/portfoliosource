@@ -8,10 +8,13 @@ import {
   StatusBar,
   Alert,
   Share,
+  Platform,
+  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { WorkoutTemplate } from '../types';
+import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { recentPRs, topMovers } from '../utils/exerciseHistory';
@@ -41,13 +44,35 @@ export function ExerciseScreen({ navigation }: Props) {
   const movers = useMemo(() => topMovers(history), [history]);
   const hasProgress = prs.length > 0 || movers.length > 0;
 
+  // Ask for the workout type (so Apple Health categorizes it), then start. On
+  // Android there's no native action sheet, so just start with the default.
+  function pickTypeThenStart(template?: WorkoutTemplate) {
+    if (Platform.OS !== 'ios') {
+      startWorkout(template, DEFAULT_WORKOUT_HK);
+      navigation.navigate('ActiveWorkout');
+      return;
+    }
+    const labels = WORKOUT_TYPES.map((t) => t.label);
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        title: 'Workout type',
+        options: [...labels, 'Cancel'],
+        cancelButtonIndex: labels.length,
+      },
+      (index) => {
+        if (index < 0 || index >= WORKOUT_TYPES.length) return;
+        startWorkout(template, WORKOUT_TYPES[index].hk);
+        navigation.navigate('ActiveWorkout');
+      }
+    );
+  }
+
   function handleStartEmpty() {
     if (activeWorkout) {
       navigation.navigate('ActiveWorkout');
       return;
     }
-    startWorkout();
-    navigation.navigate('ActiveWorkout');
+    pickTypeThenStart();
   }
 
   function handleStartTemplate(t: WorkoutTemplate) {
@@ -59,8 +84,7 @@ export function ExerciseScreen({ navigation }: Props) {
       );
       return;
     }
-    startWorkout(t);
-    navigation.navigate('ActiveWorkout');
+    pickTypeThenStart(t);
   }
 
   function handleDeleteTemplate(t: WorkoutTemplate) {

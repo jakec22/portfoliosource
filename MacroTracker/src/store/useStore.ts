@@ -350,7 +350,7 @@ export const useStore = create<AppState>()(
         syncSettings();
       },
 
-      startWorkout: (template) => {
+      startWorkout: (template, activityType) => {
         const now = Date.now();
         // Seed each exercise from the last time it was performed (progressive
         // overload by default); the template's planned sets are the fallback.
@@ -382,8 +382,9 @@ export const useStore = create<AppState>()(
           }),
         };
         set({ activeWorkout: session });
-        // Kick off the matching workout on the watch so it captures heart rate.
-        startWatchWorkout(session.id);
+        // Kick off the matching workout on the watch so it captures heart rate,
+        // using the chosen activity type so Apple Health categorizes it right.
+        startWatchWorkout(session.id, activityType);
       },
 
       cancelWorkout: () => {

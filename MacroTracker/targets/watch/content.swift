@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import WatchConnectivity
+import HealthKit
 
 // Brand + macro colors (match the phone app).
 extension Color {
@@ -92,7 +93,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             let ageMs = Date().timeIntervalSince1970 * 1000 - startedAt
             if ageMs < 5 * 60 * 1000 {
                 lastHandledWorkoutId = workoutId
-                WorkoutManager.shared.start()
+                WorkoutManager.shared.start(activityType: activityType(from: ctx))
                 self.showWorkout = true
             }
         } else if !active, !lastHandledWorkoutId.isEmpty {
@@ -100,6 +101,17 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             WorkoutManager.shared.end()
             self.showWorkout = false
         }
+    }
+
+    // Map the phone's HKWorkoutActivityType raw value to the enum, defaulting to
+    // functional strength training.
+    private func activityType(from ctx: [String: Any]) -> HKWorkoutActivityType {
+        if let raw = (ctx["workoutActivityType"] as? NSNumber)?.uintValue,
+           raw > 0,
+           let type = HKWorkoutActivityType(rawValue: raw) {
+            return type
+        }
+        return .functionalStrengthTraining
     }
 
     func session(
@@ -121,7 +133,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         DispatchQueue.main.async {
             switch command {
             case "startWorkout":
-                WorkoutManager.shared.start()
+                WorkoutManager.shared.start(activityType: self.activityType(from: message))
                 self.showWorkout = true
             case "endWorkout":
                 WorkoutManager.shared.end()
@@ -270,10 +282,10 @@ struct WorkoutView: View {
                     .foregroundColor(.hmGreen)
                     .monospacedDigit()
 
-                HStack(spacing: 6) {
-                    Image(systemName: "heart.fill").foregroundColor(.red)
+                HStack(spacing: 4) {
                     Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
-                        .font(.title3).fontWeight(.bold)
+                        .font(.title2).fontWeight(.bold)
+                        .foregroundColor(.hmGreen)
                     Text("bpm").font(.caption2).foregroundColor(.secondary)
                 }
 

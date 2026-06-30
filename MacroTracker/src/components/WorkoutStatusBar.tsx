@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Vibration, AppState } from 'react-native';
 import { formatDuration } from '../utils/date';
 import { useStore } from '../store/useStore';
-import { AnimatedHeart } from './AnimatedHeart';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -84,7 +83,6 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
       {/* Heart rate — only rendered when live data is available */}
       {hasHeart && (
         <View style={styles.hrSide}>
-          <AnimatedHeart bpm={bpm} size={22} />
           <View style={styles.hrText}>
             <Text style={[styles.hrValue, { color: zoneColor(bpm!) }]}>
               {bpm}
