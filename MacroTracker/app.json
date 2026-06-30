@@ -30,7 +30,8 @@
           "background": false
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "@bacons/apple-targets"
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
