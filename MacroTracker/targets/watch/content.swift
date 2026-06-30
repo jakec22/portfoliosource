@@ -2,9 +2,13 @@ import SwiftUI
 import Combine
 import WatchConnectivity
 
-// Brand colors (matches the phone app's #10B981 green on a dark surface).
+// Brand + macro colors (match the phone app).
 extension Color {
     static let hmGreen = Color(red: 16 / 255, green: 185 / 255, blue: 129 / 255)
+    static let macroProtein = Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255) // #3B82F6
+    static let macroCarbs = Color(red: 245 / 255, green: 158 / 255, blue: 11 / 255)    // #F59E0B
+    static let macroFat = Color(red: 239 / 255, green: 68 / 255, blue: 68 / 255)        // #EF4444
+    static let waterBlue = Color(red: 56 / 255, green: 189 / 255, blue: 248 / 255)      // #38BDF8
 }
 
 // Today's stats shown on the watch, fed live from the phone over
@@ -16,15 +20,21 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var calorieGoal = 0
     @Published var caloriesConsumed = 0
     @Published var protein = 0
+    @Published var proteinGoal = 0
     @Published var carbs = 0
+    @Published var carbsGoal = 0
     @Published var fat = 0
+    @Published var fatGoal = 0
     @Published var water = 0
     @Published var waterGoal = 0
     @Published var hasData = false
 
     var caloriesRemaining: Int { max(0, calorieGoal - caloriesConsumed) }
-    var calorieProgress: Double {
-        calorieGoal > 0 ? min(1, Double(caloriesConsumed) / Double(calorieGoal)) : 0
+    var calorieProgress: Double { ratio(caloriesConsumed, calorieGoal) }
+    var waterProgress: Double { ratio(water, waterGoal) }
+
+    func ratio(_ value: Int, _ goal: Int) -> Double {
+        goal > 0 ? min(1, Double(value) / Double(goal)) : 0
     }
 
     override init() {
@@ -50,8 +60,11 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             if let v = self.intVal(ctx["caloriesConsumed"]) { self.caloriesConsumed = v }
             if let v = self.intVal(ctx["calorieGoal"]) { self.calorieGoal = v }
             if let v = self.intVal(ctx["protein"]) { self.protein = v }
+            if let v = self.intVal(ctx["proteinGoal"]) { self.proteinGoal = v }
             if let v = self.intVal(ctx["carbs"]) { self.carbs = v }
+            if let v = self.intVal(ctx["carbsGoal"]) { self.carbsGoal = v }
             if let v = self.intVal(ctx["fat"]) { self.fat = v }
+            if let v = self.intVal(ctx["fatGoal"]) { self.fatGoal = v }
             if let v = self.intVal(ctx["water"]) { self.water = v }
             if let v = self.intVal(ctx["waterGoal"]) { self.waterGoal = v }
             self.hasData = true
@@ -63,7 +76,6 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
     ) {
-        // Adopt any context already delivered before activation finished.
         apply(session.receivedApplicationContext)
     }
 
@@ -76,67 +88,102 @@ struct ContentView: View {
     @StateObject private var stats = DayStats.shared
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Holy Macro")
-                    .font(.caption2)
+        if !stats.hasData {
+            VStack(spacing: 6) {
+                Image(systemName: "iphone.and.arrow.forward")
+                    .font(.title3)
                     .foregroundColor(.hmGreen)
-                    .fontWeight(.semibold)
-
-                if !stats.hasData {
-                    Text("Open Holy Macro on your iPhone to sync today's numbers.")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 4)
-                } else {
-                    // Calories remaining
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("\(stats.caloriesRemaining)")
-                            .font(.system(size: 38, weight: .bold, design: .rounded))
-                            .foregroundColor(.hmGreen)
-                        Text("calories left")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    ProgressView(value: stats.calorieProgress)
-                        .tint(.hmGreen)
-
-                    // Macros
-                    HStack(spacing: 0) {
-                        MacroCol(label: "Protein", grams: stats.protein)
-                        MacroCol(label: "Carbs", grams: stats.carbs)
-                        MacroCol(label: "Fat", grams: stats.fat)
-                    }
-                    .padding(.top, 2)
-
-                    Divider()
-
-                    // Water (read-only)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Water")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("\(stats.water) / \(stats.waterGoal) oz")
-                            .font(.footnote)
-                            .fontWeight(.semibold)
-                    }
-                }
+                Text("Open Holy Macro on your iPhone to sync.")
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
             }
             .padding()
+        } else {
+            ScrollView {
+                VStack(spacing: 16) {
+                    // Hero: calories remaining ring
+                    ZStack {
+                        Circle()
+                            .stroke(Color.hmGreen.opacity(0.2), lineWidth: 9)
+                        Circle()
+                            .trim(from: 0, to: stats.calorieProgress)
+                            .stroke(Color.hmGreen, style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        VStack(spacing: 0) {
+                            Text("\(stats.caloriesRemaining)")
+                                .font(.system(size: 30, weight: .bold, design: .rounded))
+                                .foregroundColor(.hmGreen)
+                            Text("cal left")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .frame(width: 112, height: 112)
+                    .padding(.top, 2)
+
+                    // Macros as colored rings
+                    HStack(spacing: 6) {
+                        MacroRing(label: "Protein", value: stats.protein, goal: stats.proteinGoal, color: .macroProtein)
+                        MacroRing(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal, color: .macroCarbs)
+                        MacroRing(label: "Fat", value: stats.fat, goal: stats.fatGoal, color: .macroFat)
+                    }
+
+                    // Water bar
+                    VStack(spacing: 4) {
+                        HStack {
+                            Text("Water")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(stats.water) / \(stats.waterGoal) oz")
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                        }
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color.waterBlue.opacity(0.22))
+                                Capsule()
+                                    .fill(Color.waterBlue)
+                                    .frame(width: max(6, geo.size.width * stats.waterProgress))
+                            }
+                        }
+                        .frame(height: 6)
+                    }
+                    .padding(.top, 2)
+                }
+                .padding(.horizontal)
+                .frame(maxWidth: .infinity)
+            }
         }
     }
 }
 
-// One protein/carbs/fat column.
-struct MacroCol: View {
+// A small colored progress ring with the consumed grams in the center and the
+// macro name below.
+struct MacroRing: View {
     let label: String
-    let grams: Int
+    let value: Int
+    let goal: Int
+    let color: Color
+
+    private var progress: Double {
+        goal > 0 ? min(1, Double(value) / Double(goal)) : 0
+    }
 
     var body: some View {
-        VStack(spacing: 1) {
-            Text("\(grams)g")
-                .font(.footnote)
-                .fontWeight(.bold)
+        VStack(spacing: 3) {
+            ZStack {
+                Circle().stroke(color.opacity(0.22), lineWidth: 5)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text("\(value)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .minimumScaleFactor(0.6)
+            }
+            .frame(width: 46, height: 46)
             Text(label)
                 .font(.system(size: 9))
                 .foregroundColor(.secondary)

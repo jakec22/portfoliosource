@@ -7,8 +7,11 @@ export interface WatchContext {
   caloriesConsumed: number;
   calorieGoal: number;
   protein: number;
+  proteinGoal: number;
   carbs: number;
+  carbsGoal: number;
   fat: number;
+  fatGoal: number;
   water: number;
   waterGoal: number;
   updatedAt: number;
