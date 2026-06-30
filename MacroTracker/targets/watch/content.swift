@@ -275,51 +275,110 @@ struct WorkoutView: View {
     @ObservedObject private var stats = DayStats.shared
 
     var body: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                if workout.isActive {
+                    liveScreen
+                } else if workout.didFinish {
+                    summaryScreen
+                } else {
+                    idleScreen
+                }
+            }
+            .padding()
+        }
+        .onAppear { workout.requestAuthorization() }
+    }
+
+    // Live metrics + pause/resume + end.
+    private var liveScreen: some View {
         VStack(spacing: 10) {
-            if workout.isActive {
-                Text(timeString(workout.elapsed))
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                    .foregroundColor(.hmGreen)
-                    .monospacedDigit()
+            Text(timeString(workout.elapsed))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundColor(workout.isPaused ? .secondary : .hmGreen)
+                .monospacedDigit()
 
-                HStack(spacing: 4) {
-                    Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
-                        .font(.title2).fontWeight(.bold)
-                        .foregroundColor(.hmGreen)
-                    Text("bpm").font(.caption2).foregroundColor(.secondary)
-                }
+            if workout.isPaused {
+                Text("Paused").font(.caption2).foregroundColor(.secondary)
+            }
 
-                HStack(spacing: 5) {
-                    Image(systemName: "flame.fill").foregroundColor(.orange)
-                    Text("\(Int(workout.activeCalories)) cal")
-                        .font(.footnote).fontWeight(.semibold)
+            HStack(spacing: 4) {
+                Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
+                    .font(.title2).fontWeight(.bold)
+                    .foregroundColor(workout.heartRate > 0 ? hrZoneColor(workout.heartRate) : .secondary)
+                Text("bpm").font(.caption2).foregroundColor(.secondary)
+            }
+
+            HStack(spacing: 5) {
+                Image(systemName: "flame.fill").foregroundColor(.orange)
+                Text("\(Int(workout.activeCalories)) cal")
+                    .font(.footnote).fontWeight(.semibold)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    if workout.isPaused { workout.resume() } else { workout.pause() }
+                } label: {
+                    Image(systemName: workout.isPaused ? "play.fill" : "pause.fill")
+                        .frame(maxWidth: .infinity)
                 }
+                .tint(.hmGreen)
 
                 Button(role: .destructive) {
                     workout.end()
-                    stats.showWorkout = false
                 } label: {
-                    Text("End").frame(maxWidth: .infinity)
+                    Image(systemName: "stop.fill").frame(maxWidth: .infinity)
                 }
-                .padding(.top, 4)
-            } else {
-                Image(systemName: "figure.run")
-                    .font(.largeTitle)
-                    .foregroundColor(.hmGreen)
-                Button {
-                    workout.start()
-                } label: {
-                    Text("Start").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.hmGreen)
-                Button("Cancel") { stats.showWorkout = false }
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
             }
+            .padding(.top, 4)
         }
-        .padding()
-        .onAppear { workout.requestAuthorization() }
+    }
+
+    // Post-workout recap.
+    private var summaryScreen: some View {
+        VStack(spacing: 8) {
+            Text("Workout Complete")
+                .font(.headline)
+                .foregroundColor(.hmGreen)
+            summaryRow("Time", timeString(workout.elapsed))
+            summaryRow("Avg HR", workout.avgHeartRate > 0 ? "\(Int(workout.avgHeartRate)) bpm" : "--")
+            summaryRow("Calories", "\(Int(workout.activeCalories))")
+            Button {
+                workout.reset()
+                stats.showWorkout = false
+            } label: {
+                Text("Done").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.hmGreen)
+            .padding(.top, 4)
+        }
+    }
+
+    private var idleScreen: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "figure.run")
+                .font(.largeTitle)
+                .foregroundColor(.hmGreen)
+            Button {
+                workout.start()
+            } label: {
+                Text("Start").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.hmGreen)
+            Button("Cancel") { stats.showWorkout = false }
+                .font(.footnote)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private func summaryRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).font(.caption2).foregroundColor(.secondary)
+            Spacer()
+            Text(value).font(.footnote).fontWeight(.semibold)
+        }
     }
 }
 
@@ -327,6 +386,13 @@ struct WorkoutView: View {
 func timeString(_ t: TimeInterval) -> String {
     let total = Int(t)
     return String(format: "%d:%02d", total / 60, total % 60)
+}
+
+// Color the heart rate by intensity zone (mirrors the phone).
+func hrZoneColor(_ bpm: Double) -> Color {
+    if bpm >= 160 { return .red }
+    if bpm >= 120 { return .orange }
+    return .hmGreen
 }
 
 struct ContentView_Previews: PreviewProvider {

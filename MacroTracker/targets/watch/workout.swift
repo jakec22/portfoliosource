@@ -13,11 +13,19 @@ final class WorkoutManager: NSObject, ObservableObject {
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
-    private var startDate: Date?
     private var timer: Timer?
+    // Elapsed time excluding paused stretches: accumulated time from finished
+    // segments plus the time since the current segment began.
+    private var accumulated: TimeInterval = 0
+    private var segmentStart: Date?
+    private var hrSum: Double = 0
+    private var hrCount: Int = 0
 
     @Published var isActive = false
+    @Published var isPaused = false
+    @Published var didFinish = false
     @Published var heartRate: Double = 0
+    @Published var avgHeartRate: Double = 0
     @Published var activeCalories: Double = 0
     @Published var elapsed: TimeInterval = 0
 
@@ -56,32 +64,74 @@ final class WorkoutManager: NSObject, ObservableObject {
 
             self.session = session
             self.builder = builder
-            self.startDate = start
+            self.accumulated = 0
+            self.segmentStart = start
+            self.hrSum = 0
+            self.hrCount = 0
             startTimer()
-            DispatchQueue.main.async { self.isActive = true }
+            DispatchQueue.main.async {
+                self.heartRate = 0
+                self.avgHeartRate = 0
+                self.activeCalories = 0
+                self.elapsed = 0
+                self.isPaused = false
+                self.didFinish = false
+                self.isActive = true
+            }
         } catch {
             // Session failed to start (e.g. authorization denied) — stay idle.
         }
     }
 
+    func pause() {
+        guard isActive, !isPaused else { return }
+        session?.pause()
+        if let segmentStart = segmentStart {
+            accumulated += Date().timeIntervalSince(segmentStart)
+        }
+        segmentStart = nil
+        DispatchQueue.main.async { self.isPaused = true }
+    }
+
+    func resume() {
+        guard isActive, isPaused else { return }
+        session?.resume()
+        segmentStart = Date()
+        DispatchQueue.main.async { self.isPaused = false }
+    }
+
     func end() {
         stopTimer()
+        if let segmentStart = segmentStart {
+            accumulated += Date().timeIntervalSince(segmentStart)
+        }
+        segmentStart = nil
         session?.end()
         builder?.endCollection(withEnd: Date()) { [weak self] _, _ in
             self?.builder?.finishWorkout { _, _ in }
         }
         DispatchQueue.main.async {
+            self.elapsed = self.accumulated
             self.isActive = false
+            self.isPaused = false
+            self.didFinish = true // drives the on-watch summary screen
             self.session = nil
             self.builder = nil
         }
     }
 
+    // Clears the finished state when the summary is dismissed.
+    func reset() {
+        DispatchQueue.main.async { self.didFinish = false }
+    }
+
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self = self, let start = self.startDate else { return }
-            self.elapsed = Date().timeIntervalSince(start)
+            guard let self = self else { return }
+            if self.isPaused { return }
+            let current = self.segmentStart.map { Date().timeIntervalSince($0) } ?? 0
+            self.elapsed = self.accumulated + current
         }
     }
 
@@ -133,6 +183,9 @@ extension WorkoutManager: HKLiveWorkoutBuilderDelegate {
                     let unit = HKUnit.count().unitDivided(by: .minute())
                     if let bpm = stats?.mostRecentQuantity()?.doubleValue(for: unit) {
                         self.heartRate = bpm
+                        self.hrSum += bpm
+                        self.hrCount += 1
+                        self.avgHeartRate = self.hrSum / Double(self.hrCount)
                         self.streamHeartRate(bpm)
                     }
                 } else if quantityType == HKQuantityType(.activeEnergyBurned) {
