@@ -4,6 +4,7 @@ import {
   sendMessage,
   watchEvents,
 } from 'react-native-watch-connectivity';
+import { startWatchApp } from '@kingstinct/react-native-healthkit';
 
 // Today's stats mirrored to the Apple Watch glance. Keys must match what the
 // watch's WCSession delegate reads (see targets/watch/content.swift).
@@ -65,6 +66,13 @@ export function startWatchWorkout(workoutId: string, activityType = 0): void {
     workoutActivityType: activityType,
   };
   pushContext();
+  // Launch the watch app and start its workout session from the phone (the only
+  // Apple-supported way to open a watch app remotely). The watch handles the
+  // delivered configuration in its app delegate. Falls back gracefully — the
+  // context + message paths still drive the watch if it's already open.
+  try {
+    startWatchApp({ activityType: (activityType || 50) as any })?.catch?.(() => {});
+  } catch {}
   try {
     sendMessage(
       { command: 'startWorkout', workoutId, workoutActivityType: activityType },
