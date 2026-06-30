@@ -33,6 +33,9 @@ final class WorkoutManager: NSObject, ObservableObject {
     }
 
     func start() {
+        guard !isActive else { return } // ignore duplicate start commands
+
+        requestAuthorization()
         let config = HKWorkoutConfiguration()
         config.activityType = .functionalStrengthTraining
         config.locationType = .indoor

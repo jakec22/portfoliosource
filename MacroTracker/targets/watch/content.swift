@@ -47,6 +47,10 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    // Tracks the last workout we auto-started so a repeated context delivery
+    // doesn't restart it.
+    private var lastHandledWorkoutId = ""
+
     // JS numbers bridge across as NSNumber; read them defensively.
     private func intVal(_ any: Any?) -> Int? {
         if let n = any as? NSNumber { return n.intValue }
@@ -68,7 +72,33 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             if let v = self.intVal(ctx["fatGoal"]) { self.fatGoal = v }
             if let v = self.intVal(ctx["water"]) { self.water = v }
             if let v = self.intVal(ctx["waterGoal"]) { self.waterGoal = v }
-            self.hasData = true
+            // Calorie/macro keys may be absent on a workout-only push; only flip
+            // hasData once we've actually received nutrition numbers.
+            if ctx["calorieGoal"] != nil { self.hasData = true }
+            self.handleWorkoutState(ctx)
+        }
+    }
+
+    // Auto-start / end the on-wrist workout based on the phone's workout state.
+    private func handleWorkoutState(_ ctx: [String: Any]) {
+        let active = (ctx["workoutActive"] as? NSNumber)?.boolValue
+            ?? (ctx["workoutActive"] as? Bool) ?? false
+        let workoutId = ctx["workoutId"] as? String ?? ""
+        let startedAt = (ctx["workoutStartedAt"] as? NSNumber)?.doubleValue ?? 0
+
+        if active, !workoutId.isEmpty, workoutId != lastHandledWorkoutId {
+            // Only start for a recently-begun workout, so a stale context after
+            // a relaunch doesn't kick off a phantom session.
+            let ageMs = Date().timeIntervalSince1970 * 1000 - startedAt
+            if ageMs < 5 * 60 * 1000 {
+                lastHandledWorkoutId = workoutId
+                WorkoutManager.shared.start()
+                self.showWorkout = true
+            }
+        } else if !active, !lastHandledWorkoutId.isEmpty {
+            lastHandledWorkoutId = ""
+            WorkoutManager.shared.end()
+            self.showWorkout = false
         }
     }
 
