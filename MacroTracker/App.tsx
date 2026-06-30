@@ -30,6 +30,7 @@ import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
 import { useTemplateImport } from './src/hooks/useTemplateImport';
+import { useWatchSync } from './src/hooks/useWatchSync';
 import { supabase } from './src/services/supabase';
 import { useStore } from './src/store/useStore';
 import {
@@ -118,6 +119,8 @@ function MainTabs() {
   const c = useTheme();
   // Handle incoming "import-template" share links once the user is in the app.
   useTemplateImport();
+  // Mirror today's calories/macros/water to the Apple Watch glance.
+  useWatchSync();
 
   const navTheme = {
     ...(c.scheme === 'dark' ? NavDarkTheme : NavLightTheme),
