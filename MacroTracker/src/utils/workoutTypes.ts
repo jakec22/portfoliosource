@@ -8,12 +8,9 @@ export interface WorkoutType {
 
 export const WORKOUT_TYPES: WorkoutType[] = [
   { label: 'Strength', hk: 50 }, // traditionalStrengthTraining
-  { label: 'Running', hk: 37 }, // running
-  { label: 'Cycling', hk: 13 }, // cycling
   { label: 'HIIT', hk: 63 }, // highIntensityIntervalTraining
-  { label: 'Walking', hk: 52 }, // walking
-  { label: 'Yoga', hk: 57 }, // yoga
-  { label: 'Other', hk: 3000 }, // other
+  { label: 'Circuit', hk: 20 }, // functionalStrengthTraining
+  { label: 'CrossFit', hk: 11 }, // crossTraining
 ];
 
 export const DEFAULT_WORKOUT_HK = 50; // Strength
