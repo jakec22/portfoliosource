@@ -29,6 +29,21 @@ export interface WatchContext {
 // becomes active, unlike `sendMessage` which needs the watch reachable at the
 // exact send instant. We keep the last stats so a workout start/end can re-push
 // the full context without losing the glance data.
+// Compact per-set/-exercise shape sent to the watch (short keys to stay small).
+export interface WatchPlanSet {
+  id: string;
+  w: number; // weight
+  r: number; // reps
+  d: number; // durationSeconds
+  c: boolean; // completed
+}
+export interface WatchPlanExercise {
+  id: string;
+  name: string;
+  mode: string; // 'reps' | 'time'
+  sets: WatchPlanSet[];
+}
+
 let lastStats: WatchContext | null = null;
 let workoutState = {
   workoutActive: false,
@@ -36,10 +51,15 @@ let workoutState = {
   workoutStartedAt: 0,
   workoutActivityType: 0, // HKWorkoutActivityType raw value
 };
+let workoutPlan: WatchPlanExercise[] = [];
 
 function pushContext(): void {
   if (Platform.OS !== 'ios') return;
-  const ctx: Record<string, unknown> = { ...(lastStats ?? {}), ...workoutState };
+  const ctx: Record<string, unknown> = {
+    ...(lastStats ?? {}),
+    ...workoutState,
+    workoutPlan,
+  };
   try {
     const result = updateApplicationContext(ctx);
     if (result && typeof (result as any).catch === 'function') {
@@ -52,6 +72,13 @@ function pushContext(): void {
 
 export function sendWatchContext(ctx: WatchContext): void {
   lastStats = ctx;
+  pushContext();
+}
+
+// Push the current workout's exercises + sets to the watch so it can display
+// (and, later, check off) them. Pass [] to clear.
+export function setWatchWorkoutPlan(plan: WatchPlanExercise[]): void {
+  workoutPlan = plan;
   pushContext();
 }
 
@@ -92,6 +119,7 @@ export function endWatchWorkout(): void {
     workoutStartedAt: 0,
     workoutActivityType: 0,
   };
+  workoutPlan = [];
   pushContext();
   try {
     sendMessage({ command: 'endWorkout' }, () => {}, () => {});

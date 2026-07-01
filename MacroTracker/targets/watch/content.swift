@@ -13,6 +13,23 @@ extension Color {
     static let waterBlue = Color(red: 56 / 255, green: 189 / 255, blue: 248 / 255)      // #38BDF8
 }
 
+// One planned/performed set of the active workout, mirrored from the phone.
+struct WatchSet: Identifiable {
+    let id: String
+    let weight: Int
+    let reps: Int
+    let duration: Int
+    let completed: Bool
+}
+
+// One exercise of the active workout.
+struct WatchExercise: Identifiable {
+    let id: String
+    let name: String
+    let mode: String // "reps" | "time"
+    let sets: [WatchSet]
+}
+
 // Today's stats shown on the watch, fed live from the phone over
 // WatchConnectivity. Read-only: the phone is the source of truth and pushes the
 // latest snapshot via updateApplicationContext (see src/services/watch.ts).
@@ -31,6 +48,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var waterGoal = 0
     @Published var hasData = false
     @Published var showWorkout = false // drives the full-screen workout cover
+    @Published var exercises: [WatchExercise] = [] // active workout plan
 
     var caloriesRemaining: Int { max(0, calorieGoal - caloriesConsumed) }
     var calorieProgress: Double { ratio(caloriesConsumed, calorieGoal) }
@@ -78,6 +96,28 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             // hasData once we've actually received nutrition numbers.
             if ctx["calorieGoal"] != nil { self.hasData = true }
             self.handleWorkoutState(ctx)
+            self.parsePlan(ctx)
+        }
+    }
+
+    // Parse the active workout's exercises/sets from the context.
+    private func parsePlan(_ ctx: [String: Any]) {
+        guard let raw = ctx["workoutPlan"] as? [[String: Any]] else { return }
+        exercises = raw.map { ex in
+            WatchExercise(
+                id: ex["id"] as? String ?? UUID().uuidString,
+                name: ex["name"] as? String ?? "Exercise",
+                mode: ex["mode"] as? String ?? "reps",
+                sets: (ex["sets"] as? [[String: Any]] ?? []).map { s in
+                    WatchSet(
+                        id: s["id"] as? String ?? UUID().uuidString,
+                        weight: self.intVal(s["w"]) ?? 0,
+                        reps: self.intVal(s["r"]) ?? 0,
+                        duration: self.intVal(s["d"]) ?? 0,
+                        completed: (s["c"] as? NSNumber)?.boolValue ?? (s["c"] as? Bool) ?? false
+                    )
+                }
+            )
         }
     }
 
@@ -345,19 +385,61 @@ struct WorkoutView: View {
     @ObservedObject private var rest = RestManager.shared
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                if workout.isActive {
-                    liveScreen
-                } else if workout.didFinish {
-                    summaryScreen
-                } else {
-                    idleScreen
+        Group {
+            if workout.isActive {
+                // Swipe between the live metrics and the exercise/set list.
+                TabView {
+                    ScrollView { liveScreen.padding() }
+                    ScrollView { exercisesScreen.padding() }
                 }
+                .tabViewStyle(.page)
+            } else if workout.didFinish {
+                ScrollView { summaryScreen.padding() }
+            } else {
+                ScrollView { idleScreen.padding() }
             }
-            .padding()
         }
         .onAppear { workout.requestAuthorization() }
+    }
+
+    // The active workout's exercises + sets (read-only for now).
+    private var exercisesScreen: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Exercises")
+                .font(.caption2)
+                .foregroundColor(.hmGreen)
+                .fontWeight(.semibold)
+
+            if stats.exercises.isEmpty {
+                Text("No exercises in this workout.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(stats.exercises) { ex in
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(ex.name).font(.footnote).fontWeight(.bold)
+                        ForEach(ex.sets) { set in
+                            HStack(spacing: 8) {
+                                Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(set.completed ? .hmGreen : .secondary)
+                                Text(setLabel(ex, set))
+                                    .font(.caption2)
+                                    .foregroundColor(set.completed ? .secondary : .primary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func setLabel(_ ex: WatchExercise, _ set: WatchSet) -> String {
+        if ex.mode == "time" {
+            let t = timeString(TimeInterval(set.duration))
+            return set.weight > 0 ? "\(set.weight) × \(t)" : t
+        }
+        return set.weight > 0 ? "\(set.weight) × \(set.reps)" : "\(set.reps) reps"
     }
 
     // Live metrics + pause/resume + end.

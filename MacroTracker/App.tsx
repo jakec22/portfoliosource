@@ -31,6 +31,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
 import { useTemplateImport } from './src/hooks/useTemplateImport';
 import { useWatchSync } from './src/hooks/useWatchSync';
+import { useWatchWorkout } from './src/hooks/useWatchWorkout';
 import { supabase } from './src/services/supabase';
 import { useStore } from './src/store/useStore';
 import {
@@ -121,6 +122,8 @@ function MainTabs() {
   useTemplateImport();
   // Mirror today's calories/macros/water to the Apple Watch glance.
   useWatchSync();
+  // Mirror the active workout's exercises/sets to the watch.
+  useWatchWorkout();
 
   const navTheme = {
     ...(c.scheme === 'dark' ? NavDarkTheme : NavLightTheme),
