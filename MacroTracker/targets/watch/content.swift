@@ -132,14 +132,29 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         let newCompleted = !exercises[exIdx].sets[setIdx].completed
         exercises[exIdx].sets[setIdx].completed = newCompleted // optimistic
 
+        // Use sendMessage (the proven watch→phone path, same as HR streaming);
+        // transferUserInfo received events are unreliable on the RN side.
         let session = WCSession.default
         guard session.activationState == .activated else { return }
-        session.transferUserInfo([
-            "type": "toggleSet",
-            "exerciseId": exerciseId,
-            "setId": setId,
-            "completed": newCompleted,
-        ])
+        session.sendMessage(
+            [
+                "type": "toggleSet",
+                "exerciseId": exerciseId,
+                "setId": setId,
+                "completed": newCompleted,
+            ],
+            replyHandler: nil,
+            errorHandler: nil
+        )
+    }
+
+    // Complete the whole workout from the wrist: end the on-wrist session (shows
+    // the watch summary) and tell the phone to finish + save it to history.
+    func finishWorkoutFromWatch() {
+        WorkoutManager.shared.end()
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+        session.sendMessage(["type": "finishWorkout"], replyHandler: nil, errorHandler: nil)
     }
 
     // Auto-start / end the on-wrist workout based on the phone's workout state.
@@ -160,8 +175,13 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             }
         } else if !active, !lastHandledWorkoutId.isEmpty {
             lastHandledWorkoutId = ""
-            WorkoutManager.shared.end()
-            self.showWorkout = false
+            if WorkoutManager.shared.isActive {
+                WorkoutManager.shared.end()
+            }
+            // Keep the recap up if the watch already finished it itself.
+            if !WorkoutManager.shared.didFinish {
+                self.showWorkout = false
+            }
         }
     }
 
@@ -508,6 +528,20 @@ struct WorkoutView: View {
                     .font(.footnote).fontWeight(.semibold)
             }
 
+            // Appears once every set is checked off.
+            if allSetsComplete {
+                Button {
+                    stats.finishWorkoutFromWatch()
+                } label: {
+                    Label("Complete Workout", systemImage: "checkmark")
+                        .font(.footnote)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.hmGreen)
+                .padding(.top, 2)
+            }
+
             HStack(spacing: 8) {
                 Button {
                     if workout.isPaused { workout.resume() } else { workout.pause() }
@@ -525,6 +559,12 @@ struct WorkoutView: View {
             }
             .padding(.top, 4)
         }
+    }
+
+    // True once at least one set exists and all sets are completed.
+    private var allSetsComplete: Bool {
+        let allSets = stats.exercises.flatMap { $0.sets }
+        return !allSets.isEmpty && allSets.allSatisfy { $0.completed }
     }
 
     // Post-workout recap.

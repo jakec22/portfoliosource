@@ -147,20 +147,34 @@ export function stopWatchRest(): void {
   } catch {}
 }
 
-// Subscribe to set check-offs coming from the watch (delivered via
-// transferUserInfo → the 'user-info' event). Returns an unsubscribe function.
+// Subscribe to set check-offs coming from the watch. Delivered via the watch's
+// sendMessage (the 'message' event — same proven path as HR streaming).
 export function subscribeWatchSetToggle(
   cb: (exerciseId: string, setId: string, completed: boolean) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = watchEvents.on('user-info', (info: any) => {
+  const unsubscribe = watchEvents.on('message', (message: any) => {
     if (
-      info?.type === 'toggleSet' &&
-      typeof info.exerciseId === 'string' &&
-      typeof info.setId === 'string'
+      message?.type === 'toggleSet' &&
+      typeof message.exerciseId === 'string' &&
+      typeof message.setId === 'string'
     ) {
-      cb(info.exerciseId, info.setId, !!info.completed);
+      cb(message.exerciseId, message.setId, !!message.completed);
     }
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
+}
+
+// Subscribe to a "finish workout" command from the watch (Complete Workout
+// button). Returns an unsubscribe function.
+export function subscribeWatchWorkoutFinish(cb: () => void): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = watchEvents.on('message', (message: any) => {
+    if (message?.type === 'finishWorkout') cb();
   });
   return () => {
     try {

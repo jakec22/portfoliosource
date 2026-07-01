@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { setWatchWorkoutPlan, subscribeWatchSetToggle } from '../services/watch';
+import {
+  setWatchWorkoutPlan,
+  subscribeWatchSetToggle,
+  subscribeWatchWorkoutFinish,
+} from '../services/watch';
 
 // Mirrors the active workout's exercises + sets to the watch so it can show
 // and check off them. Re-pushes whenever the workout changes; clears when
@@ -9,6 +13,7 @@ import { setWatchWorkoutPlan, subscribeWatchSetToggle } from '../services/watch'
 export function useWatchWorkout(): void {
   const activeWorkout = useStore((s) => s.activeWorkout);
   const setWorkoutSetCompleted = useStore((s) => s.setWorkoutSetCompleted);
+  const finishWorkout = useStore((s) => s.finishWorkout);
 
   // Apply set check-offs from the watch to the phone's active workout.
   useEffect(() => {
@@ -16,6 +21,11 @@ export function useWatchWorkout(): void {
       setWorkoutSetCompleted(exerciseId, setId, completed);
     });
   }, [setWorkoutSetCompleted]);
+
+  // Finish the workout when the watch's Complete Workout button is tapped.
+  useEffect(() => {
+    return subscribeWatchWorkoutFinish(() => finishWorkout());
+  }, [finishWorkout]);
 
   useEffect(() => {
     if (!activeWorkout) {
