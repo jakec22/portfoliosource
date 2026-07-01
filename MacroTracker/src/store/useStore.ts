@@ -553,6 +553,35 @@ export const useStore = create<AppState>()(
         });
       },
 
+      // Set a set's completed state to an absolute value (used by the watch so
+      // repeated deliveries are idempotent — no toggle loops). Mirrors
+      // toggleWorkoutSet's rest-trigger behavior.
+      setWorkoutSetCompleted: (exerciseId, setId, completed) => {
+        set((state) => {
+          if (!state.activeWorkout) return {};
+          let becameComplete = false;
+          const exercises = state.activeWorkout.exercises.map((e) =>
+            e.id !== exerciseId
+              ? e
+              : {
+                  ...e,
+                  sets: e.sets.map((s) => {
+                    if (s.id !== setId) return s;
+                    becameComplete = completed && !s.completed;
+                    return { ...s, completed };
+                  }),
+                }
+          );
+          const patch: Partial<AppState> = {
+            activeWorkout: { ...state.activeWorkout, exercises },
+          };
+          if (becameComplete && state.autoRestTimer) {
+            patch.restTrigger = state.restTrigger + 1;
+          }
+          return patch;
+        });
+      },
+
       removeWorkoutSet: (exerciseId, setId) => {
         set((state) => {
           if (!state.activeWorkout) return {};

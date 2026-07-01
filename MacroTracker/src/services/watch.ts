@@ -147,6 +147,28 @@ export function stopWatchRest(): void {
   } catch {}
 }
 
+// Subscribe to set check-offs coming from the watch (delivered via
+// transferUserInfo → the 'user-info' event). Returns an unsubscribe function.
+export function subscribeWatchSetToggle(
+  cb: (exerciseId: string, setId: string, completed: boolean) => void
+): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = watchEvents.on('user-info', (info: any) => {
+    if (
+      info?.type === 'toggleSet' &&
+      typeof info.exerciseId === 'string' &&
+      typeof info.setId === 'string'
+    ) {
+      cb(info.exerciseId, info.setId, !!info.completed);
+    }
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
+}
+
 // Subscribe to live heart-rate samples streamed from the watch during a
 // workout. Returns an unsubscribe function.
 export function subscribeWatchHeartRate(

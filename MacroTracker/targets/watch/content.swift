@@ -19,7 +19,7 @@ struct WatchSet: Identifiable {
     let weight: Int
     let reps: Int
     let duration: Int
-    let completed: Bool
+    var completed: Bool
 }
 
 // One exercise of the active workout.
@@ -27,7 +27,7 @@ struct WatchExercise: Identifiable {
     let id: String
     let name: String
     let mode: String // "reps" | "time"
-    let sets: [WatchSet]
+    var sets: [WatchSet]
 }
 
 // Today's stats shown on the watch, fed live from the phone over
@@ -119,6 +119,27 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
                 }
             )
         }
+    }
+
+    // Check a set on/off from the wrist: flip locally for instant feedback and
+    // send the absolute value to the phone, which is the source of truth and
+    // re-pushes the reconciled plan.
+    func toggleSet(exerciseId: String, setId: String) {
+        guard let exIdx = exercises.firstIndex(where: { $0.id == exerciseId }),
+              let setIdx = exercises[exIdx].sets.firstIndex(where: { $0.id == setId })
+        else { return }
+
+        let newCompleted = !exercises[exIdx].sets[setIdx].completed
+        exercises[exIdx].sets[setIdx].completed = newCompleted // optimistic
+
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+        session.transferUserInfo([
+            "type": "toggleSet",
+            "exerciseId": exerciseId,
+            "setId": setId,
+            "completed": newCompleted,
+        ])
     }
 
     // Auto-start / end the on-wrist workout based on the phone's workout state.
@@ -419,13 +440,19 @@ struct WorkoutView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(ex.name).font(.footnote).fontWeight(.bold)
                         ForEach(ex.sets) { set in
-                            HStack(spacing: 8) {
-                                Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
-                                    .foregroundColor(set.completed ? .hmGreen : .secondary)
-                                Text(setLabel(ex, set))
-                                    .font(.caption2)
-                                    .foregroundColor(set.completed ? .secondary : .primary)
+                            Button {
+                                stats.toggleSet(exerciseId: ex.id, setId: set.id)
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(set.completed ? .hmGreen : .secondary)
+                                    Text(setLabel(ex, set))
+                                        .font(.caption2)
+                                        .foregroundColor(set.completed ? .secondary : .primary)
+                                    Spacer()
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
