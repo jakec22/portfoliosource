@@ -6,6 +6,7 @@ import {
   watchEvents,
 } from 'react-native-watch-connectivity';
 import { startWatchApp } from '@kingstinct/react-native-healthkit';
+import type { HeartRateSample } from '../types';
 
 // Today's stats mirrored to the Apple Watch glance. Keys must match what the
 // watch's WCSession delegate reads (see targets/watch/content.swift).
@@ -181,6 +182,26 @@ export function subscribeWatchWorkoutFinish(cb: () => void): () => void {
       unsubscribe();
     } catch {}
   };
+}
+
+// ── Workout heart-rate buffer ────────────────────────────────────────────
+// Samples streamed from the watch during the current workout, kept at module
+// scope (not in a React ref) so they survive the ActiveWorkout screen being
+// unmounted. The watch can finish a workout while the phone is on another
+// screen (or its screen is off), and we still need these to attach to the
+// saved session for the history graph.
+let workoutHrBuffer: HeartRateSample[] = [];
+
+export function addWorkoutHrSample(sample: HeartRateSample): void {
+  workoutHrBuffer.push(sample);
+}
+
+export function getWorkoutHrSamples(): HeartRateSample[] {
+  return workoutHrBuffer.slice();
+}
+
+export function resetWorkoutHrBuffer(): void {
+  workoutHrBuffer = [];
 }
 
 // Subscribe to live heart-rate samples streamed from the watch during a

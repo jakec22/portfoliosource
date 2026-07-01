@@ -16,13 +16,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
-import type { SetType, HeartRateSample } from '../types';
+import type { SetType } from '../types';
 import { formatDuration, relativeDateLabel } from '../utils/date';
 import { lastPerformance } from '../utils/exerciseHistory';
 import { DurationInput } from '../components/DurationInput';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
 import { getHeartRateMonitor } from '../services/heartRate';
-import { subscribeWatchHeartRate } from '../services/watch';
+import { subscribeWatchHeartRate, getWorkoutHrSamples } from '../services/watch';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -68,10 +68,13 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   // Live heart rate from the Apple Watch (via HealthKit) during the workout.
   const [liveBpm, setLiveBpm] = useState<number | null>(null);
   const [bpmUpdatedAt, setBpmUpdatedAt] = useState<number | null>(null);
-  const hrSamplesRef = useRef<HeartRateSample[]>([]);
   const monitorRef = useRef(getHeartRateMonitor());
   const workoutId = workout?.id;
 
+  // Live heart rate for the on-screen readout. The actual samples that get
+  // attached to the session are buffered centrally in useWatchWorkout (so they
+  // survive this screen unmounting / a watch-driven finish); here we only drive
+  // the live display.
   useEffect(() => {
     if (!workoutId) return;
     const monitor = monitorRef.current;
@@ -80,7 +83,6 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
       await monitor.requestPermissions();
       if (!active) return;
       monitor.start((sample) => {
-        hrSamplesRef.current.push(sample);
         setLiveBpm(sample.bpm);
         setBpmUpdatedAt(sample.timestamp);
       });
@@ -92,12 +94,10 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   }, [workoutId]);
 
   // Live heart rate streamed from the Apple Watch during the workout (on-wrist,
-  // more accurate). Feeds the same live display + sample buffer that gets
-  // attached to the session on finish.
+  // more accurate). Updates the live display; sample buffering happens centrally.
   useEffect(() => {
     if (!workoutId) return;
     return subscribeWatchHeartRate((bpm, timestamp) => {
-      hrSamplesRef.current.push({ bpm, timestamp });
       setLiveBpm(bpm);
       setBpmUpdatedAt(timestamp);
     });
@@ -204,15 +204,14 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
           finishWorkout();
           if (id) {
             try {
-              // Prefer the dense end-of-workout batch query (HealthKit);
-              // fall back to the samples gathered live (e.g. simulator).
+              // Prefer the dense end-of-workout batch query (HealthKit); fall
+              // back to the samples the watch streamed live (buffered centrally).
               const queried = await monitor.query(startedAt, Date.now());
-              const samples = queried.length ? queried : hrSamplesRef.current;
+              const samples = queried.length ? queried : getWorkoutHrSamples();
               if (samples.length) attachWorkoutHeartRate(id, samples);
             } catch {
-              if (hrSamplesRef.current.length) {
-                attachWorkoutHeartRate(id, hrSamplesRef.current);
-              }
+              const buffered = getWorkoutHrSamples();
+              if (buffered.length) attachWorkoutHeartRate(id, buffered);
             }
             navigation.replace('WorkoutSummary', { sessionId: id });
           } else {

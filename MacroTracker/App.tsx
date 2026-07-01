@@ -32,6 +32,7 @@ import { useSession } from './src/hooks/useSession';
 import { useTemplateImport } from './src/hooks/useTemplateImport';
 import { useWatchSync } from './src/hooks/useWatchSync';
 import { useWatchWorkout } from './src/hooks/useWatchWorkout';
+import { navigationRef } from './src/services/navigation';
 import { supabase } from './src/services/supabase';
 import { useStore } from './src/store/useStore';
 import {
@@ -138,7 +139,7 @@ function MainTabs() {
   };
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} ref={navigationRef}>
         <Tab.Navigator
           screenOptions={({ route }) => ({
             headerShown: false,
