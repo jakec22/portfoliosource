@@ -528,20 +528,6 @@ struct WorkoutView: View {
                     .font(.footnote).fontWeight(.semibold)
             }
 
-            // Appears once every set is checked off.
-            if allSetsComplete {
-                Button {
-                    stats.finishWorkoutFromWatch()
-                } label: {
-                    Label("Complete Workout", systemImage: "checkmark")
-                        .font(.footnote)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.hmGreen)
-                .padding(.top, 2)
-            }
-
             HStack(spacing: 8) {
                 Button {
                     if workout.isPaused { workout.resume() } else { workout.pause() }
@@ -558,13 +544,20 @@ struct WorkoutView: View {
                 }
             }
             .padding(.top, 4)
-        }
-    }
 
-    // True once at least one set exists and all sets are completed.
-    private var allSetsComplete: Bool {
-        let allSets = stats.exercises.flatMap { $0.sets }
-        return !allSets.isEmpty && allSets.allSatisfy { $0.completed }
+            // Always available so the workout can be wrapped up from the wrist
+            // at any point, not only once every set is checked off.
+            Button {
+                stats.finishWorkoutFromWatch()
+            } label: {
+                Label("Complete Workout", systemImage: "checkmark")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.hmGreen)
+            .padding(.top, 2)
+        }
     }
 
     // Post-workout recap.
