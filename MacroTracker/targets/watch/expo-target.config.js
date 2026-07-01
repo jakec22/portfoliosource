@@ -2,7 +2,7 @@
 module.exports = config => ({
   type: "watch",
   displayName: "Holy Macro",
-  icon: 'https://github.com/expo.png',
+  icon: '../../assets/icon.png',
   colors: { $accent: "#10B981", },
   deploymentTarget: "9.4",
   entitlements: {
