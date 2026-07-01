@@ -200,19 +200,36 @@ export default function App() {
   useEffect(() => {
     if (!url) return;
     const { hostname, path, queryParams } = Linking.parse(url);
-    const isReset = path === 'reset-password' || hostname === 'reset-password';
-    if (!isReset) return;
+    // With a custom scheme, holymacro://<route>?... parses <route> as the
+    // hostname (not the path), so accept either.
+    const route = path ?? hostname;
 
-    if (typeof queryParams?.code === 'string') {
-      supabase.auth.exchangeCodeForSession(queryParams.code).then(({ error }) => {
-        if (error) {
-          Alert.alert('Reset link problem', error.message);
-        } else {
-          startPasswordReset();
-        }
-      });
-    } else if (typeof queryParams?.error_description === 'string') {
-      Alert.alert('Reset link problem', String(queryParams.error_description));
+    if (route === 'reset-password') {
+      if (typeof queryParams?.code === 'string') {
+        supabase.auth.exchangeCodeForSession(queryParams.code).then(({ error }) => {
+          if (error) {
+            Alert.alert('Reset link problem', error.message);
+          } else {
+            startPasswordReset();
+          }
+        });
+      } else if (typeof queryParams?.error_description === 'string') {
+        Alert.alert('Reset link problem', String(queryParams.error_description));
+      }
+      return;
+    }
+
+    // New-account email confirmation. The link opens in the browser, verifies
+    // the address with Supabase, and redirects back here with a PKCE code. We
+    // exchange it for a session — SIGNED_IN then drops the user into the app.
+    if (route === 'auth-callback') {
+      if (typeof queryParams?.code === 'string') {
+        supabase.auth.exchangeCodeForSession(queryParams.code).then(({ error }) => {
+          if (error) Alert.alert('Confirmation link problem', error.message);
+        });
+      } else if (typeof queryParams?.error_description === 'string') {
+        Alert.alert('Confirmation link problem', String(queryParams.error_description));
+      }
     }
   }, [url]);
 

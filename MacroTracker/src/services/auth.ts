@@ -22,7 +22,15 @@ export function signInWithEmail(email: string, password: string) {
 }
 
 export function signUpWithEmail(email: string, password: string) {
-  return supabase.auth.signUp({ email: email.trim(), password });
+  // Send the confirmation email's link back into the app (deep link), so
+  // tapping it returns here and the code exchange in App.tsx signs the user in.
+  // Without this, Supabase redirects to the project's Site URL (a web page)
+  // and the confirmation never completes on the device.
+  return supabase.auth.signUp({
+    email: email.trim(),
+    password,
+    options: { emailRedirectTo: Linking.createURL('auth-callback') },
+  });
 }
 
 export function signOut() {
