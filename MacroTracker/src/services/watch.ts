@@ -1,9 +1,11 @@
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import {
   updateApplicationContext,
   sendMessage,
   transferUserInfo,
   watchEvents,
+  getIsPaired,
+  getIsWatchAppInstalled,
 } from 'react-native-watch-connectivity';
 import { startWatchApp } from '@kingstinct/react-native-healthkit';
 import type { HeartRateSample } from '../types';
@@ -54,8 +56,58 @@ let workoutState = {
 };
 let workoutPlan: WatchPlanExercise[] = [];
 
-function pushContext(): void {
+// Whether a watch is paired and our watch app is installed. ALL outbound watch
+// communication is gated on this. On an iPhone with no paired Apple Watch,
+// calling into WatchConnectivity (updateApplicationContext / transferUserInfo /
+// sendMessage) or HealthKit's startWatchApp can raise a native exception that
+// crashes the whole app — and a native crash can't be caught by a JS try/catch.
+// So instead of trying to catch it, we simply never make the call when there's
+// no watch to talk to. Flags start false and are filled in asynchronously.
+let watchPaired = false;
+let watchAppInstalled = false;
+
+function refreshWatchAvailability(): void {
   if (Platform.OS !== 'ios') return;
+  try {
+    getIsPaired()
+      .then((v: boolean) => {
+        const was = watchPaired;
+        watchPaired = !!v;
+        // Flush the latest context once a watch becomes available.
+        if (watchPaired && !was) pushContext();
+      })
+      .catch(() => {});
+    getIsWatchAppInstalled()
+      .then((v: boolean) => {
+        watchAppInstalled = !!v;
+      })
+      .catch(() => {});
+  } catch {
+    // Native module missing (e.g. Expo Go) — leave flags false so we no-op.
+  }
+}
+
+if (Platform.OS === 'ios') {
+  refreshWatchAvailability();
+  try {
+    watchEvents.on('paired', (paired: boolean) => {
+      const was = watchPaired;
+      watchPaired = !!paired;
+      if (watchPaired && !was) pushContext();
+    });
+    watchEvents.on('installed', (installed: boolean) => {
+      watchAppInstalled = !!installed;
+    });
+  } catch {}
+  try {
+    AppState.addEventListener('change', (s) => {
+      if (s === 'active') refreshWatchAvailability();
+    });
+  } catch {}
+}
+
+function pushContext(): void {
+  if (Platform.OS !== 'ios' || !watchPaired) return;
   const ctx: Record<string, unknown> = {
     ...(lastStats ?? {}),
     ...workoutState,
@@ -95,13 +147,18 @@ export function startWatchWorkout(workoutId: string, activityType = 0): void {
     workoutActivityType: activityType,
   };
   pushContext();
+  // Nothing below can reach a watch that isn't there — and startWatchApp in
+  // particular crashes natively on an unpaired iPhone — so bail out early.
+  if (!watchPaired) return;
   // Launch the watch app and start its workout session from the phone (the only
   // Apple-supported way to open a watch app remotely). The watch handles the
   // delivered configuration in its app delegate. Falls back gracefully — the
   // context + message paths still drive the watch if it's already open.
-  try {
-    startWatchApp({ activityType: (activityType || 50) as any })?.catch?.(() => {});
-  } catch {}
+  if (watchAppInstalled) {
+    try {
+      startWatchApp({ activityType: (activityType || 50) as any })?.catch?.(() => {});
+    } catch {}
+  }
   try {
     sendMessage(
       { command: 'startWorkout', workoutId, workoutActivityType: activityType },
@@ -122,6 +179,7 @@ export function endWatchWorkout(): void {
   };
   workoutPlan = [];
   pushContext();
+  if (!watchPaired) return;
   try {
     sendMessage({ command: 'endWorkout' }, () => {}, () => {});
   } catch {}
@@ -134,7 +192,7 @@ export function endWatchWorkout(): void {
 // the remaining time from the absolute endAt, so a second or two of delivery
 // latency doesn't desync the countdown.
 export function startWatchRest(endAt: number): void {
-  if (Platform.OS !== 'ios') return;
+  if (Platform.OS !== 'ios' || !watchPaired) return;
   try {
     transferUserInfo({ type: 'rest', endAt });
   } catch {}
@@ -142,7 +200,7 @@ export function startWatchRest(endAt: number): void {
 
 // Clear the watch rest countdown without buzzing (e.g. the user skipped rest).
 export function stopWatchRest(): void {
-  if (Platform.OS !== 'ios') return;
+  if (Platform.OS !== 'ios' || !watchPaired) return;
   try {
     transferUserInfo({ type: 'restStop' });
   } catch {}
