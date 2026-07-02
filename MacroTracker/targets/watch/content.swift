@@ -150,11 +150,29 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
 
     // Complete the whole workout from the wrist: end the on-wrist session (shows
     // the watch summary) and tell the phone to finish + save it to history.
-    func finishWorkoutFromWatch() {
+    func finishWorkoutFromWatch(completeAll: Bool = false) {
+        // Optimistically reflect the "complete all" choice on the watch too, so
+        // the exercises list matches what the phone will save.
+        if completeAll {
+            for i in exercises.indices {
+                for j in exercises[i].sets.indices {
+                    exercises[i].sets[j].completed = true
+                }
+            }
+        }
         WorkoutManager.shared.end()
         let session = WCSession.default
         guard session.activationState == .activated else { return }
-        session.sendMessage(["type": "finishWorkout"], replyHandler: nil, errorHandler: nil)
+        session.sendMessage(
+            ["type": "finishWorkout", "completeAll": completeAll],
+            replyHandler: nil,
+            errorHandler: nil
+        )
+    }
+
+    // Count of sets not yet checked off — drives the finish confirmation prompt.
+    var uncheckedSetCount: Int {
+        exercises.reduce(0) { $0 + $1.sets.filter { !$0.completed }.count }
     }
 
     // Auto-start / end the on-wrist workout based on the phone's workout state.
@@ -424,6 +442,7 @@ struct WorkoutView: View {
     @ObservedObject private var workout = WorkoutManager.shared
     @ObservedObject private var stats = DayStats.shared
     @ObservedObject private var rest = RestManager.shared
+    @State private var showFinishPrompt = false
 
     var body: some View {
         Group {
@@ -546,9 +565,14 @@ struct WorkoutView: View {
             .padding(.top, 4)
 
             // Always available so the workout can be wrapped up from the wrist
-            // at any point, not only once every set is checked off.
+            // at any point, not only once every set is checked off. If sets are
+            // still unchecked, offer to complete them first.
             Button {
-                stats.finishWorkoutFromWatch()
+                if stats.uncheckedSetCount > 0 {
+                    showFinishPrompt = true
+                } else {
+                    stats.finishWorkoutFromWatch()
+                }
             } label: {
                 Label("Complete Workout", systemImage: "checkmark")
                     .font(.footnote)
@@ -557,6 +581,19 @@ struct WorkoutView: View {
             .buttonStyle(.borderedProminent)
             .tint(.hmGreen)
             .padding(.top, 2)
+            .confirmationDialog(
+                "\(stats.uncheckedSetCount) set\(stats.uncheckedSetCount == 1 ? "" : "s") still unchecked",
+                isPresented: $showFinishPrompt,
+                titleVisibility: .visible
+            ) {
+                Button("Complete All & Finish") {
+                    stats.finishWorkoutFromWatch(completeAll: true)
+                }
+                Button("Finish Anyway") {
+                    stats.finishWorkoutFromWatch(completeAll: false)
+                }
+                Button("Cancel", role: .cancel) {}
+            }
         }
     }
 

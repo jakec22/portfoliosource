@@ -582,6 +582,20 @@ export const useStore = create<AppState>()(
         });
       },
 
+      // Mark every set in the active workout complete. Used when finishing a
+      // workout with sets still unchecked (the user opts to complete them).
+      // Doesn't touch the rest timer — the workout is ending.
+      completeAllWorkoutSets: () => {
+        set((state) => {
+          if (!state.activeWorkout) return {};
+          const exercises = state.activeWorkout.exercises.map((e) => ({
+            ...e,
+            sets: e.sets.map((s) => (s.completed ? s : { ...s, completed: true })),
+          }));
+          return { activeWorkout: { ...state.activeWorkout, exercises } };
+        });
+      },
+
       removeWorkoutSet: (exerciseId, setId) => {
         set((state) => {
           if (!state.activeWorkout) return {};

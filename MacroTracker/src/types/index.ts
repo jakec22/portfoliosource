@@ -241,6 +241,8 @@ export interface AppState {
   setExerciseMode: (exerciseId: string, mode: ExerciseMode) => void;
   toggleWorkoutSet: (exerciseId: string, setId: string) => void;
   setWorkoutSetCompleted: (exerciseId: string, setId: string, completed: boolean) => void;
+  /** Mark every set in the active workout as completed (used when finishing). */
+  completeAllWorkoutSets: () => void;
   removeWorkoutSet: (exerciseId: string, setId: string) => void;
   reorderWorkoutExercise: (exerciseId: string, direction: 'up' | 'down') => void;
   clearLocalData: () => void;

@@ -61,6 +61,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   const reorderWorkoutExercise = useStore((s) => s.reorderWorkoutExercise);
   const finishWorkout = useStore((s) => s.finishWorkout);
   const cancelWorkout = useStore((s) => s.cancelWorkout);
+  const completeAllWorkoutSets = useStore((s) => s.completeAllWorkoutSets);
   const attachWorkoutHeartRate = useStore((s) => s.attachWorkoutHeartRate);
   // Past sessions, used to show each exercise's previous performance inline.
   const workoutHistory = useStore((s) => s.workoutHistory);
@@ -190,35 +191,53 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
     );
   }
 
+  // Save the session and leave to the summary. When `completeAll` is set, every
+  // remaining set is marked done first so the saved workout reflects that.
+  async function finishAndSummarize(completeAll: boolean) {
+    const id = workout?.id;
+    const startedAt = workout?.startedAt ?? Date.now();
+    if (completeAll) completeAllWorkoutSets();
+    // Stop live tracking — heart-rate capture ends with the workout.
+    const monitor = monitorRef.current;
+    monitor.stop();
+    finishWorkout();
+    if (id) {
+      try {
+        // Prefer the dense end-of-workout batch query (HealthKit); fall
+        // back to the samples the watch streamed live (buffered centrally).
+        const queried = await monitor.query(startedAt, Date.now());
+        const samples = queried.length ? queried : getWorkoutHrSamples();
+        if (samples.length) attachWorkoutHeartRate(id, samples);
+      } catch {
+        const buffered = getWorkoutHrSamples();
+        if (buffered.length) attachWorkoutHeartRate(id, buffered);
+      }
+      navigation.replace('WorkoutSummary', { sessionId: id });
+    } else {
+      navigation.goBack();
+    }
+  }
+
   function handleFinish() {
+    const remaining = totalSets - doneSets;
+    // Offer to check off anything left unfinished before saving.
+    if (remaining > 0) {
+      Alert.alert(
+        'Finish workout',
+        `You have ${remaining} unchecked ${remaining === 1 ? 'set' : 'sets'}. Mark ${
+          remaining === 1 ? 'it' : 'them'
+        } complete before finishing?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Finish anyway', onPress: () => finishAndSummarize(false) },
+          { text: 'Complete all & finish', onPress: () => finishAndSummarize(true) },
+        ]
+      );
+      return;
+    }
     Alert.alert('Finish workout', 'Save this workout and end the session?', [
       { text: 'Keep going', style: 'cancel' },
-      {
-        text: 'Finish',
-        onPress: async () => {
-          const id = workout?.id;
-          const startedAt = workout?.startedAt ?? Date.now();
-          // Stop live tracking — heart-rate capture ends with the workout.
-          const monitor = monitorRef.current;
-          monitor.stop();
-          finishWorkout();
-          if (id) {
-            try {
-              // Prefer the dense end-of-workout batch query (HealthKit); fall
-              // back to the samples the watch streamed live (buffered centrally).
-              const queried = await monitor.query(startedAt, Date.now());
-              const samples = queried.length ? queried : getWorkoutHrSamples();
-              if (samples.length) attachWorkoutHeartRate(id, samples);
-            } catch {
-              const buffered = getWorkoutHrSamples();
-              if (buffered.length) attachWorkoutHeartRate(id, buffered);
-            }
-            navigation.replace('WorkoutSummary', { sessionId: id });
-          } else {
-            navigation.goBack();
-          }
-        },
-      },
+      { text: 'Finish', onPress: () => finishAndSummarize(false) },
     ]);
   }
 

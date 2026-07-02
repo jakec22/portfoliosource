@@ -22,6 +22,7 @@ import { navigateToWorkoutSummary } from '../services/navigation';
 export function useWatchWorkout(): void {
   const activeWorkout = useStore((s) => s.activeWorkout);
   const setWorkoutSetCompleted = useStore((s) => s.setWorkoutSetCompleted);
+  const completeAllWorkoutSets = useStore((s) => s.completeAllWorkoutSets);
   const finishWorkout = useStore((s) => s.finishWorkout);
   const attachWorkoutHeartRate = useStore((s) => s.attachWorkoutHeartRate);
 
@@ -52,9 +53,11 @@ export function useWatchWorkout(): void {
   // rate (so the graph shows on the history page), and pop the workout overview
   // on the phone.
   useEffect(() => {
-    return subscribeWatchWorkoutFinish(async () => {
+    return subscribeWatchWorkoutFinish(async (completeAll) => {
       const id = workoutId;
       const start = startedAt ?? Date.now();
+      // The watch prompt offered to check off remaining sets.
+      if (completeAll) completeAllWorkoutSets();
       finishWorkout();
       if (!id) return;
       try {
@@ -69,7 +72,7 @@ export function useWatchWorkout(): void {
       }
       navigateToWorkoutSummary(id);
     });
-  }, [workoutId, startedAt, finishWorkout, attachWorkoutHeartRate]);
+  }, [workoutId, startedAt, completeAllWorkoutSets, finishWorkout, attachWorkoutHeartRate]);
 
   useEffect(() => {
     if (!activeWorkout) {

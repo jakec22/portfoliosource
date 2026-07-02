@@ -230,10 +230,12 @@ export function subscribeWatchSetToggle(
 
 // Subscribe to a "finish workout" command from the watch (Complete Workout
 // button). Returns an unsubscribe function.
-export function subscribeWatchWorkoutFinish(cb: () => void): () => void {
+export function subscribeWatchWorkoutFinish(
+  cb: (completeAll: boolean) => void
+): () => void {
   if (Platform.OS !== 'ios') return () => {};
   const unsubscribe = watchEvents.on('message', (message: any) => {
-    if (message?.type === 'finishWorkout') cb();
+    if (message?.type === 'finishWorkout') cb(!!message.completeAll);
   });
   return () => {
     try {
