@@ -177,6 +177,11 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
 
     // Auto-start / end the on-wrist workout based on the phone's workout state.
     private func handleWorkoutState(_ ctx: [String: Any]) {
+        // No workout signal in this context — e.g. a glance-only update, or the
+        // phone app restarting before it has re-established its workout state.
+        // Leave the on-wrist workout exactly as it is; only an explicit
+        // workoutActive value may start or end it.
+        guard ctx.keys.contains("workoutActive") else { return }
         let active = (ctx["workoutActive"] as? NSNumber)?.boolValue
             ?? (ctx["workoutActive"] as? Bool) ?? false
         let workoutId = ctx["workoutId"] as? String ?? ""

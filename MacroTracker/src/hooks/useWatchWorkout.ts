@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import {
   setWatchWorkoutPlan,
+  restoreWatchWorkoutState,
   subscribeWatchSetToggle,
   subscribeWatchWorkoutFinish,
   subscribeWatchHeartRate,
@@ -79,6 +80,11 @@ export function useWatchWorkout(): void {
       setWatchWorkoutPlan([]);
       return;
     }
+    // Re-assert the active workout to the watch first. This covers a phone
+    // cold-start / reload (which resets the in-memory workout state), so the
+    // plan push below carries workoutActive:true and never tells the watch to
+    // end a workout that's still going.
+    restoreWatchWorkoutState(activeWorkout.id, activeWorkout.startedAt);
     setWatchWorkoutPlan(
       activeWorkout.exercises.map((e) => ({
         id: e.id,

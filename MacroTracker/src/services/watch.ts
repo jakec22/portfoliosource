@@ -54,6 +54,13 @@ let workoutState = {
   workoutStartedAt: 0,
   workoutActivityType: 0, // HKWorkoutActivityType raw value
 };
+// Whether we actually know the workout state. Starts false: after a phone
+// cold-start / JS reload the in-memory workoutState resets to inactive, but the
+// real workout is still in progress (restored from persistence). Until the app
+// re-asserts it, we must NOT push workoutActive:false — the watch would take
+// that as "end the workout" and quit its live session mid-workout. So glance /
+// plan pushes omit the workout fields entirely until the state is known.
+let workoutStateKnown = false;
 let workoutPlan: WatchPlanExercise[] = [];
 
 // Whether a watch is paired and our watch app is installed. ALL outbound watch
@@ -110,9 +117,12 @@ function pushContext(): void {
   if (Platform.OS !== 'ios' || !watchPaired) return;
   const ctx: Record<string, unknown> = {
     ...(lastStats ?? {}),
-    ...workoutState,
     workoutPlan,
   };
+  // Only advertise the workout lifecycle once we actually know it. The watch
+  // treats a missing workoutActive key as "no change", so a glance-only push
+  // (or a pre-rehydration cold start) never ends a running workout.
+  if (workoutStateKnown) Object.assign(ctx, workoutState);
   try {
     const result = updateApplicationContext(ctx);
     if (result && typeof (result as any).catch === 'function') {
@@ -146,6 +156,7 @@ export function startWatchWorkout(workoutId: string, activityType = 0): void {
     workoutStartedAt: Date.now(),
     workoutActivityType: activityType,
   };
+  workoutStateKnown = true;
   pushContext();
   // Nothing below can reach a watch that isn't there — and startWatchApp in
   // particular crashes natively on an unpaired iPhone — so bail out early.
@@ -177,12 +188,36 @@ export function endWatchWorkout(): void {
     workoutStartedAt: 0,
     workoutActivityType: 0,
   };
+  workoutStateKnown = true; // an explicit end — the watch should hear the false
   workoutPlan = [];
   pushContext();
   if (!watchPaired) return;
   try {
     sendMessage({ command: 'endWorkout' }, () => {}, () => {});
   } catch {}
+}
+
+// Re-assert an in-progress workout to the watch after the phone app restarts.
+// A cold start / JS reload resets the in-memory workoutState to inactive even
+// though the workout is still live (restored from persistence); without this
+// the next context push would omit (or, worse, contradict) the workout and the
+// watch could drop its session. We mark the state known + active so pushes keep
+// the watch's workout alive. No app relaunch / sendMessage — the watch session
+// is already running; we're only keeping the mirrored state truthful.
+export function restoreWatchWorkoutState(workoutId: string, startedAt: number): void {
+  if (Platform.OS !== 'ios' || !workoutId) return;
+  // Already tracking this workout — nothing to repair.
+  if (workoutStateKnown && workoutState.workoutActive && workoutState.workoutId === workoutId) {
+    return;
+  }
+  workoutState = {
+    workoutActive: true,
+    workoutId,
+    workoutStartedAt: startedAt || Date.now(),
+    workoutActivityType: workoutState.workoutActivityType || 0,
+  };
+  workoutStateKnown = true;
+  pushContext();
 }
 
 // Mirror the rest countdown to the watch using a shared end timestamp. Uses

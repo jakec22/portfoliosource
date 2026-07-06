@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { useKeepAwake } from 'expo-keep-awake';
 import { useStore } from '../store/useStore';
 import type { SetType } from '../types';
 import { formatDuration, relativeDateLabel } from '../utils/date';
@@ -50,6 +51,10 @@ function setBadgeInfo(type: SetType | undefined, index: number, styles: ActiveSt
 export function ActiveWorkoutScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  // Keep the screen on during a workout: an auto-locking / sleeping screen
+  // backgrounds the app, which can suspend timers, stall the watch sync, and
+  // (under memory pressure) get the app killed and cold-started.
+  useKeepAwake();
   const workout = useStore((s) => s.activeWorkout);
   const addWorkoutExercise = useStore((s) => s.addWorkoutExercise);
   const removeWorkoutExercise = useStore((s) => s.removeWorkoutExercise);
