@@ -88,7 +88,7 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
         <View style={styles.hrSide}>
           <View style={styles.hrText}>
             <Text style={[styles.hrValue, { color: zoneColor(bpm!) }]}>
-              {bpm}
+              {Math.round(bpm!)}
               <Text style={styles.hrUnit}> bpm</Text>
             </Text>
             <Text style={styles.hrLabel}>
