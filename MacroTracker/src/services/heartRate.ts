@@ -259,7 +259,7 @@ export function heartRateStats(samples: HeartRateSample[]) {
   }
   return {
     avg: Math.round(sum / samples.length),
-    peak,
-    low,
+    peak: Math.round(peak),
+    low: Math.round(low),
   };
 }
