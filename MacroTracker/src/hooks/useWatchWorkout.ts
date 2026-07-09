@@ -4,6 +4,7 @@ import {
   setWatchWorkoutPlan,
   restoreWatchWorkoutState,
   subscribeWatchSetToggle,
+  subscribeWatchSetEdit,
   subscribeWatchWorkoutFinish,
   subscribeWatchHeartRate,
   addWorkoutHrSample,
@@ -23,6 +24,7 @@ import { navigateToWorkoutSummary } from '../services/navigation';
 export function useWatchWorkout(): void {
   const activeWorkout = useStore((s) => s.activeWorkout);
   const setWorkoutSetCompleted = useStore((s) => s.setWorkoutSetCompleted);
+  const updateWorkoutSet = useStore((s) => s.updateWorkoutSet);
   const completeAllWorkoutSets = useStore((s) => s.completeAllWorkoutSets);
   const finishWorkout = useStore((s) => s.finishWorkout);
   const attachWorkoutHeartRate = useStore((s) => s.attachWorkoutHeartRate);
@@ -48,6 +50,13 @@ export function useWatchWorkout(): void {
       setWorkoutSetCompleted(exerciseId, setId, completed);
     });
   }, [setWorkoutSetCompleted]);
+
+  // Apply weight/reps/duration edits made in the watch's set editor.
+  useEffect(() => {
+    return subscribeWatchSetEdit((exerciseId, setId, weight, reps, duration) => {
+      updateWorkoutSet(exerciseId, setId, { weight, reps, durationSeconds: duration });
+    });
+  }, [updateWorkoutSet]);
 
   // Finish the workout when the watch's Complete Workout button is tapped.
   // Mirror the phone Finish button: end the session, attach the captured heart

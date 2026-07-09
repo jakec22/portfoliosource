@@ -263,6 +263,40 @@ export function subscribeWatchSetToggle(
   };
 }
 
+// Subscribe to set weight/reps/duration edits coming from the watch's set
+// editor. Delivered via the watch's sendMessage ('message' event).
+export function subscribeWatchSetEdit(
+  cb: (
+    exerciseId: string,
+    setId: string,
+    weight: number,
+    reps: number,
+    duration: number
+  ) => void
+): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = watchEvents.on('message', (message: any) => {
+    if (
+      message?.type === 'updateSet' &&
+      typeof message.exerciseId === 'string' &&
+      typeof message.setId === 'string'
+    ) {
+      cb(
+        message.exerciseId,
+        message.setId,
+        Number(message.weight) || 0,
+        Number(message.reps) || 0,
+        Number(message.duration) || 0
+      );
+    }
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
+}
+
 // Subscribe to a "finish workout" command from the watch (Complete Workout
 // button). Returns an unsubscribe function.
 export function subscribeWatchWorkoutFinish(

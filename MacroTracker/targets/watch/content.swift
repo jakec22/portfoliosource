@@ -16,9 +16,9 @@ extension Color {
 // One planned/performed set of the active workout, mirrored from the phone.
 struct WatchSet: Identifiable {
     let id: String
-    let weight: Int
-    let reps: Int
-    let duration: Int
+    var weight: Int
+    var reps: Int
+    var duration: Int
     var completed: Bool
 }
 
@@ -121,31 +121,56 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    // Check a set on/off from the wrist: flip locally for instant feedback and
-    // send the absolute value to the phone, which is the source of truth and
-    // re-pushes the reconciled plan.
+    // Check a set on/off from the wrist.
     func toggleSet(exerciseId: String, setId: String) {
         guard let exIdx = exercises.firstIndex(where: { $0.id == exerciseId }),
               let setIdx = exercises[exIdx].sets.firstIndex(where: { $0.id == setId })
         else { return }
+        setSetCompleted(exerciseId: exerciseId, setId: setId,
+                        completed: !exercises[exIdx].sets[setIdx].completed)
+    }
 
-        let newCompleted = !exercises[exIdx].sets[setIdx].completed
-        exercises[exIdx].sets[setIdx].completed = newCompleted // optimistic
+    // Set a set's completed state to an absolute value: flip locally for instant
+    // feedback and send it to the phone, which is the source of truth and
+    // re-pushes the reconciled plan.
+    func setSetCompleted(exerciseId: String, setId: String, completed: Bool) {
+        guard let exIdx = exercises.firstIndex(where: { $0.id == exerciseId }),
+              let setIdx = exercises[exIdx].sets.firstIndex(where: { $0.id == setId })
+        else { return }
+        exercises[exIdx].sets[setIdx].completed = completed // optimistic
+        sendSetMessage([
+            "type": "toggleSet",
+            "exerciseId": exerciseId,
+            "setId": setId,
+            "completed": completed,
+        ])
+    }
 
-        // Use sendMessage (the proven watch→phone path, same as HR streaming);
-        // transferUserInfo received events are unreliable on the RN side.
+    // Edit a set's weight/reps/duration from the wrist: update locally for
+    // instant feedback and send the new values to the phone to persist.
+    func updateSet(exerciseId: String, setId: String, weight: Int, reps: Int, duration: Int) {
+        guard let exIdx = exercises.firstIndex(where: { $0.id == exerciseId }),
+              let setIdx = exercises[exIdx].sets.firstIndex(where: { $0.id == setId })
+        else { return }
+        exercises[exIdx].sets[setIdx].weight = weight
+        exercises[exIdx].sets[setIdx].reps = reps
+        exercises[exIdx].sets[setIdx].duration = duration
+        sendSetMessage([
+            "type": "updateSet",
+            "exerciseId": exerciseId,
+            "setId": setId,
+            "weight": weight,
+            "reps": reps,
+            "duration": duration,
+        ])
+    }
+
+    // Watch→phone set updates. Uses sendMessage (the proven path, same as HR
+    // streaming); transferUserInfo received events are unreliable on the RN side.
+    private func sendSetMessage(_ message: [String: Any]) {
         let session = WCSession.default
         guard session.activationState == .activated else { return }
-        session.sendMessage(
-            [
-                "type": "toggleSet",
-                "exerciseId": exerciseId,
-                "setId": setId,
-                "completed": newCompleted,
-            ],
-            replyHandler: nil,
-            errorHandler: nil
-        )
+        session.sendMessage(message, replyHandler: nil, errorHandler: nil)
     }
 
     // Complete the whole workout from the wrist: end the on-wrist session (shows
@@ -443,11 +468,26 @@ struct MacroRing: View {
 
 // Live workout screen — presented full-screen from the glance. Shows elapsed
 // time, live heart rate, and active calories from the HKWorkoutSession.
+// Identifies the set being edited in the sheet, carrying its current values so
+// the editor can seed itself without a live lookup (which could momentarily
+// miss during a plan re-push).
+struct SetRef: Identifiable {
+    let exerciseId: String
+    let setId: String
+    let mode: String
+    let weight: Int
+    let reps: Int
+    let duration: Int
+    let completed: Bool
+    var id: String { setId }
+}
+
 struct WorkoutView: View {
     @ObservedObject private var workout = WorkoutManager.shared
     @ObservedObject private var stats = DayStats.shared
     @ObservedObject private var rest = RestManager.shared
     @State private var showFinishPrompt = false
+    @State private var editingSet: SetRef?
 
     var body: some View {
         Group {
@@ -467,7 +507,8 @@ struct WorkoutView: View {
         .onAppear { workout.requestAuthorization() }
     }
 
-    // The active workout's exercises + sets (read-only for now).
+    // The active workout's exercises + sets. Tap the circle to check a set off;
+    // tap the row to edit its weight/reps on the wrist.
     private var exercisesScreen: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Exercises")
@@ -481,28 +522,54 @@ struct WorkoutView: View {
                     .foregroundColor(.secondary)
             } else {
                 ForEach(stats.exercises) { ex in
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(ex.name).font(.footnote).fontWeight(.bold)
                         ForEach(ex.sets) { set in
-                            Button {
-                                stats.toggleSet(exerciseId: ex.id, setId: set.id)
-                            } label: {
-                                HStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                Button {
+                                    stats.toggleSet(exerciseId: ex.id, setId: set.id)
+                                } label: {
                                     Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
                                         .foregroundColor(set.completed ? .hmGreen : .secondary)
-                                    Text(setLabel(ex, set))
-                                        .font(.caption2)
-                                        .foregroundColor(set.completed ? .secondary : .primary)
-                                    Spacer()
                                 }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    editingSet = SetRef(
+                                        exerciseId: ex.id,
+                                        setId: set.id,
+                                        mode: ex.mode,
+                                        weight: set.weight,
+                                        reps: set.reps,
+                                        duration: set.duration,
+                                        completed: set.completed
+                                    )
+                                } label: {
+                                    HStack {
+                                        Text(setLabel(ex, set))
+                                            .font(.caption2)
+                                            .foregroundColor(set.completed ? .secondary : .primary)
+                                        Spacer()
+                                        Image(systemName: "square.and.pencil")
+                                            .font(.caption2)
+                                            .foregroundColor(.hmGreen)
+                                    }
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                            .padding(.vertical, 3)
+                            .padding(.horizontal, 6)
+                            .background(Color.gray.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(item: $editingSet) { ref in
+            SetEditView(ref: ref)
+        }
     }
 
     private func setLabel(_ ex: WatchExercise, _ set: WatchSet) -> String {
@@ -647,6 +714,88 @@ struct WorkoutView: View {
             Spacer()
             Text(value).font(.footnote).fontWeight(.semibold)
         }
+    }
+}
+
+// Edit a single set from the wrist: adjust weight and reps (or time) with the
+// steppers (Digital Crown works too), and check it off. Changes are pushed to
+// the phone live; the phone persists them and re-pushes the reconciled plan.
+struct SetEditView: View {
+    let ref: SetRef
+    @ObservedObject private var stats = DayStats.shared
+    @Environment(\.dismiss) private var dismiss
+    @State private var weight: Int
+    @State private var reps: Int
+    @State private var duration: Int
+    @State private var completed: Bool
+
+    init(ref: SetRef) {
+        self.ref = ref
+        _weight = State(initialValue: ref.weight)
+        _reps = State(initialValue: ref.reps)
+        _duration = State(initialValue: ref.duration)
+        _completed = State(initialValue: ref.completed)
+    }
+
+    private var isTime: Bool { ref.mode == "time" }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                Stepper(value: $weight, in: 0...2000, step: 5) {
+                    field("Weight", "\(weight) lb")
+                }
+                .onChange(of: weight) { _ in pushEdit() }
+
+                if isTime {
+                    Stepper(value: $duration, in: 0...86400, step: 5) {
+                        field("Time", timeString(TimeInterval(duration)))
+                    }
+                    .onChange(of: duration) { _ in pushEdit() }
+                } else {
+                    Stepper(value: $reps, in: 0...999, step: 1) {
+                        field("Reps", "\(reps)")
+                    }
+                    .onChange(of: reps) { _ in pushEdit() }
+                }
+
+                Button {
+                    completed.toggle()
+                    stats.setSetCompleted(exerciseId: ref.exerciseId, setId: ref.setId, completed: completed)
+                } label: {
+                    HStack {
+                        Image(systemName: completed ? "checkmark.circle.fill" : "circle")
+                        Text(completed ? "Completed" : "Mark Complete")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(completed ? .hmGreen : .gray)
+
+                Button("Done") { dismiss() }
+                    .buttonStyle(.bordered)
+                    .tint(.hmGreen)
+                    .padding(.top, 2)
+            }
+            .padding()
+        }
+    }
+
+    private func field(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(label).font(.caption2).foregroundColor(.secondary)
+            Text(value).font(.title3).fontWeight(.bold).foregroundColor(.primary)
+        }
+    }
+
+    private func pushEdit() {
+        stats.updateSet(
+            exerciseId: ref.exerciseId,
+            setId: ref.setId,
+            weight: weight,
+            reps: reps,
+            duration: duration
+        )
     }
 }
 
