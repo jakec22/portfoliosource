@@ -30,6 +30,14 @@ struct WatchExercise: Identifiable {
     var sets: [WatchSet]
 }
 
+// A saved workout template the user can start from the wrist.
+struct WatchTemplate: Identifiable {
+    let id: String
+    let name: String
+    let activityType: Int // HKWorkoutActivityType raw value
+    let exerciseCount: Int
+}
+
 // Today's stats shown on the watch, fed live from the phone over
 // WatchConnectivity. Read-only: the phone is the source of truth and pushes the
 // latest snapshot via updateApplicationContext (see src/services/watch.ts).
@@ -49,6 +57,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var hasData = false
     @Published var showWorkout = false // drives the full-screen workout cover
     @Published var exercises: [WatchExercise] = [] // active workout plan
+    @Published var templates: [WatchTemplate] = [] // saved templates to start from
 
     var caloriesRemaining: Int { max(0, calorieGoal - caloriesConsumed) }
     var calorieProgress: Double { ratio(caloriesConsumed, calorieGoal) }
@@ -104,6 +113,21 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             if ctx["calorieGoal"] != nil { self.hasData = true }
             self.handleWorkoutState(ctx)
             self.parsePlan(ctx)
+            self.parseTemplates(ctx)
+        }
+    }
+
+    // Parse the user's saved workout templates from the context (absent key =
+    // leave the current list untouched).
+    private func parseTemplates(_ ctx: [String: Any]) {
+        guard let raw = ctx["workoutTemplates"] as? [[String: Any]] else { return }
+        templates = raw.map { t in
+            WatchTemplate(
+                id: t["id"] as? String ?? UUID().uuidString,
+                name: t["name"] as? String ?? "Workout",
+                activityType: self.intVal(t["at"]) ?? 0,
+                exerciseCount: self.intVal(t["n"]) ?? 0
+            )
         }
     }
 
@@ -205,6 +229,25 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     // Count of sets not yet checked off — drives the finish confirmation prompt.
     var uncheckedSetCount: Int {
         exercises.reduce(0) { $0 + $1.sets.filter { !$0.completed }.count }
+    }
+
+    // Start a workout from the wrist. Optimistically begin the on-wrist session
+    // (so HR/calories start immediately) and ask the phone to create + log the
+    // matching workout, which then streams the plan back. Pass nil for a blank
+    // "quick start". Ignored if a workout is already running.
+    func startTemplate(_ template: WatchTemplate?) {
+        guard !WorkoutManager.shared.isActive else { return }
+        let raw = UInt(max(0, template?.activityType ?? 0))
+        let type = HKWorkoutActivityType(rawValue: raw) ?? .functionalStrengthTraining
+        WorkoutManager.shared.start(activityType: type)
+        showWorkout = true
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+        session.sendMessage(
+            ["type": "startTemplate", "templateId": template?.id ?? ""],
+            replyHandler: nil,
+            errorHandler: nil
+        )
     }
 
     // Auto-start / end the on-wrist workout based on the phone's workout state.
@@ -698,17 +741,48 @@ struct WorkoutView: View {
     }
 
     private var idleScreen: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "figure.run")
-                .font(.largeTitle)
+        VStack(spacing: 8) {
+            Text("Start Workout")
+                .font(.headline)
                 .foregroundColor(.hmGreen)
+
+            // Saved templates from the phone — tap one to start it.
+            if stats.templates.isEmpty {
+                Text("No saved templates. Create them on your iPhone.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.vertical, 2)
+            } else {
+                ForEach(stats.templates) { t in
+                    Button {
+                        stats.startTemplate(t)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(t.name).font(.footnote).fontWeight(.semibold)
+                            Text("\(t.exerciseCount) exercise\(t.exerciseCount == 1 ? "" : "s")")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.hmGreen)
+                }
+            }
+
+            // Blank session.
             Button {
-                workout.start()
+                stats.startTemplate(nil)
             } label: {
-                Text("Start").frame(maxWidth: .infinity)
+                Label("Quick Start", systemImage: "bolt.fill")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(.hmGreen)
+            .padding(.top, 2)
+
             Button("Cancel") { stats.showWorkout = false }
                 .font(.footnote)
                 .foregroundColor(.secondary)

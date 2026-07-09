@@ -63,6 +63,18 @@ let workoutState = {
 let workoutStateKnown = false;
 let workoutPlan: WatchPlanExercise[] = [];
 
+// Compact template shape sent to the watch's start screen (short keys).
+export interface WatchTemplateSummary {
+  id: string;
+  name: string;
+  at: number; // activityType (HKWorkoutActivityType raw value)
+  n: number; // exercise count
+}
+let watchTemplates: WatchTemplateSummary[] = [];
+// Only advertise templates once we've actually set them, so a pre-rehydration
+// glance push doesn't momentarily clear the watch's list.
+let templatesKnown = false;
+
 // Whether a watch is paired and our watch app is installed. ALL outbound watch
 // communication is gated on this. On an iPhone with no paired Apple Watch,
 // calling into WatchConnectivity (updateApplicationContext / transferUserInfo /
@@ -123,6 +135,7 @@ function pushContext(): void {
   // treats a missing workoutActive key as "no change", so a glance-only push
   // (or a pre-rehydration cold start) never ends a running workout.
   if (workoutStateKnown) Object.assign(ctx, workoutState);
+  if (templatesKnown) ctx.workoutTemplates = watchTemplates;
   try {
     const result = updateApplicationContext(ctx);
     if (result && typeof (result as any).catch === 'function') {
@@ -143,6 +156,30 @@ export function sendWatchContext(ctx: WatchContext): void {
 export function setWatchWorkoutPlan(plan: WatchPlanExercise[]): void {
   workoutPlan = plan;
   pushContext();
+}
+
+// Mirror the user's saved workout templates so they can be started from the
+// watch's Start Workout screen. Pass [] to clear.
+export function setWatchTemplates(templates: WatchTemplateSummary[]): void {
+  watchTemplates = templates;
+  templatesKnown = true;
+  pushContext();
+}
+
+// Subscribe to a "start workout" request from the watch's template picker.
+// templateId is '' for a blank quick-start. Returns an unsubscribe function.
+export function subscribeWatchStartWorkout(cb: (templateId: string) => void): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = watchEvents.on('message', (message: any) => {
+    if (message?.type === 'startTemplate') {
+      cb(typeof message.templateId === 'string' ? message.templateId : '');
+    }
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
 }
 
 // Mark a workout active in the context so the watch starts its on-wrist session

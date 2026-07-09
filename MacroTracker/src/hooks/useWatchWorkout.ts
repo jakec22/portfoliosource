@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import {
   setWatchWorkoutPlan,
+  setWatchTemplates,
   restoreWatchWorkoutState,
   subscribeWatchSetToggle,
   subscribeWatchSetEdit,
   subscribeWatchWorkoutFinish,
+  subscribeWatchStartWorkout,
   subscribeWatchHeartRate,
   addWorkoutHrSample,
   getWorkoutHrSamples,
@@ -13,6 +15,7 @@ import {
 } from '../services/watch';
 import { getHeartRateMonitor } from '../services/heartRate';
 import { navigateToWorkoutSummary } from '../services/navigation';
+import { DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 
 // Mirrors the active workout's exercises + sets to the watch so it can show
 // and check off them. Re-pushes whenever the workout changes; clears when
@@ -23,9 +26,11 @@ import { navigateToWorkoutSummary } from '../services/navigation';
 // screen (e.g. the user backed out to the resume banner).
 export function useWatchWorkout(): void {
   const activeWorkout = useStore((s) => s.activeWorkout);
+  const workoutTemplates = useStore((s) => s.workoutTemplates);
   const setWorkoutSetCompleted = useStore((s) => s.setWorkoutSetCompleted);
   const updateWorkoutSet = useStore((s) => s.updateWorkoutSet);
   const completeAllWorkoutSets = useStore((s) => s.completeAllWorkoutSets);
+  const startWorkout = useStore((s) => s.startWorkout);
   const finishWorkout = useStore((s) => s.finishWorkout);
   const attachWorkoutHeartRate = useStore((s) => s.attachWorkoutHeartRate);
 
@@ -57,6 +62,32 @@ export function useWatchWorkout(): void {
       updateWorkoutSet(exerciseId, setId, { weight, reps, durationSeconds: duration });
     });
   }, [updateWorkoutSet]);
+
+  // Mirror the user's saved templates so the watch's Start Workout screen can
+  // list them.
+  useEffect(() => {
+    setWatchTemplates(
+      (workoutTemplates ?? []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        at: t.activityType ?? DEFAULT_WORKOUT_HK,
+        n: t.exercises.length,
+      }))
+    );
+  }, [workoutTemplates]);
+
+  // Start a workout when the watch's template picker asks. Read fresh state so a
+  // stale closure doesn't miss a just-added template; ignore if one's running.
+  useEffect(() => {
+    return subscribeWatchStartWorkout((templateId) => {
+      const state = useStore.getState();
+      if (state.activeWorkout) return;
+      const template = templateId
+        ? state.workoutTemplates.find((t) => t.id === templateId)
+        : undefined;
+      startWorkout(template, template?.activityType);
+    });
+  }, [startWorkout]);
 
   // Finish the workout when the watch's Complete Workout button is tapped.
   // Mirror the phone Finish button: end the session, attach the captured heart
