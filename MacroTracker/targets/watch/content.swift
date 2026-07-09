@@ -775,9 +775,12 @@ struct SetEditView: View {
                     .onChange(of: reps) { _ in pushEdit() }
                 }
 
+                // Doubles as the "done" action: mark the set complete and close
+                // the editor. Edits are already pushed live as you adjust them.
                 Button {
                     completed.toggle()
                     stats.setSetCompleted(exerciseId: ref.exerciseId, setId: ref.setId, completed: completed)
+                    dismiss()
                 } label: {
                     HStack {
                         Image(systemName: completed ? "checkmark.circle.fill" : "circle")
@@ -787,11 +790,6 @@ struct SetEditView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(completed ? .hmGreen : .gray)
-
-                Button("Done") { dismiss() }
-                    .buttonStyle(.bordered)
-                    .tint(.hmGreen)
-                    .padding(.top, 2)
             }
             .padding()
         }
