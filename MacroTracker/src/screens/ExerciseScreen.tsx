@@ -181,6 +181,7 @@ export function ExerciseScreen({ navigation }: Props) {
 
         {/* Start a Workout */}
         <TouchableOpacity style={styles.startBtn} onPress={handleStartEmpty} activeOpacity={0.85}>
+          <Text style={styles.startBtnIcon}>🏋️</Text>
           <View>
             <Text style={styles.startBtnTitle}>
               {activeWorkout ? 'Resume Workout' : 'Start a Workout'}

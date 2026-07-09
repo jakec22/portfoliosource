@@ -266,6 +266,7 @@ export function HomeScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('Analytics')}
           activeOpacity={0.7}
         >
+          <Text style={styles.trendsIcon}>📈</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.trendsTitle}>Trends</Text>
             <Text style={styles.trendsSub}>Weight, nutrition & workout volume over time</Text>

@@ -850,20 +850,21 @@ struct SetEditView: View {
                 }
 
                 // Doubles as the "done" action: mark the set complete and close
-                // the editor. Edits are already pushed live as you adjust them.
+                // the editor. Only ever checks (never unchecks) — uncheck from
+                // the workout page's set list. Edits are pushed live as you go.
                 Button {
-                    completed.toggle()
-                    stats.setSetCompleted(exerciseId: ref.exerciseId, setId: ref.setId, completed: completed)
+                    completed = true
+                    stats.setSetCompleted(exerciseId: ref.exerciseId, setId: ref.setId, completed: true)
                     dismiss()
                 } label: {
                     HStack {
                         Image(systemName: completed ? "checkmark.circle.fill" : "circle")
-                        Text(completed ? "Completed" : "Mark Complete")
+                        Text(completed ? "Done" : "Mark Complete")
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(completed ? .hmGreen : .gray)
+                .tint(.hmGreen)
             }
             .padding()
         }
