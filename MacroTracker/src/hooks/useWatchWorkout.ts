@@ -101,7 +101,7 @@ export function useWatchWorkout(): void {
         mode: e.mode ?? 'reps',
         sets: e.sets.map((s) => ({
           id: s.id,
-          w: Math.round(s.weight),
+          w: s.weight, // real value (may be fractional, e.g. 2.5) so watch edits round-trip
           r: Math.round(s.reps),
           d: Math.round(s.durationSeconds ?? 0),
           c: s.completed,

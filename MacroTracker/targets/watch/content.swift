@@ -16,7 +16,7 @@ extension Color {
 // One planned/performed set of the active workout, mirrored from the phone.
 struct WatchSet: Identifiable {
     let id: String
-    var weight: Int
+    var weight: Double
     var reps: Int
     var duration: Int
     var completed: Bool
@@ -79,6 +79,13 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         return nil
     }
 
+    private func doubleVal(_ any: Any?) -> Double? {
+        if let n = any as? NSNumber { return n.doubleValue }
+        if let d = any as? Double { return d }
+        if let i = any as? Int { return Double(i) }
+        return nil
+    }
+
     private func apply(_ ctx: [String: Any]) {
         guard !ctx.isEmpty else { return }
         DispatchQueue.main.async {
@@ -111,7 +118,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
                 sets: (ex["sets"] as? [[String: Any]] ?? []).map { s in
                     WatchSet(
                         id: s["id"] as? String ?? UUID().uuidString,
-                        weight: self.intVal(s["w"]) ?? 0,
+                        weight: self.doubleVal(s["w"]) ?? 0,
                         reps: self.intVal(s["r"]) ?? 0,
                         duration: self.intVal(s["d"]) ?? 0,
                         completed: (s["c"] as? NSNumber)?.boolValue ?? (s["c"] as? Bool) ?? false
@@ -148,7 +155,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
 
     // Edit a set's weight/reps/duration from the wrist: update locally for
     // instant feedback and send the new values to the phone to persist.
-    func updateSet(exerciseId: String, setId: String, weight: Int, reps: Int, duration: Int) {
+    func updateSet(exerciseId: String, setId: String, weight: Double, reps: Int, duration: Int) {
         guard let exIdx = exercises.firstIndex(where: { $0.id == exerciseId }),
               let setIdx = exercises[exIdx].sets.firstIndex(where: { $0.id == setId })
         else { return }
@@ -475,7 +482,7 @@ struct SetRef: Identifiable {
     let exerciseId: String
     let setId: String
     let mode: String
-    let weight: Int
+    let weight: Double
     let reps: Int
     let duration: Int
     let completed: Bool
@@ -575,9 +582,9 @@ struct WorkoutView: View {
     private func setLabel(_ ex: WatchExercise, _ set: WatchSet) -> String {
         if ex.mode == "time" {
             let t = timeString(TimeInterval(set.duration))
-            return set.weight > 0 ? "\(set.weight) × \(t)" : t
+            return set.weight > 0 ? "\(weightString(set.weight)) × \(t)" : t
         }
-        return set.weight > 0 ? "\(set.weight) × \(set.reps)" : "\(set.reps) reps"
+        return set.weight > 0 ? "\(weightString(set.weight)) × \(set.reps)" : "\(set.reps) reps"
     }
 
     // Live metrics + pause/resume + end.
@@ -724,7 +731,7 @@ struct SetEditView: View {
     let ref: SetRef
     @ObservedObject private var stats = DayStats.shared
     @Environment(\.dismiss) private var dismiss
-    @State private var weight: Int
+    @State private var weight: Double
     @State private var reps: Int
     @State private var duration: Int
     @State private var completed: Bool
@@ -739,13 +746,22 @@ struct SetEditView: View {
 
     private var isTime: Bool { ref.mode == "time" }
 
+    // Fine adjustment (±1 lb) for the first 10 lb, coarser (±2.5 lb) above.
+    private func bumpWeightUp() {
+        weight = min(2000, weight + (weight < 10 ? 1 : 2.5))
+        pushEdit()
+    }
+    private func bumpWeightDown() {
+        weight = max(0, weight - (weight <= 10 ? 1 : 2.5))
+        pushEdit()
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
-                Stepper(value: $weight, in: 0...2000, step: 5) {
-                    field("Weight", "\(weight) lb")
+                Stepper(onIncrement: { bumpWeightUp() }, onDecrement: { bumpWeightDown() }) {
+                    field("Weight", "\(weightString(weight)) lb")
                 }
-                .onChange(of: weight) { _ in pushEdit() }
 
                 if isTime {
                     Stepper(value: $duration, in: 0...86400, step: 5) {
@@ -803,6 +819,12 @@ struct SetEditView: View {
 func timeString(_ t: TimeInterval) -> String {
     let total = Int(t)
     return String(format: "%d:%02d", total / 60, total % 60)
+}
+
+// Weight → compact string: whole numbers show plain (45), halves show one
+// decimal (12.5).
+func weightString(_ w: Double) -> String {
+    w == w.rounded() ? String(Int(w)) : String(format: "%.1f", w)
 }
 
 // Color the heart rate by intensity zone (mirrors the phone).
