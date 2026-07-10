@@ -23,7 +23,7 @@
     "react-native-safe-area-context": "~5.7.0"
   },
   "devDependencies": {
-    "@expo/metro-runtime": "~6.1.1",
+    "@expo/metro-runtime": "~56.0.16",
     "@types/jest": "^29.5.12",
     "@types/node": "^22.20.1",
     "@types/react": "~19.2.2",
