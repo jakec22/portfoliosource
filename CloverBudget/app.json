@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Clover Budget",
+    "slug": "clover-budget",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#10151F",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0B0F16",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cloverbudget.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIUserInterfaceStyle": "Dark"
+      }
+    },
+    "android": {
+      "package": "com.cloverbudget.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

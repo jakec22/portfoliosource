@@ -1,0 +1,52 @@
+{
+  "plan": {
+    "name": "Clover Family Budget",
+    "baselineMonth": "2026-06",
+    "activePhaseDefault": 1,
+    "phase2SavingsGoal": 500
+  },
+  "categories": [
+    { "id": "shopping",      "name": "Shopping",        "hint": "Amazon, Target, Old Navy, Hobby Lobby", "juneActual": 1355.50, "phase1Cap": 450, "phase2Cap": 300 },
+    { "id": "dining",        "name": "Dining & Coffee", "hint": "Kona Loa, In-N-Out, Dutch Bros",        "juneActual": 655.07,  "phase1Cap": 200, "phase2Cap": 100 },
+    { "id": "groceries",     "name": "Groceries",       "hint": "Costco, Ralphs, Walmart, Trader Joe's", "juneActual": 1328.90, "phase1Cap": 975, "phase2Cap": 875 },
+    { "id": "subscriptions", "name": "Subscriptions",   "hint": "Spotify, Apple, Netflix, YouTube",      "juneActual": 266.49,  "phase1Cap": 120, "phase2Cap": 90 },
+    { "id": "venmo",         "name": "Venmo / P2P",     "hint": "Transfers to friends & family",         "juneActual": 330.00,  "phase1Cap": 50,  "phase2Cap": 0 },
+    { "id": "gas",           "name": "Gas",             "hint": "Shell, Circle K",                       "juneActual": 182.16,  "phase1Cap": 185, "phase2Cap": 185 },
+    { "id": "utilities",     "name": "Utilities",       "hint": "Edison, SoCalGas, SMWD",                "juneActual": 268.81,  "phase1Cap": 270, "phase2Cap": 270 },
+    { "id": "misc",          "name": "Misc / Other",    "hint": "Car wash, pets, mail, everything else", "juneActual": 233.46,  "phase1Cap": 140, "phase2Cap": 70 }
+  ],
+  "fixedCosts": [
+    { "name": "Rent / Mortgage (Draft)",             "amount": 2700.00 },
+    { "name": "Insurance (USAA auto + life)",        "amount": 207.78 },
+    { "name": "Internet (Cox)",                      "amount": 124.00 },
+    { "name": "Investing (Vanguard auto-buys)",      "amount": 200.00 }
+  ],
+  "recurringIncome": [
+    { "name": "Payroll (2x monthly)", "amount": 5172.60 },
+    { "name": "eDeposits (avg.)",     "amount": 450.00 }
+  ],
+  "subscriptionsChecklist": [
+    { "name": "Spotify",               "monthlyCost": 21.99 },
+    { "name": "Apple.com/bill #1",     "monthlyCost": 26.97 },
+    { "name": "Apple.com/bill #2",     "monthlyCost": 12.99 },
+    { "name": "Apple.com/bill #3",     "monthlyCost": 71.99 },
+    { "name": "Amazon Prime",          "monthlyCost": 16.15 },
+    { "name": "Oura Ring",             "monthlyCost": 5.99 },
+    { "name": "YouTube Premium",       "monthlyCost": 26.99 },
+    { "name": "Google One",            "monthlyCost": 1.99 },
+    { "name": "Netflix",               "monthlyCost": 26.99 },
+    { "name": "Talkspace",             "monthlyCost": 25.00 },
+    { "name": "Sp Dermave",            "monthlyCost": 21.44 },
+    { "name": "Ctlp Entertainment",    "monthlyCost": 8.00 }
+  ],
+  "notes": {
+    "excludedFromPlan": [
+      "Credit card payments (covered by separate income source)",
+      "Tolls (eliminated)",
+      "DMV fees (one-time)",
+      "Columbia $1,500 deposit (one-time)",
+      "Refunds / credit vouchers (not recurring)"
+    ],
+    "phaseRule": "Move to Phase 2 after 1-2 consecutive months holding Phase 1 caps"
+  }
+}
