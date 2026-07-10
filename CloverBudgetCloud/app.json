@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Clover Budget Cloud",
+    "slug": "clover-budget-cloud",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0C10",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "backgroundColor": "#0A0C10",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cloverbudget.cloud",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIUserInterfaceStyle": "Dark"
+      }
+    },
+    "android": {
+      "package": "com.cloverbudget.cloud",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0C10"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
