@@ -5,8 +5,8 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { BudgetState, Entry, MonthRecord, Phase } from '../types';
-import { PLAN } from '../data/seed';
+import type { BudgetState, Entry, MonthRecord, Phase, PlanItem, PlanList } from '../types';
+import { PLAN, FIXED_COSTS, RECURRING_INCOME, SUBSCRIPTIONS } from '../data/seed';
 import { CATEGORIES } from '../data/seed';
 import { rolloverMonth } from '../lib/budget';
 import { isoDate, monthKey } from '../lib/dates';
@@ -21,6 +21,9 @@ function freshState(now: Date): BudgetState {
     currentMonth: monthKey(now),
     entries: [],
     history: [],
+    fixedCosts: FIXED_COSTS,
+    recurringIncome: RECURRING_INCOME,
+    subscriptions: SUBSCRIPTIONS,
   };
 }
 
@@ -33,6 +36,8 @@ interface BudgetContextValue {
   removeEntry: (id: string) => void;
   setPhase: (phase: Phase) => void;
   startNewMonth: () => void;
+  addPlanItem: (list: PlanList, input: { name: string; amount: number }) => void;
+  removePlanItem: (list: PlanList, id: string) => void;
 }
 
 const BudgetContext = createContext<BudgetContextValue | null>(null);
@@ -122,7 +127,29 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       });
     };
 
-    return { state, loaded, saveState, addEntry, updateEntry, removeEntry, setPhase, startNewMonth };
+    const addPlanItem: BudgetContextValue['addPlanItem'] = (list, { name, amount }) => {
+      const trimmed = name.trim();
+      if (!trimmed || !Number.isFinite(amount) || amount <= 0) return;
+      const item: PlanItem = { id: makeId(), name: trimmed, amount: Math.round(amount) };
+      setState((s) => ({ ...s, [list]: [...s[list], item] }));
+    };
+
+    const removePlanItem: BudgetContextValue['removePlanItem'] = (list, id) => {
+      setState((s) => ({ ...s, [list]: s[list].filter((item) => item.id !== id) }));
+    };
+
+    return {
+      state,
+      loaded,
+      saveState,
+      addEntry,
+      updateEntry,
+      removeEntry,
+      setPhase,
+      startNewMonth,
+      addPlanItem,
+      removePlanItem,
+    };
   }, [state, loaded, saveState]);
 
   return <BudgetContext.Provider value={value}>{children}</BudgetContext.Provider>;
@@ -136,6 +163,11 @@ function normalize(s: Partial<BudgetState>): BudgetState {
     currentMonth: s.currentMonth ?? base.currentMonth,
     entries: Array.isArray(s.entries) ? s.entries : [],
     history: Array.isArray(s.history) ? s.history : [],
+    // Installs saved before plan items were editable won't have these arrays —
+    // fall back to the seed defaults so upgrading doesn't blank the Plan screen.
+    fixedCosts: Array.isArray(s.fixedCosts) ? s.fixedCosts : base.fixedCosts,
+    recurringIncome: Array.isArray(s.recurringIncome) ? s.recurringIncome : base.recurringIncome,
+    subscriptions: Array.isArray(s.subscriptions) ? s.subscriptions : base.subscriptions,
   };
 }
 

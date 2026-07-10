@@ -2,42 +2,20 @@ import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Card, Eyebrow, SectionLabel } from '../components/ui';
+import { EditablePlanList } from '../components/EditablePlanList';
 import { Colors, Metrics, Type } from '../theme/theme';
 import { fmtCents, fmtWhole } from '../lib/money';
-import {
-  EXCLUDED_FROM_PLAN,
-  FIXED_COSTS,
-  PHASE_RULE,
-  RECURRING_INCOME,
-  SUBSCRIPTIONS,
-} from '../data/seed';
-import type { NamedAmount } from '../types';
-
-function AmountList({ items, cents = false }: { items: NamedAmount[]; cents?: boolean }) {
-  return (
-    <Card style={styles.listCard}>
-      {items.map((f, i) => (
-        <View
-          key={f.name}
-          style={[styles.listRow, i < items.length - 1 && styles.listDivider]}
-        >
-          <AppText style={styles.listName} numberOfLines={1}>
-            {f.name}
-          </AppText>
-          <AppText mono style={styles.listAmount} numberOfLines={1}>
-            {cents ? fmtCents(f.amount) : fmtWhole(f.amount)}
-          </AppText>
-        </View>
-      ))}
-    </Card>
-  );
-}
+import { EXCLUDED_FROM_PLAN, PHASE_RULE } from '../data/seed';
+import { useBudget } from '../store/useBudget';
 
 export function AboutScreen() {
   const insets = useSafeAreaInsets();
-  const subsTotal = SUBSCRIPTIONS.reduce((s, x) => s + x.monthlyCost, 0);
-  const fixedTotal = FIXED_COSTS.reduce((s, x) => s + x.amount, 0);
-  const incomeTotal = RECURRING_INCOME.reduce((s, x) => s + x.amount, 0);
+  const { state, addPlanItem, removePlanItem } = useBudget();
+  const { fixedCosts, recurringIncome, subscriptions } = state;
+
+  const subsTotal = subscriptions.reduce((s, x) => s + x.amount, 0);
+  const fixedTotal = fixedCosts.reduce((s, x) => s + x.amount, 0);
+  const incomeTotal = recurringIncome.reduce((s, x) => s + x.amount, 0);
 
   return (
     <ScrollView
@@ -54,8 +32,9 @@ export function AboutScreen() {
           <AppText style={styles.h1}>The Clover budget</AppText>
           <AppText style={styles.intro}>
             Two phases toward the same goal. Phase 1 holds spending to breakeven; Phase 2 tightens
-            the caps by $500 so the month ends with $500 saved. Fixed costs and income below are for
-            reference — they aren’t tracked in the app.
+            the caps by $500 so the month ends with $500 saved. Fixed costs, income, and
+            subscriptions below are reference only — not tracked against your caps — and are
+            yours to edit, so this plan works for any family, not just one.
           </AppText>
         </View>
 
@@ -75,10 +54,20 @@ export function AboutScreen() {
         </View>
 
         <SectionLabel style={styles.section}>Fixed costs (not tracked)</SectionLabel>
-        <AmountList items={FIXED_COSTS} />
+        <EditablePlanList
+          items={fixedCosts}
+          namePlaceholder="Fixed cost name"
+          onAdd={(input) => addPlanItem('fixedCosts', input)}
+          onRemove={(id) => removePlanItem('fixedCosts', id)}
+        />
 
         <SectionLabel style={styles.section}>Recurring income</SectionLabel>
-        <AmountList items={RECURRING_INCOME} />
+        <EditablePlanList
+          items={recurringIncome}
+          namePlaceholder="Income source"
+          onAdd={(input) => addPlanItem('recurringIncome', input)}
+          onRemove={(id) => removePlanItem('recurringIncome', id)}
+        />
 
         <View style={styles.subsHeader}>
           <SectionLabel style={styles.section}>Subscriptions</SectionLabel>
@@ -86,9 +75,12 @@ export function AboutScreen() {
             {fmtCents(subsTotal)}/mo
           </AppText>
         </View>
-        <AmountList
-          items={SUBSCRIPTIONS.map((s) => ({ name: s.name, amount: s.monthlyCost }))}
+        <EditablePlanList
+          items={subscriptions}
           cents
+          namePlaceholder="Subscription name"
+          onAdd={(input) => addPlanItem('subscriptions', input)}
+          onRemove={(id) => removePlanItem('subscriptions', id)}
         />
 
         <SectionLabel style={styles.section}>When to switch phases</SectionLabel>
@@ -161,31 +153,9 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 22,
   },
-  listCard: {
-    paddingHorizontal: 14,
-    paddingVertical: 2,
-  },
-  listRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
   listDivider: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-  },
-  listName: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    flexShrink: 1,
-    minWidth: 0,
-    paddingRight: 10,
-  },
-  listAmount: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    flexShrink: 0,
   },
   subsHeader: {
     flexDirection: 'row',

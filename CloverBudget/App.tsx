@@ -20,7 +20,7 @@ const TABS: { key: Tab; label: string }[] = [
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
       {TABS.map((t) => {
         const isActive = t.key === active;
         return (
@@ -77,12 +77,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.headerBg,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    paddingTop: 8,
+    paddingTop: 14,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 12,
   },
   tabLabel: {
     fontSize: 10.5,

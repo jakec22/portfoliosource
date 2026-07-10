@@ -40,6 +40,17 @@ export interface MonthRecord {
   entries: Entry[];
 }
 
+/** A user-editable reference line on the "About the plan" screen —
+ * a fixed cost, a recurring income source, or a subscription. */
+export interface PlanItem {
+  id: string;
+  name: string;
+  /** Amount in cents. */
+  amount: number;
+}
+
+export type PlanList = 'fixedCosts' | 'recurringIncome' | 'subscriptions';
+
 /** The whole persisted app state. */
 export interface BudgetState {
   activePhase: Phase;
@@ -47,14 +58,7 @@ export interface BudgetState {
   currentMonth: string;
   entries: Entry[];
   history: MonthRecord[];
-}
-
-export interface NamedAmount {
-  name: string;
-  amount: number; // cents
-}
-
-export interface Subscription {
-  name: string;
-  monthlyCost: number; // cents
+  fixedCosts: PlanItem[];
+  recurringIncome: PlanItem[];
+  subscriptions: PlanItem[];
 }

@@ -2,7 +2,7 @@
 // Every dollar figure is converted to integer cents at load via `c()`.
 // Caps and category names come from a real financial plan — do not "fix" them.
 
-import type { Category, NamedAmount, Subscription } from '../types';
+import type { Category, PlanItem } from '../types';
 
 /** Dollars -> integer cents, safe against float drift. */
 const c = (dollars: number): number => Math.round(dollars * 100);
@@ -26,32 +26,33 @@ export const CATEGORIES: Category[] = [
   { id: 'misc',          name: 'Misc / Other',    hint: 'Car wash, pets, mail, everything else', baselineActual: c(233.46),  phase1Cap: c(140), phase2Cap: c(70) },
 ];
 
-// Reference data for the "About the plan" screen — not tracked or editable.
-export const FIXED_COSTS: NamedAmount[] = [
-  { name: 'Rent / Mortgage (Draft)',        amount: c(2700.00) },
-  { name: 'Insurance (USAA auto + life)',   amount: c(207.78) },
-  { name: 'Internet (Cox)',                 amount: c(124.00) },
-  { name: 'Investing (Vanguard auto-buys)', amount: c(200.00) },
+// Reference data for the "About the plan" screen. Seeded on first launch,
+// then fully user-editable (add/delete) — see store/useBudget.tsx.
+export const FIXED_COSTS: PlanItem[] = [
+  { id: 'rent',      name: 'Rent / Mortgage (Draft)',        amount: c(2700.00) },
+  { id: 'insurance', name: 'Insurance (USAA auto + life)',   amount: c(207.78) },
+  { id: 'internet',  name: 'Internet (Cox)',                 amount: c(124.00) },
+  { id: 'investing', name: 'Investing (Vanguard auto-buys)', amount: c(200.00) },
 ];
 
-export const RECURRING_INCOME: NamedAmount[] = [
-  { name: 'Payroll (2x monthly)', amount: c(5172.60) },
-  { name: 'eDeposits (avg.)',     amount: c(450.00) },
+export const RECURRING_INCOME: PlanItem[] = [
+  { id: 'payroll',   name: 'Payroll (2x monthly)', amount: c(5172.60) },
+  { id: 'edeposits', name: 'eDeposits (avg.)',     amount: c(450.00) },
 ];
 
-export const SUBSCRIPTIONS: Subscription[] = [
-  { name: 'Spotify',            monthlyCost: c(21.99) },
-  { name: 'Apple.com/bill #1',  monthlyCost: c(26.97) },
-  { name: 'Apple.com/bill #2',  monthlyCost: c(12.99) },
-  { name: 'Apple.com/bill #3',  monthlyCost: c(71.99) },
-  { name: 'Amazon Prime',       monthlyCost: c(16.15) },
-  { name: 'Oura Ring',          monthlyCost: c(5.99) },
-  { name: 'YouTube Premium',    monthlyCost: c(26.99) },
-  { name: 'Google One',         monthlyCost: c(1.99) },
-  { name: 'Netflix',            monthlyCost: c(26.99) },
-  { name: 'Talkspace',          monthlyCost: c(25.00) },
-  { name: 'Sp Dermave',         monthlyCost: c(21.44) },
-  { name: 'Ctlp Entertainment', monthlyCost: c(8.00) },
+export const SUBSCRIPTIONS: PlanItem[] = [
+  { id: 'spotify',    name: 'Spotify',            amount: c(21.99) },
+  { id: 'apple1',     name: 'Apple.com/bill #1',  amount: c(26.97) },
+  { id: 'apple2',     name: 'Apple.com/bill #2',  amount: c(12.99) },
+  { id: 'apple3',     name: 'Apple.com/bill #3',  amount: c(71.99) },
+  { id: 'amazon',     name: 'Amazon Prime',       amount: c(16.15) },
+  { id: 'oura',       name: 'Oura Ring',          amount: c(5.99) },
+  { id: 'youtube',    name: 'YouTube Premium',    amount: c(26.99) },
+  { id: 'googleone',  name: 'Google One',         amount: c(1.99) },
+  { id: 'netflix',    name: 'Netflix',            amount: c(26.99) },
+  { id: 'talkspace',  name: 'Talkspace',          amount: c(25.00) },
+  { id: 'spdermave',  name: 'Sp Dermave',         amount: c(21.44) },
+  { id: 'ctlp',       name: 'Ctlp Entertainment', amount: c(8.00) },
 ];
 
 export const EXCLUDED_FROM_PLAN: string[] = [
