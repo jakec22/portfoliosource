@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Card, Eyebrow } from '../components/ui';
-import { Colors, Metrics } from '../theme/theme';
+import { Colors, Metrics, Type } from '../theme/theme';
 import { fmtCents, fmtWhole } from '../lib/money';
 import { monthLabel } from '../lib/dates';
 import { useBudget } from '../store/useBudget';
@@ -64,7 +64,7 @@ function HistoryRow({ record }: { record: MonthRecord }) {
 
       <View style={styles.statRow}>
         <AppText style={styles.statLabel}>{over ? 'Over cap' : 'Under cap'}</AppText>
-        <AppText mono style={[styles.statValue, { color: over ? Colors.red : Colors.green }]}>
+        <AppText mono style={[styles.statValue, over && styles.statValueStrong]}>
           {over ? '−' : '+'}
           {fmtCents(Math.abs(diff))}
         </AppText>
@@ -72,7 +72,7 @@ function HistoryRow({ record }: { record: MonthRecord }) {
 
       <View style={[styles.statRow, styles.savingsRow]}>
         <AppText style={styles.savingsLabel}>Savings achieved</AppText>
-        <AppText mono style={[styles.savingsValue, { color: savedPositive ? Colors.green : Colors.red }]}>
+        <AppText mono style={[styles.savingsValue, !savedPositive && styles.savingsValueNegative]}>
           {savedPositive ? '' : '−'}
           {fmtCents(Math.abs(record.savings))}
         </AppText>
@@ -93,10 +93,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   h1: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 27,
+    fontWeight: Type.weightLight,
+    letterSpacing: Type.displayTracking,
     color: Colors.text,
-    marginTop: 4,
+    marginTop: 6,
   },
   empty: {
     padding: 16,
@@ -123,21 +124,24 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   month: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: Type.weightMedium,
+    letterSpacing: 0.1,
     color: Colors.text,
   },
   phasePill: {
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.borderStrong,
     borderRadius: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 3,
   },
   phasePillText: {
-    fontSize: 11,
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
     color: Colors.textMuted,
-    fontWeight: '600',
+    fontWeight: Type.weightSemibold,
   },
   statRow: {
     flexDirection: 'row',
@@ -151,24 +155,35 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 13,
-    color: Colors.text,
+    color: Colors.textSecondary,
+  },
+  statValueStrong: {
+    color: Colors.toneOver,
+    fontWeight: Type.weightSemibold,
   },
   statCap: {
     color: Colors.textFaint,
   },
   savingsRow: {
     marginTop: 6,
-    paddingTop: 10,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
   savingsLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+    fontSize: 11,
+    letterSpacing: Type.eyebrowTracking,
+    textTransform: 'uppercase',
+    fontWeight: Type.weightSemibold,
+    color: Colors.textMuted,
   },
   savingsValue: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: Type.weightLight,
+    letterSpacing: Type.displayTracking,
+    color: Colors.text,
+  },
+  savingsValueNegative: {
+    color: Colors.textMuted,
   },
 });

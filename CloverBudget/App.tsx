@@ -85,12 +85,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 10.5,
     fontWeight: '600',
-    color: Colors.textMuted,
-    letterSpacing: 0.5,
+    color: Colors.textFaint,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   tabLabelActive: {
-    color: Colors.green,
+    color: Colors.text,
   },
 });

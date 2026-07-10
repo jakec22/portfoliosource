@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Card, Eyebrow, SectionLabel } from '../components/ui';
-import { Colors, Metrics } from '../theme/theme';
+import { Colors, Metrics, Type } from '../theme/theme';
 import { fmtCents, fmtWhole } from '../lib/money';
 import {
   EXCLUDED_FROM_PLAN,
@@ -123,16 +123,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   h1: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 27,
+    fontWeight: Type.weightLight,
+    letterSpacing: Type.displayTracking,
     color: Colors.text,
-    marginTop: 4,
+    marginTop: 6,
   },
   intro: {
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
     color: Colors.textMuted,
-    marginTop: 10,
+    marginTop: 12,
   },
   calloutRow: {
     flexDirection: 'row',
@@ -144,16 +145,18 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   calloutLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    fontWeight: Type.weightSemibold,
   },
   calloutValue: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 23,
+    fontWeight: Type.weightLight,
+    letterSpacing: Type.displayTracking,
     color: Colors.text,
-    marginTop: 6,
+    marginTop: 8,
   },
   section: {
     marginTop: 22,
@@ -191,7 +194,7 @@ const styles = StyleSheet.create({
   },
   subsTotal: {
     fontSize: 12,
-    color: Colors.green,
+    color: Colors.textSecondary,
     marginTop: 22,
   },
   noteCard: {

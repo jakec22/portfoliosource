@@ -1,54 +1,75 @@
 // Single source of truth for colors, type, and metrics.
-// Hex values come verbatim from PROJECT_SPEC.md DESIGN. Never hardcode a color
-// at a call site — reference Theme.* instead.
+//
+// Design language: executive / sleek / monochromatic. A pure graphite
+// (achromatic) palette — no hue anywhere. Status is conveyed by tone
+// (brightness) and weight, not by color. Never hardcode a color at a call
+// site — reference Colors.* instead.
 
 export const Colors = {
-  bg: '#10151F',
-  surface: '#161D2A',
-  border: '#232B3A',
-  headerBg: '#0B0F16',
+  // Surfaces — near-black graphite, subtly cool.
+  bg: '#0A0C10',
+  surface: '#12151C',
+  surfaceRaised: '#171B23',
+  border: '#22262F',
+  borderStrong: '#2E323C',
+  headerBg: '#070A0E',
 
-  text: '#E8EBF0',
-  textSecondary: '#B9C1D0',
-  textMuted: '#8A93A6',
-  textFaint: '#69738A',
+  // Text — platinum down to faint graphite.
+  text: '#F3F5F9',
+  textSecondary: '#A3A9B4',
+  textMuted: '#6B7079',
+  textFaint: '#474B53',
 
-  // Accent green (success / on-pace / CTA)
-  green: '#5FD4A8',
-  greenDark: '#2E8C6A',
+  // The only "accent" is light itself: near-white for active states and the
+  // primary CTA, with a dark ink for text that sits on top of it.
+  accent: '#F3F5F9',
+  accentDim: '#C6CAD2',
+  onAccent: '#070A0E',
 
-  amber: '#E8B44F',
+  // Status via tone (grayscale only).
+  // A bar/figure grows brighter as it fills toward — and past — its cap.
+  toneOk: '#4C5159', // under cap: dim
+  toneNear: '#8A8F99', // approaching cap: mid
+  toneOver: '#F3F5F9', // over cap: bright white
 
-  red: '#F0647A',
-  redDark: '#B03A50',
+  // Runway fill gradients: calm & dim when on pace, bright when ahead of it.
+  runwayOnPace: ['#2C3038', '#5A5F69'] as const,
+  runwayAhead: ['#9297A1', '#F3F5F9'] as const,
 
-  inputBg: '#0B0F16',
-  inputBorder: '#2C3547',
+  inputBg: '#070A0E',
+  inputBorder: '#282C35',
 
-  // Tinted background for the "goal" callout card.
-  goalBg: '#14251F',
+  // Neutral background for the "goal" callout card.
+  goalBg: '#12151C',
 } as const;
 
 export const Radii = {
-  card: 10,
-  bar: 4,
+  card: 12,
+  bar: 3,
   runway: 6,
   button: 8,
 } as const;
 
 export const Metrics = {
   runwayHeight: 26,
-  progressHeight: 8,
+  progressHeight: 6,
   maxWidth: 640,
   cardBorder: 1,
 } as const;
 
-// SF Pro Rounded is the system rounded face on iOS; on web/Android react-native
-// falls back to the platform system font. Numbers use a monospaced face so
-// figures stay tabular, matching the web app's IBM Plex Mono.
-export const Fonts = {
-  ui: undefined as string | undefined, // system rounded is applied per-platform below
-  monoWeight: '600' as const,
+// Type: sleek system grotesk (SF Pro on iOS), no rounded face. Large display
+// figures use a light weight with tight tracking for an executive feel; every
+// amount uses tabular lining figures so columns stay aligned (via the `mono`
+// prop on AppText — tabular-nums on the same sans, not a typewriter face).
+export const Type = {
+  // Letter-spacing for large light headings/figures.
+  displayTracking: -0.4,
+  // Eyebrow / section-label tracking.
+  eyebrowTracking: 2.5,
+  weightLight: '300' as const,
+  weightRegular: '400' as const,
+  weightMedium: '500' as const,
+  weightSemibold: '600' as const,
 } as const;
 
 // Animation timing for the runway/progress bars (respect Reduce Motion at call site).

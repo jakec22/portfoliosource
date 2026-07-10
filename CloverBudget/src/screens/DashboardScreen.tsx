@@ -6,7 +6,7 @@ import { RunwayBar } from '../components/RunwayBar';
 import { PhaseSwitcher } from '../components/PhaseSwitcher';
 import { LogPurchase } from '../components/LogPurchase';
 import { CategoryRow } from '../components/CategoryRow';
-import { Colors, Metrics, Radii } from '../theme/theme';
+import { Colors, Metrics, Radii, Type } from '../theme/theme';
 import { CATEGORIES } from '../data/seed';
 import {
   capFor,
@@ -61,7 +61,8 @@ export function DashboardScreen() {
             <View style={styles.headerRight}>
               <AppText
                 mono
-                style={[styles.remaining, { color: remaining >= 0 ? Colors.green : Colors.red }]}
+                numberOfLines={1}
+                style={[styles.remaining, remaining < 0 && styles.remainingOver]}
               >
                 {fmtWhole(Math.abs(remaining))}
               </AppText>
@@ -72,13 +73,22 @@ export function DashboardScreen() {
           </View>
 
           <View style={styles.runwayWrap}>
+            <View style={styles.runwayCaption}>
+              <AppText mono style={styles.runwayFigure} numberOfLines={1}>
+                {fmtWhole(totalSpent)}
+                <AppText mono style={styles.runwayFigureMuted}> of {fmtWhole(totalCap)}</AppText>
+              </AppText>
+              <AppText style={styles.paceTag}>
+                {pace.onPace ? 'On pace' : 'Ahead of pace'}
+              </AppText>
+            </View>
             <RunwayBar pace={pace} totalSpent={totalSpent} totalCap={totalCap} />
             <View style={styles.runwayFoot}>
               <AppText style={styles.runwayFootText}>
-                {pace.onPace ? 'On pace' : 'Ahead of pace'} — day {pos.day} of {pos.total}
+                Day {pos.day} of {pos.total}
               </AppText>
               <AppText mono style={styles.runwayFootText}>
-                pace target: {fmtWhole(pace.paceTarget)}
+                Pace target {fmtWhole(pace.paceTarget)}
               </AppText>
             </View>
           </View>
@@ -227,38 +237,67 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   h1: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 27,
+    fontWeight: Type.weightLight,
+    letterSpacing: Type.displayTracking,
     color: Colors.text,
-    marginTop: 4,
+    marginTop: 6,
   },
   headerRight: {
     alignItems: 'flex-end',
     flexShrink: 0,
   },
   remaining: {
-    fontSize: 22,
-    fontWeight: '600',
+    fontSize: 30,
+    fontWeight: Type.weightLight,
+    letterSpacing: Type.displayTracking,
+    color: Colors.text,
+  },
+  remainingOver: {
+    fontWeight: Type.weightSemibold,
   },
   remainingLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
+    letterSpacing: 0.3,
     color: Colors.textMuted,
-    marginTop: 2,
+    marginTop: 3,
   },
   runwayWrap: {
-    marginTop: 18,
+    marginTop: 22,
+  },
+  runwayCaption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 8,
+  },
+  runwayFigure: {
+    fontSize: 14,
+    fontWeight: Type.weightMedium,
+    color: Colors.text,
+  },
+  runwayFigureMuted: {
+    color: Colors.textMuted,
+    fontWeight: Type.weightRegular,
+  },
+  paceTag: {
+    fontSize: 10.5,
+    letterSpacing: Type.eyebrowTracking,
+    textTransform: 'uppercase',
+    color: Colors.textSecondary,
+    fontWeight: Type.weightSemibold,
   },
   runwayFoot: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 5,
+    marginTop: 7,
   },
   runwayFootText: {
     fontSize: 11,
     color: Colors.textMuted,
   },
   phaseWrap: {
-    marginTop: 16,
+    marginTop: 18,
   },
   body: {
     width: '100%',
@@ -268,21 +307,21 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   goalCard: {
-    padding: 16,
+    padding: 18,
     marginTop: 12,
     marginBottom: 24,
-    borderColor: Colors.greenDark,
+    borderColor: Colors.borderStrong,
     backgroundColor: Colors.goalBg,
   },
   goalText: {
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 22,
     color: Colors.textSecondary,
-    marginTop: 6,
+    marginTop: 8,
   },
   goalBold: {
     color: Colors.text,
-    fontWeight: '700',
+    fontWeight: Type.weightSemibold,
   },
   entriesCard: {
     paddingHorizontal: 14,
@@ -356,14 +395,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   confirmYes: {
-    backgroundColor: Colors.green,
+    backgroundColor: Colors.accent,
     borderRadius: Radii.button,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   confirmYesText: {
-    color: Colors.headerBg,
-    fontWeight: '700',
+    color: Colors.onAccent,
+    fontWeight: Type.weightSemibold,
     fontSize: 13,
   },
   confirmCancel: {

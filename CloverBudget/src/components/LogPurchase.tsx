@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { AppText, Card, SectionLabel } from './ui';
-import { Colors, Radii } from '../theme/theme';
+import { Colors, Radii, Type } from '../theme/theme';
 import { CATEGORIES } from '../data/seed';
 import { parseDollarsToCents } from '../lib/money';
 import type { SaveState } from '../store/useBudget';
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   chip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 13,
     paddingVertical: 8,
     borderRadius: Radii.button,
     backgroundColor: Colors.inputBg,
@@ -123,16 +123,17 @@ const styles = StyleSheet.create({
     borderColor: Colors.inputBorder,
   },
   chipActive: {
-    backgroundColor: Colors.green,
-    borderColor: Colors.green,
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
   chipText: {
     fontSize: 13,
     color: Colors.textSecondary,
-    fontWeight: '600',
+    fontWeight: Type.weightMedium,
   },
   chipTextActive: {
-    color: Colors.headerBg,
+    color: Colors.onAccent,
+    fontWeight: Type.weightSemibold,
   },
   inputs: {
     flexDirection: 'row',
@@ -156,18 +157,19 @@ const styles = StyleSheet.create({
     flex: 2,
   },
   inputError: {
-    borderColor: Colors.red,
+    borderColor: Colors.toneOver,
   },
   addButton: {
-    backgroundColor: Colors.green,
+    backgroundColor: Colors.accent,
     borderRadius: Radii.button,
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     justifyContent: 'center',
   },
   addText: {
-    color: Colors.headerBg,
-    fontWeight: '700',
+    color: Colors.onAccent,
+    fontWeight: Type.weightSemibold,
     fontSize: 14,
+    letterSpacing: 0.2,
   },
   status: {
     fontSize: 11,

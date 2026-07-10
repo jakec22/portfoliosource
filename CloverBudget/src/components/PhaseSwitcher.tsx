@@ -4,7 +4,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from './ui';
-import { Colors, Radii } from '../theme/theme';
+import { Colors, Radii, Type } from '../theme/theme';
 import { fmtWhole } from '../lib/money';
 import type { Phase } from '../types';
 
@@ -82,24 +82,28 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    borderRadius: Radii.bar + 2,
+    borderRadius: Radii.button - 2,
+    borderWidth: 1,
+    borderColor: 'transparent',
     alignItems: 'center',
   },
   segmentActive: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.surfaceRaised,
+    borderColor: Colors.borderStrong,
   },
   title: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: Type.weightSemibold,
+    letterSpacing: 0.2,
     color: Colors.textMuted,
   },
   titleActive: {
-    color: Colors.green,
+    color: Colors.text,
   },
   subtitle: {
     fontSize: 10.5,
     color: Colors.textFaint,
-    marginTop: 2,
+    marginTop: 3,
   },
   subtitleActive: {
     color: Colors.textSecondary,

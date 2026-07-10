@@ -1,17 +1,15 @@
 // Base UI primitives. Colors and type live here and in theme.ts only.
 
 import React from 'react';
-import { Platform, StyleSheet, Text, TextProps, View, ViewProps } from 'react-native';
-import { Colors, Metrics, Radii } from '../theme/theme';
+import { StyleSheet, Text, TextProps, View, ViewProps } from 'react-native';
+import { Colors, Metrics, Radii, Type } from '../theme/theme';
 
-// UI face: SF Pro Rounded on iOS (the SF Pro Rounded family name), platform
-// system font elsewhere. Numbers use a monospaced face + tabular figures so
-// every amount stays column-aligned, matching the web app's IBM Plex Mono.
-const UI_FONT = Platform.select({ ios: 'SF Pro Rounded', default: undefined });
-const MONO_FONT = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
+// UI face: the platform system grotesk (SF Pro on iOS) — sharp, neutral, and
+// executive. Numbers reuse the same face with tabular lining figures so every
+// amount stays column-aligned, without a typewriter/mono look.
 
 interface AppTextProps extends TextProps {
-  /** Render as a monospaced, tabular figure (for any amount/number). */
+  /** Render figures with tabular (column-aligned) lining numerals. */
   mono?: boolean;
 }
 
@@ -20,7 +18,7 @@ export function AppText({ mono, style, ...rest }: AppTextProps) {
     <Text
       {...rest}
       style={[
-        { color: Colors.text, fontFamily: mono ? MONO_FONT : UI_FONT },
+        { color: Colors.text },
         mono && { fontVariant: ['tabular-nums'] as const },
         style,
       ]}
@@ -28,12 +26,12 @@ export function AppText({ mono, style, ...rest }: AppTextProps) {
   );
 }
 
-/** Uppercase, letter-spaced green eyebrow label. */
+/** Uppercase, wide-tracked, muted eyebrow label. */
 export function Eyebrow({ children, style }: { children: React.ReactNode; style?: TextProps['style'] }) {
   return <AppText style={[styles.eyebrow, style]}>{children}</AppText>;
 }
 
-/** Standard card surface: 10pt radius, 1pt border, surface background. */
+/** Standard card surface: rounded, hairline border, graphite surface. */
 export function Card({ style, ...rest }: ViewProps) {
   return <View {...rest} style={[styles.card, style]} />;
 }
@@ -45,11 +43,11 @@ export function SectionLabel({ children, style }: { children: React.ReactNode; s
 
 const styles = StyleSheet.create({
   eyebrow: {
-    fontSize: 11,
-    letterSpacing: 2,
+    fontSize: 10.5,
+    letterSpacing: Type.eyebrowTracking,
     textTransform: 'uppercase',
-    color: Colors.green,
-    fontWeight: '600',
+    color: Colors.textMuted,
+    fontWeight: Type.weightSemibold,
   },
   card: {
     backgroundColor: Colors.surface,
@@ -61,9 +59,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: 10,
+    fontSize: 11,
+    fontWeight: Type.weightSemibold,
+    letterSpacing: Type.eyebrowTracking,
+    textTransform: 'uppercase',
+    color: Colors.textMuted,
+    marginBottom: 12,
   },
 });

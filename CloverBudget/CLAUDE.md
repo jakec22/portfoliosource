@@ -35,10 +35,17 @@ Full product requirements in `PROJECT_SPEC.md`; seed data in `budget_data.json`.
   calendar (see `src/lib/dates.ts`).
 
 ## Design guardrails
-- Dark theme only. Match `PROJECT_SPEC.md` DESIGN exactly (mirrors an approved
-  web app). Don't restyle, lighten, or swap the green.
-- The runway bar (total spend vs total cap, colored by pace) is the signature
-  element.
+- **Executive / sleek / monochromatic (graphite).** Achromatic palette — no hue
+  anywhere. Status is shown by *tone* (brightness) and weight, never color: a
+  bar/figure grows brighter as it fills toward and past its cap; over-cap reads
+  as bright white + bold. This intentionally supersedes the green/amber/red
+  DESIGN section of `PROJECT_SPEC.md` (kept for product reference only) — do not
+  reintroduce the green or any accent hue unless the user asks.
+- Type is the platform system grotesk (SF Pro on iOS), no rounded face. Large
+  display figures use a light weight with tight tracking; every amount uses
+  tabular figures via `<AppText mono>`.
+- Dark theme only. The runway bar (total spend vs total cap, tone by pace) is
+  the signature element.
 
 ## Don't
 - Don't rename categories or change caps — they come from a real financial plan.

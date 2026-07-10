@@ -5,15 +5,17 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AppText, Card } from './ui';
 import { ProgressBar } from './ProgressBar';
-import { Colors } from '../theme/theme';
+import { Colors, Type } from '../theme/theme';
 import { fmtCents, fmtWhole } from '../lib/money';
 import type { CategoryProgress } from '../lib/budget';
 import { PLAN } from '../data/seed';
 
+// Status by tone (grayscale): dim when there's room, brighter as the bar fills,
+// full white when over the cap.
 const STATUS_COLOR = {
-  ok: Colors.green,
-  near: Colors.amber,
-  over: Colors.red,
+  ok: Colors.toneOk,
+  near: Colors.toneNear,
+  over: Colors.toneOver,
 } as const;
 
 export function CategoryRow({ progress }: { progress: CategoryProgress }) {
@@ -38,7 +40,7 @@ export function CategoryRow({ progress }: { progress: CategoryProgress }) {
         <AppText
           mono
           numberOfLines={1}
-          style={[styles.amount, { color: over ? Colors.red : Colors.textSecondary }]}
+          style={[styles.amount, over && styles.amountOver]}
         >
           {fmtCents(spent)} <AppText mono style={styles.cap}>/ {fmtWhole(cap)}</AppText>
         </AppText>
@@ -47,7 +49,7 @@ export function CategoryRow({ progress }: { progress: CategoryProgress }) {
       <ProgressBar fraction={fraction} color={barColor} />
 
       <View style={styles.bottomRow}>
-        <AppText style={styles.foot}>
+        <AppText style={[styles.foot, over && styles.footOver]}>
           {over ? `${fmtCents(-remaining)} over cap` : `${fmtCents(remaining)} left`}
         </AppText>
         <AppText mono style={styles.foot}>
@@ -76,17 +78,23 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: Type.weightMedium,
+    letterSpacing: 0.1,
     color: Colors.text,
   },
   hint: {
     fontSize: 11,
     color: Colors.textFaint,
-    marginTop: 2,
+    marginTop: 3,
   },
   amount: {
     fontSize: 13,
     flexShrink: 0,
+    color: Colors.textSecondary,
+  },
+  amountOver: {
+    color: Colors.toneOver,
+    fontWeight: Type.weightSemibold,
   },
   cap: {
     color: Colors.textFaint,
@@ -94,10 +102,13 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 5,
+    marginTop: 8,
   },
   foot: {
     fontSize: 10.5,
     color: Colors.textFaint,
+  },
+  footOver: {
+    color: Colors.textSecondary,
   },
 });
