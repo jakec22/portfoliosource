@@ -246,6 +246,37 @@ export function getHeartRateMonitor(): HeartRateMonitor {
   return instance;
 }
 
+/**
+ * Reduce a dense heart-rate series to at most `maxPoints` samples for storage.
+ * A workout can stream thousands of samples; persisting all of them for every
+ * saved workout bloats the on-disk store and slows app cold-start. `maxPoints`
+ * (~200) is far more than a small phone chart can resolve, and we always keep
+ * the first, last, and the true peak/low samples so the graph shape and the
+ * Avg/Peak/Low stats stay accurate.
+ */
+export function downsampleHeartRate(
+  samples: HeartRateSample[],
+  maxPoints = 200
+): HeartRateSample[] {
+  if (samples.length <= maxPoints) return samples;
+  const step = samples.length / maxPoints;
+  const picked = new Set<number>();
+  for (let i = 0; i < maxPoints; i++) picked.add(Math.floor(i * step));
+  picked.add(samples.length - 1); // reach the end of the workout
+  // Preserve the extremes so peak/low stats aren't softened by sampling.
+  let peakI = 0;
+  let lowI = 0;
+  for (let i = 1; i < samples.length; i++) {
+    if (samples[i].bpm > samples[peakI].bpm) peakI = i;
+    if (samples[i].bpm < samples[lowI].bpm) lowI = i;
+  }
+  picked.add(peakI);
+  picked.add(lowI);
+  return Array.from(picked)
+    .sort((a, b) => a - b)
+    .map((i) => samples[i]);
+}
+
 /** Convenience: average / peak / low for a set of samples. */
 export function heartRateStats(samples: HeartRateSample[]) {
   if (samples.length === 0) return null;

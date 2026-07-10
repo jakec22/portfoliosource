@@ -24,6 +24,7 @@ import {
   type SettingsSnapshot,
 } from '../services/sync';
 import { startWatchWorkout, endWatchWorkout } from '../services/watch';
+import { downsampleHeartRate } from '../services/heartRate';
 
 const DEFAULT_GOALS: DailyGoals = {
   calories: 2000,
@@ -400,9 +401,12 @@ export const useStore = create<AppState>()(
       },
 
       attachWorkoutHeartRate: (id, samples) => {
+        // Store a downsampled series — dense raw HR (thousands of points per
+        // workout) bloats the persisted store and slows cold-start.
+        const trimmed = downsampleHeartRate(samples);
         set((state) => ({
           workoutHistory: state.workoutHistory.map((w) =>
-            w.id === id ? { ...w, heartRateSamples: samples } : w
+            w.id === id ? { ...w, heartRateSamples: trimmed } : w
           ),
         }));
         const updated = get().workoutHistory.find((w) => w.id === id);
@@ -667,7 +671,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 6,
+      version: 7,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -735,6 +739,19 @@ export const useStore = create<AppState>()(
                 streak: { hour: 20, minute: 30 },
               },
             },
+          };
+        }
+        // v7 downsamples heart-rate samples stored on past workouts. Early
+        // builds kept the full dense stream (thousands of points each), which
+        // bloated the persisted store and slowed cold-start. Shrink them once.
+        if (version < 7 && state && Array.isArray(state.workoutHistory)) {
+          state = {
+            ...state,
+            workoutHistory: state.workoutHistory.map((w: any) =>
+              Array.isArray(w?.heartRateSamples) && w.heartRateSamples.length > 200
+                ? { ...w, heartRateSamples: downsampleHeartRate(w.heartRateSamples) }
+                : w
+            ),
           };
         }
         return state;
