@@ -7,6 +7,7 @@ import { AppText } from './src/components/ui';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { AboutScreen } from './src/screens/AboutScreen';
+import { ImportStatementModal } from './src/components/ImportStatementModal';
 import { Colors } from './src/theme/theme';
 
 type Tab = 'dashboard' | 'history' | 'about';
@@ -41,15 +42,17 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
 
 function Root() {
   const [tab, setTab] = useState<Tab>('dashboard');
+  const [showImport, setShowImport] = useState(false);
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
       <View style={styles.screen}>
-        {tab === 'dashboard' && <DashboardScreen />}
+        {tab === 'dashboard' && <DashboardScreen onOpenImport={() => setShowImport(true)} />}
         {tab === 'history' && <HistoryScreen />}
         {tab === 'about' && <AboutScreen />}
       </View>
       <TabBar active={tab} onChange={setTab} />
+      <ImportStatementModal visible={showImport} onClose={() => setShowImport(false)} />
     </View>
   );
 }

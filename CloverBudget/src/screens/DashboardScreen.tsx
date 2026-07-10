@@ -19,7 +19,7 @@ import { fmtCents, fmtWhole } from '../lib/money';
 import { monthPosition } from '../lib/dates';
 import { useBudget } from '../store/useBudget';
 
-export function DashboardScreen() {
+export function DashboardScreen({ onOpenImport }: { onOpenImport: () => void }) {
   const insets = useSafeAreaInsets();
   const { state, saveState, addEntry, removeEntry, setPhase, startNewMonth } = useBudget();
   const { activePhase, entries } = state;
@@ -107,6 +107,10 @@ export function DashboardScreen() {
       {/* Body */}
       <View style={styles.body}>
         <LogPurchase saveState={saveState} onAdd={addEntry} />
+
+        <Pressable onPress={onOpenImport} style={styles.importButton} accessibilityRole="button">
+          <AppText style={styles.importButtonText}>Import a bank statement</AppText>
+        </Pressable>
 
         <SectionLabel>Flexible categories</SectionLabel>
         {progress.map((p) => (
@@ -309,6 +313,19 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 20,
     paddingTop: 20,
+  },
+  importButton: {
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: Radii.button,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  importButtonText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: Type.weightMedium,
   },
   goalCard: {
     padding: 18,

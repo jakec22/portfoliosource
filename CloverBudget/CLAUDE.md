@@ -21,7 +21,31 @@ Full product requirements in `PROJECT_SPEC.md`; seed data in `budget_data.json`.
 ## Stack
 - Expo SDK 56, React Native 0.85, React 19, TypeScript
 - Persistence: AsyncStorage (offline, no accounts, no network)
-- No native modules beyond expo-linear-gradient / async-storage
+- Native modules: expo-linear-gradient, async-storage, expo-document-picker,
+  `expo-file-system/legacy` (the default `expo-file-system` export moved to a
+  new File/Directory class API in this SDK — the classic `readAsStringAsync`
+  lives at the `/legacy` subpath), expo-secure-store
+
+## AI statement import
+- Bring-your-own-key: the user's Anthropic API key is entered once and stored
+  via `expo-secure-store` (`src/lib/apiKey.ts`), never bundled or sent
+  anywhere but `api.anthropic.com`. No backend.
+- Calls the Messages API via raw `fetch` (`src/lib/claudeImport.ts`), not the
+  `@anthropic-ai/sdk` package — that SDK targets Node/browser and doesn't
+  bundle cleanly into React Native/Hermes.
+- One-shot structured-output extraction (`output_config.format` json_schema),
+  not an agentic loop — model `claude-haiku-4-5`.
+- Re-import dedupe: Claude re-parses the whole statement every time (no
+  memory of prior imports). Before entries are added, each parsed transaction
+  is fingerprinted (date + amount + normalized merchant text) against
+  `state.entries` — see `src/lib/importDedupe.ts`. Matches are pre-unchecked
+  and labeled "Already imported" on the review screen but always stay
+  user-overridable, never silently hidden.
+- `expo-secure-store`'s web shim is incomplete in this SDK (no
+  `getValueWithKeyAsync`) — real usage is native-only (Expo Go/iOS/Android).
+  Key load/save failures are caught and degrade to the key-entry/error step
+  rather than crashing; this was verified by exercising the failure path on
+  the web build, not by SecureStore actually working there.
 
 ## Conventions
 - **Money is integer cents everywhere.** Only `src/lib/money.ts` converts to
