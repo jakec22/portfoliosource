@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   statValueStrong: {
-    color: Colors.toneOver,
+    color: Colors.warning,
     fontWeight: Type.weightSemibold,
   },
   statCap: {
@@ -184,6 +184,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   savingsValueNegative: {
-    color: Colors.textMuted,
+    color: Colors.warning,
   },
 });

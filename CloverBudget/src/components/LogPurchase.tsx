@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     flex: 2,
   },
   inputError: {
-    borderColor: Colors.toneOver,
+    borderColor: Colors.warning,
   },
   addButton: {
     backgroundColor: Colors.accent,

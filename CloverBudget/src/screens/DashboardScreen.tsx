@@ -66,7 +66,7 @@ export function DashboardScreen() {
               >
                 {fmtWhole(Math.abs(remaining))}
               </AppText>
-              <AppText style={styles.remainingLabel}>
+              <AppText style={[styles.remainingLabel, remaining < 0 && styles.remainingLabelOver]}>
                 {remaining >= 0 ? 'left this month' : 'over budget'}
               </AppText>
             </View>
@@ -255,12 +255,16 @@ const styles = StyleSheet.create({
   },
   remainingOver: {
     fontWeight: Type.weightSemibold,
+    color: Colors.warning,
   },
   remainingLabel: {
     fontSize: 10.5,
     letterSpacing: 0.3,
     color: Colors.textMuted,
     marginTop: 3,
+  },
+  remainingLabelOver: {
+    color: Colors.warning,
   },
   runwayWrap: {
     marginTop: 22,

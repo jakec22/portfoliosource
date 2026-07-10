@@ -10,12 +10,12 @@ import { fmtCents, fmtWhole } from '../lib/money';
 import type { CategoryProgress } from '../lib/budget';
 import { PLAN } from '../data/seed';
 
-// Status by tone (grayscale): dim when there's room, brighter as the bar fills,
-// full white when over the cap.
+// Status: grayscale by tone while under cap (dim → mid as it fills), then a
+// muted terracotta once over the cap — the one place any hue appears.
 const STATUS_COLOR = {
   ok: Colors.toneOk,
   near: Colors.toneNear,
-  over: Colors.toneOver,
+  over: Colors.warning,
 } as const;
 
 export function CategoryRow({ progress }: { progress: CategoryProgress }) {
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   amountOver: {
-    color: Colors.toneOver,
+    color: Colors.warning,
     fontWeight: Type.weightSemibold,
   },
   cap: {
@@ -109,6 +109,6 @@ const styles = StyleSheet.create({
     color: Colors.textFaint,
   },
   footOver: {
-    color: Colors.textSecondary,
+    color: Colors.warning,
   },
 });

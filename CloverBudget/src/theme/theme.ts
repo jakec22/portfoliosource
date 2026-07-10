@@ -27,10 +27,14 @@ export const Colors = {
   onAccent: '#070A0E',
 
   // Status via tone (grayscale only).
-  // A bar/figure grows brighter as it fills toward — and past — its cap.
+  // A bar/figure grows brighter as it fills toward its cap.
   toneOk: '#4C5159', // under cap: dim
   toneNear: '#8A8F99', // approaching cap: mid
-  toneOver: '#F3F5F9', // over cap: bright white
+
+  // The single permitted hue: a muted terracotta, used ONLY to signal
+  // over-budget / over-cap (and negative savings / input error) states.
+  // Everything else in the app stays achromatic.
+  warning: '#C27A5B',
 
   // Runway fill gradients: calm & dim when on pace, bright when ahead of it.
   runwayOnPace: ['#2C3038', '#5A5F69'] as const,
