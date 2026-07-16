@@ -116,6 +116,22 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
     field: 'weight' | 'reps';
   } | null>(null);
 
+  // Raw in-progress text for the weight input, keyed by set id. Needed because
+  // the field is otherwise derived from the numeric store value every render —
+  // typing "12." parses to 12, which immediately redraws as "12" and strips the
+  // trailing dot before the next digit lands, so a decimal like 12.5 could never
+  // actually form. Cleared on blur so the display reformats from the store.
+  const [weightDrafts, setWeightDrafts] = useState<Record<string, string>>({});
+
+  function sanitizeDecimal(v: string): string {
+    let cleaned = v.replace(/[^0-9.]/g, '');
+    const firstDot = cleaned.indexOf('.');
+    if (firstDot !== -1) {
+      cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+    }
+    return cleaned;
+  }
+
   function fillAll() {
     if (!focusCtx || !workout) return;
     const ex = workout.exercises.find((e) => e.id === focusCtx.exId);
@@ -398,12 +414,24 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                     </TouchableOpacity>
                     <TextInput
                       style={[styles.colNum, styles.setInput]}
-                      value={set.weight === 0 ? '' : String(set.weight)}
+                      value={
+                        weightDrafts[set.id] ?? (set.weight === 0 ? '' : String(set.weight))
+                      }
                       onChangeText={(v) => {
-                        const n = parseFloat(v.replace(/[^0-9.]/g, ''));
+                        const cleaned = sanitizeDecimal(v);
+                        setWeightDrafts((prev) => ({ ...prev, [set.id]: cleaned }));
+                        const n = parseFloat(cleaned);
                         updateWorkoutSet(ex.id, set.id, { weight: Number.isNaN(n) ? 0 : n });
                       }}
                       onFocus={() => setFocusCtx({ exId: ex.id, setId: set.id, field: 'weight' })}
+                      onBlur={() =>
+                        setWeightDrafts((prev) => {
+                          if (!(set.id in prev)) return prev;
+                          const next = { ...prev };
+                          delete next[set.id];
+                          return next;
+                        })
+                      }
                       keyboardType="decimal-pad"
                       placeholder="0"
                       placeholderTextColor={c.textFaint}
