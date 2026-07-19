@@ -26,6 +26,10 @@ import { BuildMealScreen } from './src/screens/BuildMealScreen';
 import { GoalWizardScreen } from './src/screens/GoalWizardScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
+import { RecipesListScreen } from './src/screens/RecipesListScreen';
+import { NewRecipeScreen } from './src/screens/NewRecipeScreen';
+import { RecipeReviewScreen } from './src/screens/RecipeReviewScreen';
+import { RecipeDetailScreen } from './src/screens/RecipeDetailScreen';
 import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
@@ -69,6 +73,18 @@ function HomeStack() {
         component={BuildMealScreen as any}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen name="RecipesList" component={RecipesListScreen as any} />
+      <Stack.Screen
+        name="NewRecipe"
+        component={NewRecipeScreen as any}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="RecipeReview"
+        component={RecipeReviewScreen as any}
+        options={{ presentation: 'modal' }}
+      />
+      <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen as any} />
     </Stack.Navigator>
   );
 }

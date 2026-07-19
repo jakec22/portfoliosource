@@ -118,6 +118,15 @@ export const useStore = create<AppState>()(
       workoutTemplates: [],
       activeWorkout: null,
       workoutHistory: [],
+      recipes: [],
+
+      addRecipe: (recipe) => {
+        set((state) => ({ recipes: [recipe, ...state.recipes] }));
+      },
+
+      deleteRecipe: (id) => {
+        set((state) => ({ recipes: state.recipes.filter((r) => r.id !== id) }));
+      },
 
       setGoals: (goals) => {
         set({ goals });
@@ -652,6 +661,7 @@ export const useStore = create<AppState>()(
           workoutTemplates: [],
           activeWorkout: null,
           workoutHistory: [],
+          recipes: [],
         });
       },
 

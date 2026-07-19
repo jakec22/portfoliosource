@@ -157,6 +157,31 @@ export interface SavedMeal {
   createdAt: number;
 }
 
+// One line of a recipe's ingredient list — kept as free text (name + amount as
+// written) rather than resolved to a Food, since recipe ingredients are for
+// reading/shopping, not individually logged.
+export interface RecipeIngredient {
+  name: string;
+  amount?: string; // e.g. "2 cups", "1 tbsp" — as extracted, not normalized
+}
+
+// A recipe imported from a website link or pasted text (e.g. an Instagram
+// caption), broken down into ingredients, steps, and per-serving macros.
+export interface Recipe {
+  id: string;
+  name: string;
+  sourceUrl?: string;
+  servings: number;
+  ingredients: RecipeIngredient[];
+  steps: string[];
+  // Per-serving macro estimate (AI-derived from the ingredient list).
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  createdAt: number;
+}
+
 // The inputs the Goal Wizard collects, persisted so re-running it pre-fills the
 // user's last answers. `heightCm`/`weightLbs` are stored canonically; `units`
 // only controls how they're displayed/edited.
@@ -194,6 +219,9 @@ export interface AppState {
   workoutTemplates: WorkoutTemplate[];
   activeWorkout: WorkoutSession | null;
   workoutHistory: WorkoutSession[]; // completed sessions, newest first
+  recipes: Recipe[]; // imported recipes, newest first
+  addRecipe: (recipe: Recipe) => void;
+  deleteRecipe: (id: string) => void;
   setGoals: (goals: DailyGoals) => void;
   addEntry: (entry: FoodEntry) => void;
   addRecentFood: (food: Food) => void;
