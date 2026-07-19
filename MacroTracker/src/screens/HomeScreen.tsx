@@ -274,20 +274,6 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.trendsArrow}>›</Text>
         </TouchableOpacity>
 
-        {/* Recipes */}
-        <TouchableOpacity
-          style={styles.trendsBtn}
-          onPress={() => navigation.navigate('RecipesList')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.trendsIcon}>📋</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.trendsTitle}>Recipes</Text>
-            <Text style={styles.trendsSub}>Import from a link or paste text — get ingredients & macros</Text>
-          </View>
-          <Text style={styles.trendsArrow}>›</Text>
-        </TouchableOpacity>
-
         {/* AI Meal Logger */}
         <TouchableOpacity style={styles.snapBtn} onPress={handleSnapMeal} activeOpacity={0.85}>
           <Text style={styles.snapIcon}>✨</Text>

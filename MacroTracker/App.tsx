@@ -73,6 +73,13 @@ function HomeStack() {
         component={BuildMealScreen as any}
         options={{ presentation: 'modal' }}
       />
+    </Stack.Navigator>
+  );
+}
+
+function RecipesStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="RecipesList" component={RecipesListScreen as any} />
       <Stack.Screen
         name="NewRecipe"
@@ -174,7 +181,7 @@ function MainTabs() {
             },
             tabBarIcon: ({ focused, color }) => (
               <TabIcon
-                name={route.name as 'Home' | 'Exercise' | 'History' | 'Profile'}
+                name={route.name as 'Home' | 'Exercise' | 'History' | 'Recipes' | 'Profile'}
                 color={color}
                 size={focused ? 28 : 24}
               />
@@ -184,6 +191,7 @@ function MainTabs() {
           <Tab.Screen name="Home" component={HomeStack} />
           <Tab.Screen name="Exercise" component={ExerciseStack} />
           <Tab.Screen name="History" component={HistoryStack} />
+          <Tab.Screen name="Recipes" component={RecipesStack} />
           <Tab.Screen name="Profile" component={ProfileStack} />
         </Tab.Navigator>
       </NavigationContainer>
