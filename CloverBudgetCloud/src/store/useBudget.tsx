@@ -45,6 +45,7 @@ interface BudgetContextValue {
   activePhase: Phase;
   entries: Entry[];
   addEntry: (input: { categoryId: string; amount: number; note: string; date?: string }) => void;
+  updateEntry: (id: string, patch: Partial<{ categoryId: string; amount: number; note: string }>) => void;
   removeEntry: (id: string) => void;
   setPhase: (phase: Phase) => void;
 }
@@ -199,6 +200,26 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         });
     };
 
+    const updateEntry: BudgetContextValue['updateEntry'] = (id, patch) => {
+      if (!supabase || !session) return;
+      if (patch.amount !== undefined && (!Number.isFinite(patch.amount) || patch.amount <= 0)) return;
+      setEntries((cur) => cur.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+      const row: Record<string, unknown> = {};
+      if (patch.categoryId !== undefined) row.category_id = patch.categoryId;
+      if (patch.amount !== undefined) row.amount = Math.round(patch.amount);
+      if (patch.note !== undefined) row.note = patch.note.trim();
+      setSaveState('saving');
+      supabase
+        .from('budget_entries')
+        .update(row)
+        .eq('id', id)
+        .eq('user_id', session.user.id)
+        .then(({ error }) => {
+          if (error) setSaveState('error');
+          else flashSaved();
+        });
+    };
+
     const removeEntry: BudgetContextValue['removeEntry'] = (id) => {
       if (!supabase || !session) return;
       setEntries((cur) => cur.filter((e) => e.id !== id));
@@ -238,6 +259,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       activePhase,
       entries,
       addEntry,
+      updateEntry,
       removeEntry,
       setPhase,
     };

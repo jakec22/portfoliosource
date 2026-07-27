@@ -3,7 +3,7 @@
 // proves that the current month's entries + phase sync live across devices.
 // See CLAUDE.md for the full scope cut.
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Card, Eyebrow, SectionLabel } from '../components/ui';
@@ -11,6 +11,7 @@ import { RunwayBar } from '../components/RunwayBar';
 import { PhaseSwitcher } from '../components/PhaseSwitcher';
 import { LogPurchase } from '../components/LogPurchase';
 import { CategoryRow } from '../components/CategoryRow';
+import { EditEntryModal } from '../components/EditEntryModal';
 import { Colors, Metrics, Type } from '../theme/theme';
 import { CATEGORIES } from '../data/seed';
 import {
@@ -22,10 +23,14 @@ import {
 import { fmtCents, fmtWhole } from '../lib/money';
 import { monthPosition } from '../lib/dates';
 import { useBudget } from '../store/useBudget';
+import type { Entry } from '../types';
 
 export function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { activePhase, entries, saveState, addEntry, removeEntry, setPhase, signOut } = useBudget();
+  const { activePhase, entries, saveState, addEntry, updateEntry, removeEntry, setPhase, signOut } =
+    useBudget();
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
 
   const pos = useMemo(() => monthPosition(new Date()), []);
 
@@ -112,7 +117,16 @@ export function DashboardScreen() {
 
         <SectionLabel>Flexible categories</SectionLabel>
         {progress.map((p) => (
-          <CategoryRow key={p.category.id} progress={p} />
+          <CategoryRow
+            key={p.category.id}
+            progress={p}
+            entries={entries.filter((e) => e.categoryId === p.category.id)}
+            expanded={expandedCategoryId === p.category.id}
+            onToggle={() =>
+              setExpandedCategoryId((cur) => (cur === p.category.id ? null : p.category.id))
+            }
+            onSelectEntry={setEditingEntry}
+          />
         ))}
 
         {/* Recent entries */}
@@ -155,6 +169,13 @@ export function DashboardScreen() {
           <AppText style={styles.signOutText}>Sign out</AppText>
         </Pressable>
       </View>
+
+      <EditEntryModal
+        entry={editingEntry}
+        onClose={() => setEditingEntry(null)}
+        onSave={updateEntry}
+        onDelete={removeEntry}
+      />
     </ScrollView>
   );
 }
