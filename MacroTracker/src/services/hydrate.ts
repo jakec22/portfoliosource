@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { useStore } from '../store/useStore';
 import {
@@ -12,8 +13,36 @@ import {
 import type { FoodEntry, WorkoutSession } from '../types';
 
 // Guard against re-running a full sync for the same user on repeated
-// auth events (token refresh, etc.).
+// auth events (token refresh, etc.) within one JS session.
 let lastSyncedUser: string | null = null;
+
+// A cold start (app killed and relaunched — e.g. after the phone was locked a
+// few minutes and iOS reclaimed memory) resets `lastSyncedUser`, and Supabase
+// re-fires an auth event for the still-signed-in session, so without this the
+// full cloud fetch-and-merge below reran on every single relaunch — a network
+// round trip (settings + every food entry + every workout) at exactly the
+// moment the user is trying to get back into an in-progress workout. Persist
+// the last-synced time so a relaunch shortly after a previous sync skips the
+// heavy reconcile; it still refreshes periodically for multi-device use.
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+
+function lastSyncedKey(userId: string): string {
+  return `sync-last-synced:${userId}`;
+}
+
+async function recentlySynced(userId: string): Promise<boolean> {
+  try {
+    const raw = await AsyncStorage.getItem(lastSyncedKey(userId));
+    const ts = raw ? Number(raw) : 0;
+    return ts > 0 && Date.now() - ts < SYNC_COOLDOWN_MS;
+  } catch {
+    return false;
+  }
+}
+
+function markSynced(userId: string): void {
+  AsyncStorage.setItem(lastSyncedKey(userId), String(Date.now())).catch(() => {});
+}
 
 function snapshot(): SettingsSnapshot {
   const s = useStore.getState();
@@ -79,12 +108,17 @@ export async function syncOnLogin(userId: string): Promise<void> {
   if (lastSyncedUser === userId) return;
   lastSyncedUser = userId;
 
+  // setSyncUser must run even when we skip the heavy reconcile below, so
+  // per-write pushes (finishing a workout, logging food, etc.) still work.
+  setSyncUser(userId);
+
+  if (await recentlySynced(userId)) return;
+
   // Ensure the local store is fully loaded from disk before we read it to
   // decide what to migrate up to the cloud.
   await waitForStoreHydration();
 
   setSuspended(true);
-  setSyncUser(userId);
   try {
     const [
       { data: settings },
@@ -101,6 +135,10 @@ export async function syncOnLogin(userId: string): Promise<void> {
     if (workoutErr) {
       reportSyncError('login workout fetch', workoutErr.message);
     }
+    // Reached the network successfully — start the cooldown so a relaunch a
+    // few minutes from now doesn't redo this fetch. A thrown error (offline,
+    // etc.) skips this and falls to the catch below, so it retries next time.
+    markSynced(userId);
 
     const remoteEmpty =
       !settings &&
