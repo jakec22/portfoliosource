@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { buildUserContentBlocks, SYSTEM_PROMPT } from "@/lib/prompt";
-import { editPlansSchema, editPlansToolInputSchema } from "@/lib/schema";
+import { editPlansToolInputSchema, parseEditPlansResponse } from "@/lib/schema";
 import type { AnalyzeRequestBody, AnalyzeResponseBody } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "AI did not return a structured edit plan" }, { status: 502 });
   }
 
-  const parsed = editPlansSchema.safeParse(toolUse.input);
+  const parsed = parseEditPlansResponse(toolUse.input);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "AI response did not match the expected edit plan schema", details: parsed.error.flatten() },

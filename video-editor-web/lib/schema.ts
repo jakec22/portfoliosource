@@ -25,6 +25,37 @@ export const editPlansSchema = z.object({
 });
 
 /**
+ * Claude's tool-use output occasionally double-encodes: instead of
+ * { plans: [...] } it returns { plans: "{\"plans\":[...]}" } (the array
+ * serialized as a JSON string, sometimes still wrapped in the same key).
+ * Try the direct shape first, then unwrap a stringified `plans` field
+ * before giving up, so a formatting slip doesn't discard an otherwise
+ * valid response.
+ */
+export function parseEditPlansResponse(rawInput: unknown) {
+  const direct = editPlansSchema.safeParse(rawInput);
+  if (direct.success) return direct;
+
+  if (
+    rawInput &&
+    typeof rawInput === "object" &&
+    "plans" in rawInput &&
+    typeof (rawInput as { plans: unknown }).plans === "string"
+  ) {
+    try {
+      const unwrapped = JSON.parse((rawInput as { plans: string }).plans);
+      const candidate = Array.isArray(unwrapped) ? { plans: unwrapped } : unwrapped;
+      const retry = editPlansSchema.safeParse(candidate);
+      if (retry.success) return retry;
+    } catch {
+      // fall through to returning the original failure below
+    }
+  }
+
+  return direct;
+}
+
+/**
  * The same shape, expressed as JSON Schema, so we can hand it to Claude as
  * a tool definition and force structured (rather than free-text) output.
  */
