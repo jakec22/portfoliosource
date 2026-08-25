@@ -59,8 +59,10 @@ export interface Theme {
   overlay: string; // modal scrim
 
   // Custom font families for this pack (registered names — see App.tsx).
-  fontDisplay: string; // hero numerals (calorie/macro rings)
-  fontBody: string; // pack's body face, for screens that opt in
+  // Omitted (undefined) on the Classic pack, which intentionally uses the
+  // OS system font rather than a custom face.
+  fontDisplay?: string; // hero numerals (calorie/macro rings)
+  fontBody?: string; // pack's body face, for screens that opt in
 
   // Raw gray ramp (escape hatch for 1:1 hex replacements)
   gray900: string;
@@ -73,6 +75,56 @@ export interface Theme {
   gray50: string;
   white: string; // surface-white → the pack's card color in a dark pack
 }
+
+// Classic: the app's original look, kept as a selectable pack for anyone who
+// prefers it over the redesign directions — the same Tailwind-derived palette
+// and system font it always used, before theme packs existed.
+export const classicTheme: Theme = {
+  scheme: 'light',
+
+  bg: '#F9FAFB',
+  card: '#FFFFFF',
+  cardMuted: '#F3F4F6',
+  input: '#F9FAFB',
+
+  text: '#111827',
+  textMuted: '#6B7280',
+  textFaint: '#9CA3AF',
+
+  border: '#E5E7EB',
+  borderStrong: '#D1D5DB',
+
+  primary: '#10B981',
+  primaryDark: '#059669',
+  primarySoft: '#ECFDF5',
+  onPrimary: '#FFFFFF',
+  danger: '#EF4444',
+  dangerSoft: '#FEE2E2',
+  warning: '#F59E0B',
+  warningSoft: '#FEF3C7',
+  info: '#3B82F6',
+  infoSoft: '#EFF6FF',
+  accent: '#6366F1',
+  accentSoft: '#EDE9FE',
+
+  macroProtein: '#3B82F6',
+  macroCarbs: '#F59E0B',
+  macroFat: '#EF4444',
+  macroFiber: '#8B5CF6',
+
+  shadow: '#000000',
+  overlay: 'rgba(0,0,0,0.5)',
+
+  gray900: '#111827',
+  gray700: '#374151',
+  gray500: '#6B7280',
+  gray400: '#9CA3AF',
+  gray300: '#D1D5DB',
+  gray200: '#E5E7EB',
+  gray100: '#F3F4F6',
+  gray50: '#F9FAFB',
+  white: '#FFFFFF',
+};
 
 // A — Editorial Premium: warm neutrals, one deep-green accent, restrained
 // muted hues for the macro rings, serif display numerals.
@@ -231,6 +283,8 @@ export const warmWellnessTheme: Theme = {
 
 export function resolveTheme(pack: ThemeMode): Theme {
   switch (pack) {
+    case 'classic':
+      return classicTheme;
     case 'sportTech':
       return sportTechTheme;
     case 'warmWellness':

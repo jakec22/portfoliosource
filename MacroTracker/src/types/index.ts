@@ -4,7 +4,7 @@ export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 // (this field is synced to the cloud under the `theme_mode` column) — it used
 // to hold 'light' | 'dark' | 'system'; it now holds a theme pack id. Each pack
 // is a complete, fixed look (not a light/dark variant of one palette).
-export type ThemeMode = 'editorial' | 'sportTech' | 'warmWellness';
+export type ThemeMode = 'classic' | 'editorial' | 'sportTech' | 'warmWellness';
 
 export interface ReminderTime {
   hour: number; // 0-23
