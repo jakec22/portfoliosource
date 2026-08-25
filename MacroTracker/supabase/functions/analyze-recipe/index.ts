@@ -370,6 +370,25 @@ Deno.serve(async (req: Request) => {
       fatPerServing: Math.round(totalFat / servings),
     };
 
+    // Temporary diagnostic: log exactly what Gemini returned and what we
+    // computed from it, so a bad result can be traced to "Gemini's total was
+    // wrong" vs "the division/servings count was wrong" vs "the client isn't
+    // reading the new fields" instead of guessing blind.
+    console.log('[analyze-recipe] gemini totals:', {
+      servings: parsed.servings,
+      totalCalories: parsed.totalCalories,
+      totalProtein: parsed.totalProtein,
+      totalCarbs: parsed.totalCarbs,
+      totalFat: parsed.totalFat,
+    });
+    console.log('[analyze-recipe] computed result:', {
+      servings: result.servings,
+      caloriesPerServing: result.caloriesPerServing,
+      proteinPerServing: result.proteinPerServing,
+      carbsPerServing: result.carbsPerServing,
+      fatPerServing: result.fatPerServing,
+    });
+
     return json(result);
   } catch (e) {
     return json({ error: String((e as Error)?.message ?? e) }, 500);
