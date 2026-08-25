@@ -48,11 +48,9 @@ If it does, extract:
   is splitting one sentence that runs together multiple sequential actions (e.g. "Preheat the
   oven to 350°F and grease a 9x9 pan.") into separate entries at those natural breaks.
 - totalCalories, totalProtein, totalCarbs, totalFat: your best estimate of the nutrition for
-  the ENTIRE recipe (all servings combined), based on the ingredients and their amounts.
-- caloriesPerServing, proteinPerServing, carbsPerServing, fatPerServing: each of the totals
-  above divided by "servings", rounded — the amount in ONE serving. Compute this as an actual
-  division of the total fields you just filled in; never repeat the total as the per-serving
-  value. Example: totalCalories 2400 with servings 6 means caloriesPerServing is 400, not 2400.
+  the ENTIRE recipe as written (all servings combined) — the sum of every ingredient at the
+  amounts given. Do NOT divide by servings or report a per-serving amount here; that division
+  is handled separately afterward. Just give the whole-batch total.
 
 If the content does NOT describe a recipe (e.g. it's an unrelated article, an ad, or a caption
 with no real ingredients/steps), set "found" to false and leave the other fields as your best
@@ -82,10 +80,6 @@ const responseSchema = {
     totalProtein: { type: 'number' },
     totalCarbs: { type: 'number' },
     totalFat: { type: 'number' },
-    caloriesPerServing: { type: 'number' },
-    proteinPerServing: { type: 'number' },
-    carbsPerServing: { type: 'number' },
-    fatPerServing: { type: 'number' },
   },
   required: [
     'found',
@@ -97,10 +91,6 @@ const responseSchema = {
     'totalProtein',
     'totalCarbs',
     'totalFat',
-    'caloriesPerServing',
-    'proteinPerServing',
-    'carbsPerServing',
-    'fatPerServing',
   ],
 };
 
@@ -361,7 +351,26 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    return json(parsed);
+    // Compute per-serving macros ourselves rather than asking Gemini to do the
+    // division: across two prior prompt-tightening attempts it kept reporting
+    // the batch total as the per-serving amount anyway. Plain arithmetic on
+    // the totals it already gave us is correct every time, so there's nothing
+    // left to get wrong here.
+    const servings = Math.max(1, Math.round(Number(parsed.servings) || 1));
+    const totalCalories = Math.max(0, Number(parsed.totalCalories) || 0);
+    const totalProtein = Math.max(0, Number(parsed.totalProtein) || 0);
+    const totalCarbs = Math.max(0, Number(parsed.totalCarbs) || 0);
+    const totalFat = Math.max(0, Number(parsed.totalFat) || 0);
+    const result = {
+      ...parsed,
+      servings,
+      caloriesPerServing: Math.round(totalCalories / servings),
+      proteinPerServing: Math.round(totalProtein / servings),
+      carbsPerServing: Math.round(totalCarbs / servings),
+      fatPerServing: Math.round(totalFat / servings),
+    };
+
+    return json(result);
   } catch (e) {
     return json({ error: String((e as Error)?.message ?? e) }, 500);
   }
