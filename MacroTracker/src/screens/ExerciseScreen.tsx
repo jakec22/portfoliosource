@@ -256,7 +256,7 @@ export function ExerciseScreen({ navigation }: Props) {
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Progress</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Analytics')}>
+              <TouchableOpacity onPress={() => navigation.navigate('WorkoutInsights')}>
                 <Text style={styles.seeAll}>See all ›</Text>
               </TouchableOpacity>
             </View>

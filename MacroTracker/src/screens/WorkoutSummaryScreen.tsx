@@ -81,20 +81,20 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.bigCheck}>{viewOnly ? '🏋️' : '🎉'}</Text>
-        <Text style={styles.title}>{viewOnly ? session.name : 'Workout Complete'}</Text>
-        <Text style={styles.subtitle}>
-          {viewOnly ? displayDate(session.date) : session.name}
-        </Text>
+        {!viewOnly && (
+          <View style={styles.completeBadge}>
+            <Text style={styles.completeBadgeText}>Completed</Text>
+          </View>
+        )}
+        <Text style={styles.title}>{session.name}</Text>
+        <Text style={styles.subtitle}>{displayDate(session.date)}</Text>
 
         {/* Headline stats */}
-        <View style={styles.statsRow}>
-          <Stat label="Duration" value={formatDuration(durationMs)} />
-          <Stat label="Exercises" value={String(session.exercises.length)} />
-        </View>
-        <View style={styles.statsRow}>
-          <Stat label="Sets done" value={`${completedSets}/${totalSets}`} />
-          <Stat label="Volume" value={`${Math.round(totalVolume).toLocaleString()} lb`} />
+        <View style={styles.statGrid}>
+          <StatCard label="Duration" value={formatDuration(durationMs)} color={c.primary} c={c} />
+          <StatCard label="Volume" value={`${Math.round(totalVolume).toLocaleString()} lb`} color={c.accent} c={c} />
+          <StatCard label="Sets" value={`${completedSets}/${totalSets}`} color={c.warning} c={c} />
+          <StatCard label="Exercises" value={String(session.exercises.length)} color={c.info} c={c} />
         </View>
 
         {/* Heart rate (only when samples were captured) */}
@@ -114,10 +114,10 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
         {/* Personal records hit this session */}
         {prs.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Personal Records 🏆</Text>
+            <Text style={styles.sectionTitle}>Personal Records</Text>
             <View style={styles.prCard}>
-              {prs.map((pr) => (
-                <View key={pr.name} style={styles.prRow}>
+              {prs.map((pr, i) => (
+                <View key={pr.name} style={[styles.prRow, i === prs.length - 1 && styles.prRowLast]}>
                   <Text style={styles.prName}>{pr.name}</Text>
                   <Text style={styles.prDetail}>{prHeadline(pr)}</Text>
                 </View>
@@ -131,13 +131,18 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
         {session.exercises.map((e) => {
           const done = e.sets.filter((s) => s.completed);
           const vol = done.reduce((v, s) => v + s.weight * s.reps, 0);
+          const isPR = prNames.has(normalizeExerciseName(e.name));
           return (
             <View key={e.id} style={styles.exRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.exName}>
-                  {e.name}
-                  {prNames.has(normalizeExerciseName(e.name)) ? '  🏆' : ''}
-                </Text>
+                <View style={styles.exNameRow}>
+                  <Text style={styles.exName}>{e.name}</Text>
+                  {isPR && (
+                    <View style={styles.exPrTag}>
+                      <Text style={styles.exPrTagText}>PR</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.exDetail}>
                   {done.length}/{e.sets.length} sets
                   {vol > 0 ? ` · ${Math.round(vol).toLocaleString()} lb` : ''}
@@ -171,12 +176,21 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  const c = useTheme();
+function StatCard({
+  label,
+  value,
+  color,
+  c,
+}: {
+  label: string;
+  value: string;
+  color: string;
+  c: Theme;
+}) {
   const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.statCard}>
-      <Text style={styles.statValue}>{value}</Text>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -188,54 +202,79 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   emptyText: { fontSize: 16, color: c.textMuted },
   doneLink: { fontSize: 16, color: c.primary, fontWeight: '700' },
   content: { padding: 16, paddingBottom: 40 },
-  bigCheck: { fontSize: 48, textAlign: 'center', marginTop: 12 },
-  title: { fontSize: 24, fontWeight: '800', color: c.text, textAlign: 'center', marginTop: 8 },
-  subtitle: { fontSize: 15, color: c.textMuted, textAlign: 'center', marginBottom: 20 },
 
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  completeBadge: {
+    alignSelf: 'center',
+    backgroundColor: c.primarySoft,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    marginTop: 12,
+  },
+  completeBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: c.primaryDark,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  title: { fontSize: 24, fontWeight: '800', color: c.text, textAlign: 'center', marginTop: 10 },
+  subtitle: { fontSize: 14, color: c.textMuted, textAlign: 'center', marginBottom: 20 },
+
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 4 },
   statCard: {
-    flex: 1,
+    flexBasis: '47%',
+    flexGrow: 1,
     backgroundColor: c.card,
     borderRadius: 16,
-    paddingVertical: 18,
-    alignItems: 'center',
+    padding: 16,
     shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
-  statValue: { fontSize: 22, fontWeight: '800', color: c.primary },
-  statLabel: { fontSize: 12, color: c.textFaint, marginTop: 4 },
+  statValue: { fontSize: 24, fontWeight: '800', fontFamily: c.fontDisplay, fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 12, color: c.textMuted, marginTop: 6, fontWeight: '500' },
 
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text, marginTop: 16, marginBottom: 10 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: c.textFaint,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 20,
+    marginBottom: 10,
+  },
   hrCard: {
     backgroundColor: c.card,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 4,
     shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
+
   prCard: {
-    backgroundColor: c.warningSoft,
-    borderWidth: 1,
-    borderColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.4)' : '#FDE68A',
+    backgroundColor: c.card,
     borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 4,
-    marginBottom: 4,
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   prRow: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.4)' : '#FDE68A',
+    borderBottomColor: c.border,
   },
-  prName: { fontSize: 15, fontWeight: '700', color: c.scheme === 'dark' ? c.warning : '#92400E' },
-  prDetail: { fontSize: 13, color: c.scheme === 'dark' ? c.textMuted : '#B45309', marginTop: 2, fontVariant: ['tabular-nums'] },
+  prRowLast: { borderBottomWidth: 0 },
+  prName: { fontSize: 15, fontWeight: '700', color: c.text },
+  prDetail: { fontSize: 13, color: c.textMuted, marginTop: 2, fontVariant: ['tabular-nums'] },
 
   exRow: {
     backgroundColor: c.card,
@@ -243,7 +282,15 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
+  exNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   exName: { fontSize: 15, fontWeight: '700', color: c.text },
+  exPrTag: {
+    backgroundColor: c.primarySoft,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  exPrTagText: { fontSize: 10, fontWeight: '800', color: c.primaryDark, letterSpacing: 0.4 },
   exDetail: { fontSize: 12, color: c.textFaint, marginTop: 3 },
   setPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   setPill: {

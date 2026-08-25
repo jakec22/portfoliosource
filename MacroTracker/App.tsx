@@ -40,6 +40,7 @@ import { ActiveWorkoutScreen } from './src/screens/ActiveWorkoutScreen';
 import { WorkoutSummaryScreen } from './src/screens/WorkoutSummaryScreen';
 import { ExerciseProgressScreen } from './src/screens/ExerciseProgressScreen';
 import { AnalyticsScreen } from './src/screens/AnalyticsScreen';
+import { WorkoutInsightsScreen } from './src/screens/WorkoutInsightsScreen';
 import { BuildMealScreen } from './src/screens/BuildMealScreen';
 import { GoalWizardScreen } from './src/screens/GoalWizardScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -85,6 +86,7 @@ function HomeStack() {
       />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen name="WorkoutInsights" component={WorkoutInsightsScreen as any} />
       <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
       <Stack.Screen
         name="BuildMeal"
@@ -127,6 +129,7 @@ function ExerciseStack() {
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen name="WorkoutInsights" component={WorkoutInsightsScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -137,6 +140,7 @@ function HistoryStack() {
       <Stack.Screen name="HistoryHome" component={HistoryScreen as any} />
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen name="WorkoutInsights" component={WorkoutInsightsScreen as any} />
       <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
     </Stack.Navigator>
   );
@@ -147,6 +151,7 @@ function ProfileStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileHome" component={CalculatorScreen as any} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen as any} />
+      <Stack.Screen name="WorkoutInsights" component={WorkoutInsightsScreen as any} />
       <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
       <Stack.Screen
         name="GoalWizard"

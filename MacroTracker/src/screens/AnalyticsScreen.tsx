@@ -4,14 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { ProgressLineChart, ChartEmpty } from '../components/ProgressLineChart';
 import { MiniBarChart } from '../components/MiniBarChart';
-import { ProgressCardRow } from '../components/ProgressCardRow';
-import {
-  weightTrend,
-  nutritionAdherence,
-  weeklyVolume,
-  weeklyInsights,
-} from '../utils/analytics';
-import { exerciseProgressCards } from '../utils/exerciseHistory';
+import { weightTrend, nutritionAdherence, weeklyInsights } from '../utils/analytics';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -21,7 +14,6 @@ interface Props {
 
 const WEIGHT_DAYS = 90;
 const NUTRITION_DAYS = 14;
-const WORKOUT_WEEKS = 6;
 
 // "Jun 5" from a YYYY-MM-DD string.
 function shortDate(dateStr: string): string {
@@ -48,8 +40,6 @@ export function AnalyticsScreen({ navigation }: Props) {
     () => nutritionAdherence(logs, goals, NUTRITION_DAYS),
     [logs, goals]
   );
-  const weeks = useMemo(() => weeklyVolume(workoutHistory, WORKOUT_WEEKS), [workoutHistory]);
-  const progressCards = useMemo(() => exerciseProgressCards(workoutHistory), [workoutHistory]);
   const insights = useMemo(
     () => weeklyInsights(logs, goals, workoutHistory, bodyWeightLog),
     [logs, goals, workoutHistory, bodyWeightLog]
@@ -57,11 +47,6 @@ export function AnalyticsScreen({ navigation }: Props) {
 
   const weightDelta =
     weight.length >= 2 ? weight[weight.length - 1].lbs - weight[0].lbs : 0;
-
-  const thisWeek = weeks[weeks.length - 1];
-  const totalWeekVol = weeks.reduce((n, w) => n + w.volume, 0);
-  const weeksWithData = weeks.filter((w) => w.workouts > 0).length;
-  const avgWeekVol = weeksWithData ? Math.round(totalWeekVol / weeksWithData) : 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -209,46 +194,18 @@ export function AnalyticsScreen({ navigation }: Props) {
           )}
         </View>
 
-        {/* ── Workout volume ── */}
-        <Text style={styles.sectionTitle}>Workout Volume · last {WORKOUT_WEEKS} weeks</Text>
-        <View style={styles.card}>
-          {totalWeekVol === 0 ? (
-            <ChartEmpty text="No completed workouts in this window yet." />
-          ) : (
-            <>
-              <View style={styles.statRow}>
-                <Stat
-                  label="This week"
-                  value={`${Math.round(thisWeek.volume).toLocaleString()} lb`}
-                  color={c.warning}
-                />
-                <Stat label="Avg / week" value={`${avgWeekVol.toLocaleString()} lb`} color={c.textMuted} />
-              </View>
-              <MiniBarChart
-                values={weeks.map((w) => w.volume)}
-                labels={weeks.map((w) => shortDate(w.startDate))}
-                color={c.warning}
-              />
-              <Text style={styles.caption}>
-                Each bar is one week's total volume (weight × reps).
-              </Text>
-            </>
-          )}
-        </View>
-
-        {/* ── Strength progress (per-exercise) ── */}
-        {progressCards.length > 0 && (
-          <>
-            <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Exercise Progress</Text>
-            {progressCards.map((card) => (
-              <ProgressCardRow
-                key={card.key}
-                card={card}
-                onPress={() => navigation.navigate('ExerciseProgress', { name: card.name })}
-              />
-            ))}
-          </>
-        )}
+        {/* Workout volume, records, and streaks live on their own page now. */}
+        <TouchableOpacity
+          style={styles.workoutLink}
+          onPress={() => navigation.navigate('WorkoutInsights')}
+          activeOpacity={0.7}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.workoutLinkTitle}>Workout Insights</Text>
+            <Text style={styles.workoutLinkSub}>Streaks, volume, records, and strength progress</Text>
+          </View>
+          <Text style={styles.workoutLinkArrow}>›</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -371,4 +328,21 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   highlightIcon: { fontSize: 15, lineHeight: 20 },
   highlightText: { flex: 1, fontSize: 13, color: c.textMuted, lineHeight: 19 },
   highlightPositive: { color: c.primaryDark, fontWeight: '600' },
+
+  workoutLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: c.card,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 4,
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  workoutLinkTitle: { fontSize: 15, fontWeight: '700', color: c.text },
+  workoutLinkSub: { fontSize: 12.5, color: c.textMuted, marginTop: 3 },
+  workoutLinkArrow: { fontSize: 22, color: c.textFaint, marginLeft: 8 },
 });

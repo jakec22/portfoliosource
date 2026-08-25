@@ -274,7 +274,7 @@ export interface WeekVolume {
 
 // Volume of a single session = Σ weight × reps over completed sets (matches the
 // workout-summary total). Falls back to counting all sets when none are ticked.
-function sessionVolume(s: WorkoutSession): number {
+export function sessionVolume(s: WorkoutSession): number {
   let vol = 0;
   let anyCompleted = false;
   for (const ex of s.exercises) {
@@ -313,4 +313,54 @@ export function weeklyVolume(history: WorkoutSession[], weeks: number): WeekVolu
     buckets[idx].workouts += 1;
   }
   return buckets;
+}
+
+// ── Workout insights (headline stats for the Workout Insights page) ─────────
+
+export interface WorkoutInsightsSummary {
+  totalWorkouts: number;
+  totalVolume: number; // lifetime Σ weight × reps
+  avgDurationMs: number; // across sessions with a recorded duration
+  currentStreakWeeks: number; // consecutive trailing weeks (incl. this one) with a workout
+  daysSinceLast: number | null; // null when there's no completed workout yet
+}
+
+// Headline stats for the Workout Insights page: consistency (streak), volume,
+// duration, and recency — everything derivable straight from session history,
+// no new data model required.
+export function workoutInsights(history: WorkoutSession[]): WorkoutInsightsSummary {
+  const completed = history.filter((s) => s.completedAt != null);
+
+  let totalVolume = 0;
+  let durationSum = 0;
+  let durationCount = 0;
+  let lastCompletedAt = 0;
+  for (const s of completed) {
+    totalVolume += sessionVolume(s);
+    const duration = s.completedAt! - s.startedAt;
+    if (duration > 0) {
+      durationSum += duration;
+      durationCount += 1;
+    }
+    if (s.completedAt! > lastCompletedAt) lastCompletedAt = s.completedAt!;
+  }
+
+  // Streak: walk trailing weekly buckets backward from the current week,
+  // stopping at the first week with no workout.
+  const weeks = weeklyVolume(history, 52);
+  let currentStreakWeeks = 0;
+  for (let i = weeks.length - 1; i >= 0; i--) {
+    if (weeks[i].workouts === 0) break;
+    currentStreakWeeks += 1;
+  }
+
+  return {
+    totalWorkouts: completed.length,
+    totalVolume,
+    avgDurationMs: durationCount ? Math.round(durationSum / durationCount) : 0,
+    currentStreakWeeks,
+    daysSinceLast: lastCompletedAt
+      ? Math.floor((Date.now() - lastCompletedAt) / 86400000)
+      : null,
+  };
 }
