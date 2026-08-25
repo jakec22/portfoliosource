@@ -478,10 +478,10 @@ export function GoalWizardScreen({ navigation }: Props) {
 
                 <View style={styles.macroGrid}>
                   {[
-                    { label: 'Protein', g: plan.goals.protein, kcal: plan.goals.protein * 4, color: '#3B82F6' },
-                    { label: 'Carbs', g: plan.goals.carbs, kcal: plan.goals.carbs * 4, color: '#F59E0B' },
-                    { label: 'Fat', g: plan.goals.fat, kcal: plan.goals.fat * 9, color: '#EF4444' },
-                    { label: 'Fiber', g: plan.goals.fiber, kcal: null, color: '#8B5CF6' },
+                    { label: 'Protein', g: plan.goals.protein, kcal: plan.goals.protein * 4, color: c.macroProtein },
+                    { label: 'Carbs', g: plan.goals.carbs, kcal: plan.goals.carbs * 4, color: c.macroCarbs },
+                    { label: 'Fat', g: plan.goals.fat, kcal: plan.goals.fat * 9, color: c.macroFat },
+                    { label: 'Fiber', g: plan.goals.fiber, kcal: null, color: c.macroFiber },
                   ].map((m) => (
                     <View key={m.label} style={styles.macroCell}>
                       <Text style={[styles.macroG, { color: m.color }]}>{m.g}g</Text>
@@ -703,7 +703,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#10B981',
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

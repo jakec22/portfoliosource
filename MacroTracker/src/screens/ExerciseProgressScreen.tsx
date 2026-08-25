@@ -20,11 +20,13 @@ interface Props {
 
 type Metric = 'topWeight' | 'best1RM' | 'volume';
 
-const METRICS: { key: Metric; label: string; unit: string; color: string }[] = [
-  { key: 'topWeight', label: 'Top Weight', unit: 'lb', color: '#10B981' },
-  { key: 'best1RM', label: 'Est. 1RM', unit: 'lb', color: '#6366F1' },
-  { key: 'volume', label: 'Volume', unit: 'lb', color: '#F59E0B' },
-];
+function getMetrics(c: Theme): { key: Metric; label: string; unit: string; color: string }[] {
+  return [
+    { key: 'topWeight', label: 'Top Weight', unit: 'lb', color: c.primary },
+    { key: 'best1RM', label: 'Est. 1RM', unit: 'lb', color: c.accent },
+    { key: 'volume', label: 'Volume', unit: 'lb', color: c.warning },
+  ];
+}
 
 // Short axis date like "Jan 5" for chart endpoints.
 function shortDate(dateStr: string): string {
@@ -45,8 +47,9 @@ export function ExerciseProgressScreen({ route, navigation }: Props) {
 
   const series = useMemo(() => exerciseSeries(history, name), [history, name]);
   const bests = useMemo(() => exerciseBests(history, name), [history, name]);
+  const metrics = useMemo(() => getMetrics(c), [c]);
 
-  const active = METRICS.find((m) => m.key === metric)!;
+  const active = metrics.find((m) => m.key === metric)!;
   const values = series.map((p) => metricValue(p, metric));
   const labels = series.map((p) => shortDate(p.date));
 
@@ -88,7 +91,7 @@ export function ExerciseProgressScreen({ route, navigation }: Props) {
 
             {/* Metric toggle */}
             <View style={styles.segment}>
-              {METRICS.map((m) => {
+              {metrics.map((m) => {
                 const on = m.key === metric;
                 return (
                   <TouchableOpacity

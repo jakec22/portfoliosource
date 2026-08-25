@@ -81,6 +81,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   value: {
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: c.fontDisplay,
     lineHeight: 18,
   },
   unit: {

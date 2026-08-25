@@ -8,6 +8,24 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { View, ActivityIndicator, StatusBar, Alert } from 'react-native';
 import * as Linking from 'expo-linking';
+import { useFonts } from 'expo-font';
+import { DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display';
+import {
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+} from '@expo-google-fonts/manrope';
+import { SpaceGrotesk_500Medium, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import {
+  BricolageGrotesque_600SemiBold,
+  BricolageGrotesque_700Bold,
+} from '@expo-google-fonts/bricolage-grotesque';
+import {
+  NunitoSans_400Regular,
+  NunitoSans_500Medium,
+  NunitoSans_700Bold,
+} from '@expo-google-fonts/nunito-sans';
 import { useTheme } from './src/theme/useTheme';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon } from './src/components/TabIcon';
@@ -210,6 +228,23 @@ export default function App() {
   const url = Linking.useURL();
   const notificationPrefs = useStore((s) => s.notificationPrefs);
 
+  // Load every theme pack's custom fonts up front (small — a dozen files
+  // total) so switching packs never needs a reload or shows a font swap.
+  const [fontsLoaded] = useFonts({
+    DMSerifDisplay_400Regular,
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_700Bold,
+    BricolageGrotesque_600SemiBold,
+    BricolageGrotesque_700Bold,
+    NunitoSans_400Regular,
+    NunitoSans_500Medium,
+    NunitoSans_700Bold,
+  });
+
   // Keep the OS-scheduled reminders in sync with the saved preferences. Runs on
   // launch (so they persist across reboots) and whenever the prefs change.
   useEffect(() => {
@@ -261,7 +296,7 @@ export default function App() {
     <SafeAreaProvider>
       <StatusBar barStyle={c.scheme === 'dark' ? 'light-content' : 'dark-content'} />
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.bg }}>
-        {loading ? (
+        {loading || !fontsLoaded ? (
           <View
             style={{
               flex: 1,

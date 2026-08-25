@@ -46,9 +46,9 @@ export function HeartRateGraph({ samples, startMs, endMs }: Props) {
   return (
     <View>
       <View style={styles.statsRow}>
-        <Stat label="Avg" value={stats.avg} color="#EF4444" />
-        <Stat label="Peak" value={stats.peak} color="#DC2626" />
-        <Stat label="Low" value={stats.low} color="#F87171" />
+        <Stat label="Avg" value={stats.avg} color={c.danger} />
+        <Stat label="Peak" value={stats.peak} color={c.danger} />
+        <Stat label="Low" value={stats.low} color={c.danger} />
       </View>
 
       <Svg viewBox={`0 0 ${W} ${H}`} width="100%" height={170}>
@@ -71,7 +71,7 @@ export function HeartRateGraph({ samples, startMs, endMs }: Props) {
         <Polyline
           points={points}
           fill="none"
-          stroke="#EF4444"
+          stroke={c.danger}
           strokeWidth={2}
           strokeLinejoin="round"
           strokeLinecap="round"

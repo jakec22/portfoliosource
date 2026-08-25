@@ -491,9 +491,9 @@ export function BuildMealScreen({ route, navigation }: Props) {
 
                           <View style={styles.previewRow}>
                             <MacroStat label="kcal" value={preview.calories} color={c.text} />
-                            <MacroStat label="protein" value={preview.protein} color="#3B82F6" unit="g" />
-                            <MacroStat label="carbs" value={preview.carbs} color="#F59E0B" unit="g" />
-                            <MacroStat label="fat" value={preview.fat} color="#EF4444" unit="g" />
+                            <MacroStat label="protein" value={preview.protein} color={c.macroProtein} unit="g" />
+                            <MacroStat label="carbs" value={preview.carbs} color={c.macroCarbs} unit="g" />
+                            <MacroStat label="fat" value={preview.fat} color={c.macroFat} unit="g" />
                           </View>
 
                           <TouchableOpacity
@@ -517,9 +517,9 @@ export function BuildMealScreen({ route, navigation }: Props) {
           <View style={styles.footer}>
             <View style={styles.totalsRow}>
               <MacroStat label="kcal" value={Math.round(totals.calories)} color={c.text} />
-              <MacroStat label="protein" value={Math.round(totals.protein)} color="#3B82F6" unit="g" />
-              <MacroStat label="carbs" value={Math.round(totals.carbs)} color="#F59E0B" unit="g" />
-              <MacroStat label="fat" value={Math.round(totals.fat)} color="#EF4444" unit="g" />
+              <MacroStat label="protein" value={Math.round(totals.protein)} color={c.macroProtein} unit="g" />
+              <MacroStat label="carbs" value={Math.round(totals.carbs)} color={c.macroCarbs} unit="g" />
+              <MacroStat label="fat" value={Math.round(totals.fat)} color={c.macroFat} unit="g" />
             </View>
             <View style={styles.footerBtns}>
               <TouchableOpacity

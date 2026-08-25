@@ -18,7 +18,14 @@ import { supabase } from '../services/supabase';
 import { signOut, deleteAccount } from '../services/auth';
 import { requestNotificationPermission } from '../services/notifications';
 import { useTheme } from '../theme/useTheme';
+import { editorialTheme, sportTechTheme, warmWellnessTheme } from '../theme';
 import type { Theme } from '../theme';
+
+const THEME_PACKS: { key: ThemeMode; name: string; blurb: string; theme: Theme }[] = [
+  { key: 'editorial', name: 'Editorial', blurb: 'Warm neutrals, serif numerals — calm and refined.', theme: editorialTheme },
+  { key: 'sportTech', name: 'Sport-Tech', blurb: 'Dark with neon accents — bold and energetic.', theme: sportTechTheme },
+  { key: 'warmWellness', name: 'Wellness', blurb: 'Cream, terracotta & sage — soft and human.', theme: warmWellnessTheme },
+];
 
 // mm:ss for the rest-time stepper (e.g. 120 -> "2:00", 90 -> "1:30").
 function formatRest(seconds: number): string {
@@ -423,11 +430,11 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         {/* Daily Goals (editable) */}
         <Text style={styles.sectionTitle}>Daily Goals</Text>
         <View style={styles.card}>
-          <GoalField label="Calories" field="calories" unit="kcal" color="#10B981" />
-          <GoalField label="Protein" field="protein" unit="g" color="#3B82F6" />
-          <GoalField label="Carbs" field="carbs" unit="g" color="#F59E0B" />
-          <GoalField label="Fat" field="fat" unit="g" color="#EF4444" />
-          <GoalField label="Fiber" field="fiber" unit="g" color="#8B5CF6" />
+          <GoalField label="Calories" field="calories" unit="kcal" color={c.primary} />
+          <GoalField label="Protein" field="protein" unit="g" color={c.macroProtein} />
+          <GoalField label="Carbs" field="carbs" unit="g" color={c.macroCarbs} />
+          <GoalField label="Fat" field="fat" unit="g" color={c.macroFat} />
+          <GoalField label="Fiber" field="fiber" unit="g" color={c.macroFiber} />
 
           <View style={styles.calCalc}>
             <Text style={styles.calCalcLabel}>Calories from macros:</Text>
@@ -455,9 +462,9 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             update from your calorie goal.
           </Text>
           {([
-            { key: 'protein', label: 'Protein', color: '#3B82F6' },
-            { key: 'carbs', label: 'Carbs', color: '#F59E0B' },
-            { key: 'fat', label: 'Fat', color: '#EF4444' },
+            { key: 'protein', label: 'Protein', color: c.macroProtein },
+            { key: 'carbs', label: 'Carbs', color: c.macroCarbs },
+            { key: 'fat', label: 'Fat', color: c.macroFat },
           ] as { key: MacroKey; label: string; color: string }[]).map(
             ({ key, label, color }) => (
               <View key={key} style={styles.sliderRow}>
@@ -646,29 +653,31 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         <View style={styles.card}>
           <Text style={styles.waterToggleLabel}>Theme</Text>
           <Text style={[styles.settingHint, { marginBottom: 12 }]}>
-            Choose a light or dark look, or follow your device setting.
+            Pick a look — each is a complete visual style, not just a color.
           </Text>
-          <View style={styles.segmented}>
-            {([
-              { key: 'light', label: '☀️  Light' },
-              { key: 'dark', label: '🌙  Dark' },
-              { key: 'system', label: '⚙️  System' },
-            ] as { key: ThemeMode; label: string }[]).map(({ key, label }) => {
-              const active = themeMode === key;
-              return (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.segment, active && styles.segmentActive]}
-                  onPress={() => setThemeMode(key)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {THEME_PACKS.map((p) => {
+            const active = themeMode === p.key;
+            return (
+              <TouchableOpacity
+                key={p.key}
+                style={[styles.themeCard, active && styles.themeCardActive]}
+                onPress={() => setThemeMode(p.key)}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.themeSwatch, { backgroundColor: p.theme.bg, borderColor: p.theme.border }]}>
+                  <View style={[styles.themeSwatchDot, { backgroundColor: p.theme.primary }]} />
+                  <View style={[styles.themeSwatchDot, { backgroundColor: p.theme.macroProtein }]} />
+                  <View style={[styles.themeSwatchDot, { backgroundColor: p.theme.macroCarbs }]} />
+                  <View style={[styles.themeSwatchDot, { backgroundColor: p.theme.macroFat }]} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.themeName}>{p.name}</Text>
+                  <Text style={styles.themeBlurb}>{p.blurb}</Text>
+                </View>
+                {active && <Text style={styles.themeCheck}>✓</Text>}
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Account */}
@@ -728,8 +737,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     gap: 14,
   },
   wizardIcon: { fontSize: 28 },
-  wizardTitle: { fontSize: 16, fontWeight: '800', color: c.scheme === 'dark' ? c.primary : '#065F46' },
-  wizardSub: { fontSize: 13, color: c.scheme === 'dark' ? c.textMuted : '#059669', marginTop: 2, lineHeight: 18 },
+  wizardTitle: { fontSize: 16, fontWeight: '800', color: c.scheme === 'dark' ? c.primary : c.primaryDark },
+  wizardSub: { fontSize: 13, color: c.scheme === 'dark' ? c.textMuted : c.primaryDark, marginTop: 2, lineHeight: 18 },
   wizardArrow: { fontSize: 24, color: c.primary, fontWeight: '700' },
   // Goals editing
   goalRow: {
@@ -845,30 +854,36 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   hydrationLabel: { fontSize: 11, color: c.textFaint },
   hydrationValue: { fontSize: 18, fontWeight: '700', color: c.text },
   // Appearance
-  segmented: {
+  themeCard: {
     flexDirection: 'row',
-    backgroundColor: c.cardMuted,
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    marginBottom: 8,
   },
-  segment: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
+  themeCardActive: {
+    borderColor: c.primary,
+    backgroundColor: c.cardMuted,
+  },
+  themeSwatch: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
+    padding: 6,
   },
-  segmentActive: {
-    backgroundColor: c.card,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  segmentText: { fontSize: 13, fontWeight: '600', color: c.textMuted },
-  segmentTextActive: { color: c.primary, fontWeight: '700' },
+  themeSwatchDot: { width: 12, height: 12, borderRadius: 6 },
+  themeName: { fontSize: 15, fontWeight: '700', color: c.text },
+  themeBlurb: { fontSize: 12, color: c.textMuted, marginTop: 2, lineHeight: 16 },
+  themeCheck: { fontSize: 18, fontWeight: '800', color: c.primary },
   // Account
   accountRow: { marginBottom: 16 },
   accountLabel: { fontSize: 12, color: c.textFaint, marginBottom: 2 },

@@ -137,10 +137,7 @@ function pushContext(): void {
   if (workoutStateKnown) Object.assign(ctx, workoutState);
   if (templatesKnown) ctx.workoutTemplates = watchTemplates;
   try {
-    const result = updateApplicationContext(ctx);
-    if (result && typeof (result as any).catch === 'function') {
-      (result as Promise<unknown>).catch(() => {});
-    }
+    updateApplicationContext(ctx);
   } catch {
     // No paired watch / session unavailable — safe to ignore.
   }

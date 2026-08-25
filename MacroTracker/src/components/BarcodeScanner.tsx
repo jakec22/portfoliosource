@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useTheme } from '../theme/useTheme';
 
 interface Props {
   visible: boolean;
@@ -16,6 +17,10 @@ interface Props {
 }
 
 export function BarcodeScanner({ visible, onClose, onScanned }: Props) {
+  // The scanner overlay stays fixed dark regardless of the active theme pack
+  // (standard for a camera viewfinder), but the accent — button + scan frame
+  // — follows the pack's primary color.
+  const c = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   // Prevents the camera from firing dozens of callbacks for one barcode.
   const [locked, setLocked] = useState(false);
@@ -44,7 +49,10 @@ export function BarcodeScanner({ visible, onClose, onScanned }: Props) {
             <Text style={styles.permText}>
               Allow camera access to scan food barcodes.
             </Text>
-            <TouchableOpacity style={styles.permBtn} onPress={requestPermission}>
+            <TouchableOpacity
+              style={[styles.permBtn, { backgroundColor: c.primary }]}
+              onPress={requestPermission}
+            >
               <Text style={styles.permBtnText}>Grant Permission</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelLink} onPress={onClose}>
@@ -63,7 +71,7 @@ export function BarcodeScanner({ visible, onClose, onScanned }: Props) {
             />
             {/* Scan frame overlay */}
             <View style={styles.overlay} pointerEvents="none">
-              <View style={styles.frame} />
+              <View style={[styles.frame, { borderColor: c.primary }]} />
               <Text style={styles.hint}>Point the camera at a product barcode</Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -88,7 +96,6 @@ const styles = StyleSheet.create({
   permTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 8 },
   permText: { color: '#9CA3AF', fontSize: 14, textAlign: 'center', marginBottom: 24 },
   permBtn: {
-    backgroundColor: '#10B981',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 14,
@@ -109,7 +116,6 @@ const styles = StyleSheet.create({
     width: 260,
     height: 160,
     borderWidth: 3,
-    borderColor: '#10B981',
     borderRadius: 16,
     backgroundColor: 'transparent',
   },

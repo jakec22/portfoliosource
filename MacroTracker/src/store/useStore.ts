@@ -91,7 +91,7 @@ export const useStore = create<AppState>()(
       waterGoal: 64, // default ~8 cups
       waterIncrement: 8, // fl oz per droplet tap
       showWaterTracker: true,
-      themeMode: 'system',
+      themeMode: 'editorial',
       autoRestTimer: true,
       notificationPrefs: {
         enabled: false,
@@ -647,7 +647,7 @@ export const useStore = create<AppState>()(
           waterGoal: 64,
           waterIncrement: 8,
           showWaterTracker: true,
-          themeMode: 'system',
+          themeMode: 'editorial',
           autoRestTimer: true,
           defaultRestSeconds: 120,
           restTrigger: 0,
@@ -681,7 +681,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 7,
+      version: 8,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -762,6 +762,18 @@ export const useStore = create<AppState>()(
                 ? { ...w, heartRateSamples: downsampleHeartRate(w.heartRateSamples) }
                 : w
             ),
+          };
+        }
+        // v8 replaced the light/dark/system appearance toggle with selectable
+        // theme packs (editorial/sportTech/warmWellness) — full visual
+        // identities rather than a brightness setting. Map the old value to
+        // the closest pack: a prior dark preference lands on the one dark
+        // pack; light/system land on the calmer, general-purpose default.
+        if (version < 8 && state) {
+          const old = state.themeMode;
+          state = {
+            ...state,
+            themeMode: old === 'dark' ? 'sportTech' : 'editorial',
           };
         }
         return state;

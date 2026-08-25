@@ -1,7 +1,10 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 
-// Appearance preference: explicit light/dark, or follow the OS setting.
-export type ThemeMode = 'light' | 'dark' | 'system';
+// Which visual theme pack is active. Named `ThemeMode` for historical reasons
+// (this field is synced to the cloud under the `theme_mode` column) — it used
+// to hold 'light' | 'dark' | 'system'; it now holds a theme pack id. Each pack
+// is a complete, fixed look (not a light/dark variant of one palette).
+export type ThemeMode = 'editorial' | 'sportTech' | 'warmWellness';
 
 export interface ReminderTime {
   hour: number; // 0-23
@@ -204,7 +207,7 @@ export interface AppState {
   waterGoal: number; // daily target in fluid ounces
   waterIncrement: number; // fl oz added per water droplet tap
   showWaterTracker: boolean;
-  themeMode: ThemeMode; // appearance preference (light/dark/system)
+  themeMode: ThemeMode; // active theme pack (editorial/sportTech/warmWellness)
   autoRestTimer: boolean; // auto-start rest timer when a set is completed
   notificationPrefs: ReminderPrefs; // local daily reminder settings (device-only)
   defaultRestSeconds: number; // user's default rest length (configured in Profile)

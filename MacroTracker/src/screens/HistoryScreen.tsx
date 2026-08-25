@@ -18,12 +18,6 @@ interface Props {
   navigation: any;
 }
 
-const MACRO_COLORS = {
-  protein: '#3B82F6',
-  carbs: '#F59E0B',
-  fat: '#EF4444',
-};
-
 const PAGE = 14;
 
 export function HistoryScreen({ navigation }: Props) {
@@ -134,46 +128,46 @@ export function HistoryScreen({ navigation }: Props) {
 
                   <View style={styles.macroGrid}>
                     <View style={styles.macroCell}>
-                      <Text style={[styles.macroValue, { color: '#3B82F6' }]}>
+                      <Text style={[styles.macroValue, { color: c.macroProtein }]}>
                         {Math.round(totals.protein)}g
                       </Text>
                       <MacroBar
                         value={totals.protein}
                         goal={goals.protein}
-                        color="#3B82F6"
+                        color={c.macroProtein}
                       />
                       <Text style={styles.macroLabel}>Protein</Text>
                     </View>
                     <View style={styles.macroCell}>
-                      <Text style={[styles.macroValue, { color: '#F59E0B' }]}>
+                      <Text style={[styles.macroValue, { color: c.macroCarbs }]}>
                         {Math.round(totals.carbs)}g
                       </Text>
                       <MacroBar
                         value={totals.carbs}
                         goal={goals.carbs}
-                        color="#F59E0B"
+                        color={c.macroCarbs}
                       />
                       <Text style={styles.macroLabel}>Carbs</Text>
                     </View>
                     <View style={styles.macroCell}>
-                      <Text style={[styles.macroValue, { color: '#EF4444' }]}>
+                      <Text style={[styles.macroValue, { color: c.macroFat }]}>
                         {Math.round(totals.fat)}g
                       </Text>
                       <MacroBar
                         value={totals.fat}
                         goal={goals.fat}
-                        color="#EF4444"
+                        color={c.macroFat}
                       />
                       <Text style={styles.macroLabel}>Fat</Text>
                     </View>
                     <View style={styles.macroCell}>
-                      <Text style={[styles.macroValue, { color: '#8B5CF6' }]}>
+                      <Text style={[styles.macroValue, { color: c.macroFiber }]}>
                         {Math.round(totals.fiber ?? 0)}g
                       </Text>
                       <MacroBar
                         value={totals.fiber ?? 0}
                         goal={goals.fiber}
-                        color="#8B5CF6"
+                        color={c.macroFiber}
                       />
                       <Text style={styles.macroLabel}>Fiber</Text>
                     </View>

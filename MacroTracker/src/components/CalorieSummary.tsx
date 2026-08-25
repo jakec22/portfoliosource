@@ -100,6 +100,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   consumedValue: {
     fontSize: 32,
     fontWeight: '800',
+    fontFamily: c.fontDisplay,
     color: c.text,
     lineHeight: 36,
   },

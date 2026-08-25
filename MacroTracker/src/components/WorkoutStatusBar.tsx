@@ -21,10 +21,10 @@ function ageLabel(updatedAt: number): string {
 }
 
 // Color the readout by intensity zone.
-function zoneColor(bpm: number): string {
-  if (bpm >= 160) return '#EF4444'; // high
-  if (bpm >= 120) return '#F59E0B'; // moderate
-  return '#10B981'; // easy
+function zoneColor(bpm: number, c: Theme): string {
+  if (bpm >= 160) return c.danger; // high
+  if (bpm >= 120) return c.warning; // moderate
+  return c.primary; // easy
 }
 
 // The sticky bottom bar during an active workout. Left: live heart rate with a
@@ -87,7 +87,7 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
       {hasHeart && (
         <View style={styles.hrSide}>
           <View style={styles.hrText}>
-            <Text style={[styles.hrValue, { color: zoneColor(bpm!) }]}>
+            <Text style={[styles.hrValue, { color: zoneColor(bpm!, c) }]}>
               {Math.round(bpm!)}
               <Text style={styles.hrUnit}> bpm</Text>
             </Text>

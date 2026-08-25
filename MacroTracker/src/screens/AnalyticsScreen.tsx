@@ -92,19 +92,19 @@ export function AnalyticsScreen({ navigation }: Props) {
                   label="Avg / day"
                   value={insights.loggedDays ? `${insights.avgCalories}` : '—'}
                   unit="kcal"
-                  color="#10B981"
+                  color={c.primary}
                 />
                 <InsightStat
                   label="Avg protein"
                   value={insights.loggedDays ? `${insights.avgProtein}` : '—'}
                   unit="g"
-                  color="#3B82F6"
+                  color={c.macroProtein}
                 />
                 <InsightStat
                   label="Workouts"
                   value={`${insights.workouts}`}
                   unit={insights.workouts === 1 ? 'session' : 'sessions'}
-                  color="#F59E0B"
+                  color={c.warning}
                 />
               </View>
 
@@ -191,13 +191,13 @@ export function AnalyticsScreen({ navigation }: Props) {
           ) : (
             <>
               <View style={styles.statRow}>
-                <Stat label="Avg calories" value={`${nutrition.avgCalories}`} color="#10B981" />
-                <Stat label="Avg protein" value={`${nutrition.avgProtein} g`} color="#3B82F6" />
+                <Stat label="Avg calories" value={`${nutrition.avgCalories}`} color={c.primary} />
+                <Stat label="Avg protein" value={`${nutrition.avgProtein} g`} color={c.macroProtein} />
               </View>
               <MiniBarChart
                 values={nutrition.days.map((d) => d.calories)}
                 labels={nutrition.days.map((d) => shortDate(d.date))}
-                color="#10B981"
+                color={c.primary}
                 goal={goals.calories}
                 dimEmpty
               />
@@ -220,14 +220,14 @@ export function AnalyticsScreen({ navigation }: Props) {
                 <Stat
                   label="This week"
                   value={`${Math.round(thisWeek.volume).toLocaleString()} lb`}
-                  color="#F59E0B"
+                  color={c.warning}
                 />
                 <Stat label="Avg / week" value={`${avgWeekVol.toLocaleString()} lb`} color={c.textMuted} />
               </View>
               <MiniBarChart
                 values={weeks.map((w) => w.volume)}
                 labels={weeks.map((w) => shortDate(w.startDate))}
-                color="#F59E0B"
+                color={c.warning}
               />
               <Text style={styles.caption}>
                 Each bar is one week's total volume (weight × reps).

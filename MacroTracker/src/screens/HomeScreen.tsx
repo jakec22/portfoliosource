@@ -140,25 +140,25 @@ export function HomeScreen({ navigation }: Props) {
               current={totals.protein}
               goal={goals.protein}
               label="Protein"
-              color="#3B82F6"
+              color={c.macroProtein}
             />
             <MacroRing
               current={totals.carbs}
               goal={goals.carbs}
               label="Carbs"
-              color="#F59E0B"
+              color={c.macroCarbs}
             />
             <MacroRing
               current={totals.fat}
               goal={goals.fat}
               label="Fat"
-              color="#EF4444"
+              color={c.macroFat}
             />
             <MacroRing
               current={totals.fiber ?? 0}
               goal={goals.fiber}
               label="Fiber"
-              color="#8B5CF6"
+              color={c.macroFiber}
             />
           </View>
         </View>
@@ -197,10 +197,10 @@ export function HomeScreen({ navigation }: Props) {
             {/* Macro status dots */}
             <View style={styles.summaryMacroRow}>
               {[
-                { label: 'Protein', hit: macroStatus(totals.protein, goals.protein),        color: '#3B82F6' },
-                { label: 'Carbs',   hit: macroStatus(totals.carbs, goals.carbs),            color: '#F59E0B' },
-                { label: 'Fat',     hit: macroStatus(totals.fat, goals.fat),                color: '#EF4444' },
-                { label: 'Fiber',   hit: macroStatus(totals.fiber ?? 0, goals.fiber),       color: '#8B5CF6' },
+                { label: 'Protein', hit: macroStatus(totals.protein, goals.protein),        color: c.macroProtein },
+                { label: 'Carbs',   hit: macroStatus(totals.carbs, goals.carbs),            color: c.macroCarbs },
+                { label: 'Fat',     hit: macroStatus(totals.fat, goals.fat),                color: c.macroFat },
+                { label: 'Fiber',   hit: macroStatus(totals.fiber ?? 0, goals.fiber),       color: c.macroFiber },
               ].map(({ label, hit, color }) => (
                 <View key={label} style={styles.summaryMacro}>
                   <View style={[styles.summaryMacroDot, { backgroundColor: hit ? color : c.border }]} />
