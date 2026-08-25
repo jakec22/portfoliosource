@@ -23,8 +23,8 @@ import type { Theme } from '../theme';
 
 const THEME_PACKS: { key: ThemeMode; name: string; blurb: string; theme: Theme }[] = [
   { key: 'classic', name: 'Classic', blurb: 'The original look — clean and familiar.', theme: classicTheme },
-  { key: 'editorial', name: 'Editorial', blurb: 'Warm neutrals, serif numerals — calm and refined.', theme: editorialTheme },
-  { key: 'sportTech', name: 'Sport-Tech', blurb: 'Dark with neon accents — bold and energetic.', theme: sportTechTheme },
+  { key: 'editorial', name: 'Executive', blurb: 'Warm neutrals, serif numerals — calm and refined.', theme: editorialTheme },
+  { key: 'sportTech', name: 'Modern', blurb: 'Dark with neon accents — bold and energetic.', theme: sportTechTheme },
   { key: 'warmWellness', name: 'Wellness', blurb: 'Cream, terracotta & sage — soft and human.', theme: warmWellnessTheme },
 ];
 
