@@ -29,12 +29,19 @@ If it does, extract:
   reasonable estimate for a typical batch of this dish; never 0.
 - ingredients: each ingredient as it's used, with "name" (the ingredient itself, e.g.
   "all-purpose flour") and "amount" (the quantity as written, e.g. "2 cups") when available.
-- steps: the cooking steps as an ordered list of short, clear instructions (split run-on
-  instructions into separate steps).
-- Then estimate the TOTAL nutrition for the whole recipe divided evenly across "servings" —
-  i.e. per-serving calories (kcal), protein (g), carbs (g), and fat (g). Base this on the
-  ingredients and their amounts; be realistic, and when an amount is vague, use a typical
-  serving-sized assumption.
+- steps: copy the cooking instructions AS WRITTEN in the source — do not rewrite, rephrase,
+  summarize, reorder, condense, or add steps that aren't there. Preserve the original wording,
+  including specific temperatures, times, and techniques mentioned. The ONLY transformation
+  allowed: if one source sentence runs together multiple sequential actions (e.g. "Preheat the
+  oven to 350°F and grease a 9x9 pan."), split it into separate array entries at those natural
+  breaks — otherwise each step should read exactly like the source.
+- caloriesPerServing, proteinPerServing, carbsPerServing, fatPerServing: nutrition for ONE
+  serving — the whole recipe's nutrition divided by "servings", not the batch total. Work it
+  out in two steps: first estimate the TOTAL for the entire recipe from the ingredients and
+  their amounts, then DIVIDE that total by "servings" to get the per-serving numbers you
+  report. Example: if the ingredients add up to roughly 2400 kcal total and the recipe makes
+  6 servings, report caloriesPerServing as 400 (2400 ÷ 6) — NOT 2400. Every one of these four
+  fields must reflect a single serving, matching the portion size implied by "servings".
 
 If the content does NOT describe a recipe (e.g. it's an unrelated article, an ad, or a caption
 with no real ingredients/steps), set "found" to false and leave the other fields as your best
@@ -60,12 +67,22 @@ const responseSchema = {
       },
     },
     steps: { type: 'array', items: { type: 'string' } },
-    calories: { type: 'number' },
-    protein: { type: 'number' },
-    carbs: { type: 'number' },
-    fat: { type: 'number' },
+    caloriesPerServing: { type: 'number' },
+    proteinPerServing: { type: 'number' },
+    carbsPerServing: { type: 'number' },
+    fatPerServing: { type: 'number' },
   },
-  required: ['found', 'name', 'servings', 'ingredients', 'steps', 'calories', 'protein', 'carbs', 'fat'],
+  required: [
+    'found',
+    'name',
+    'servings',
+    'ingredients',
+    'steps',
+    'caloriesPerServing',
+    'proteinPerServing',
+    'carbsPerServing',
+    'fatPerServing',
+  ],
 };
 
 function json(body: unknown, status = 200): Response {

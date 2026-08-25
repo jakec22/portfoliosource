@@ -54,10 +54,10 @@ export async function analyzeRecipe(input: { url?: string; text?: string }): Pro
     steps: Array.isArray(data?.steps)
       ? data.steps.map((s: any) => String(s ?? '').trim()).filter(Boolean)
       : [],
-    calories: Math.max(0, Math.round(Number(data?.calories) || 0)),
-    protein: Math.max(0, Math.round(Number(data?.protein) || 0)),
-    carbs: Math.max(0, Math.round(Number(data?.carbs) || 0)),
-    fat: Math.max(0, Math.round(Number(data?.fat) || 0)),
+    calories: Math.max(0, Math.round(Number(data?.caloriesPerServing) || 0)),
+    protein: Math.max(0, Math.round(Number(data?.proteinPerServing) || 0)),
+    carbs: Math.max(0, Math.round(Number(data?.carbsPerServing) || 0)),
+    fat: Math.max(0, Math.round(Number(data?.fatPerServing) || 0)),
   };
 }
 
