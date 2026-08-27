@@ -671,7 +671,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 8,
+      version: 9,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -765,6 +765,11 @@ export const useStore = create<AppState>()(
             ...state,
             themeMode: old === 'dark' ? 'sportTech' : 'editorial',
           };
+        }
+        // v9 removed the Classic pack — Executive is now the app's one
+        // original/default look. Anyone who had Classic selected lands there.
+        if (version < 9 && state?.themeMode === 'classic') {
+          state = { ...state, themeMode: 'editorial' };
         }
         return state;
       },

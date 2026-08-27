@@ -18,12 +18,11 @@ import { supabase } from '../services/supabase';
 import { signOut, deleteAccount } from '../services/auth';
 import { requestNotificationPermission } from '../services/notifications';
 import { useTheme } from '../theme/useTheme';
-import { classicTheme, editorialTheme, sportTechTheme, warmWellnessTheme } from '../theme';
+import { editorialTheme, sportTechTheme, warmWellnessTheme } from '../theme';
 import type { Theme } from '../theme';
 
 const THEME_PACKS: { key: ThemeMode; name: string; blurb: string; theme: Theme }[] = [
-  { key: 'classic', name: 'Classic', blurb: 'The original look — clean and familiar.', theme: classicTheme },
-  { key: 'editorial', name: 'Executive', blurb: 'Warm neutrals, serif numerals — calm and refined.', theme: editorialTheme },
+  { key: 'editorial', name: 'Executive', blurb: 'Warm neutrals, serif numerals — the app’s original, refined look.', theme: editorialTheme },
   { key: 'sportTech', name: 'Modern', blurb: 'Dark with neon accents — bold and energetic.', theme: sportTechTheme },
   { key: 'warmWellness', name: 'Wellness', blurb: 'Cream, terracotta & sage — soft and human.', theme: warmWellnessTheme },
 ];

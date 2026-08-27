@@ -204,7 +204,12 @@ export async function syncOnLogin(userId: string): Promise<void> {
       waterGoal: settings?.water_goal ?? state.waterGoal,
       waterIncrement: settings?.water_increment ?? state.waterIncrement,
       showWaterTracker: settings?.show_water_tracker ?? state.showWaterTracker,
-      themeMode: settings?.theme_mode ?? state.themeMode,
+      // Guard against a pre-removal 'classic' value still sitting in a
+      // user's cloud settings row — Executive is the app's one default now.
+      themeMode:
+        (settings?.theme_mode as string) === 'classic'
+          ? 'editorial'
+          : settings?.theme_mode ?? state.themeMode,
       autoRestTimer: settings?.auto_rest_timer ?? state.autoRestTimer,
       defaultRestSeconds: settings?.default_rest_seconds ?? state.defaultRestSeconds,
       bodyWeightLbs: settings?.body_weight_lbs ?? state.bodyWeightLbs,
