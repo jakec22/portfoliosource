@@ -25,6 +25,26 @@ Be realistic; when unsure, give your best estimate based on typical servings.
 Ignore plates, utensils, and non-caloric drinks like water.
 Return only the structured data.`;
 
+// Reads a printed Nutrition Facts panel rather than estimating a plated meal —
+// the numbers are already on the label, so the job is transcription, not
+// estimation. Deliberately instructed not to round/adjust/estimate anything.
+const LABEL_PROMPT = `You are transcribing a printed Nutrition Facts label from a photo —
+you are NOT estimating a meal. Read the values EXACTLY as printed; do not adjust,
+round differently, or estimate anything. Return exactly one item for the product's
+single serving as printed on the label:
+- name: the product name from the packaging if visible, otherwise a short description
+  of the product based on the label (e.g. "Store Brand Cereal").
+- serving: the "Serving Size" line exactly as printed (e.g. "2/3 cup (55g)", "1 bar (40g)").
+- serving_grams: the gram or milliliter weight from the serving size if one is given
+  (often in parentheses); omit if the label gives no gram/ml weight.
+- calories: the Calories value exactly as printed for one serving.
+- protein: the Protein grams exactly as printed for one serving.
+- carbs: the Total Carbohydrate grams exactly as printed for one serving.
+- fat: the Total Fat grams exactly as printed for one serving.
+If no readable Nutrition Facts label is visible, or the numbers can't be made out,
+return an empty items array rather than guessing.
+Return only the structured data.`;
+
 const TEXT_PROMPT = `You are a nutrition estimation assistant. The user describes a
 meal in words, including foods and (sometimes) amounts. Identify each distinct food
 item. For each item, estimate its nutrition. Report protein, carbs, and fat in grams
@@ -71,15 +91,16 @@ Deno.serve(async (req: Request) => {
   try {
     if (!GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY not configured' }, 500);
 
-    const { image, mimeType, description } = await req.json();
+    const { image, mimeType, description, mode } = await req.json();
     if (!image && !(typeof description === 'string' && description.trim())) {
       return json({ error: 'Provide an image or a description' }, 400);
     }
+    const isLabel = mode === 'label';
 
     // Text-only path uses the description; photo path sends the image bytes.
     const parts = image
       ? [
-          { text: PHOTO_PROMPT },
+          { text: isLabel ? LABEL_PROMPT : PHOTO_PROMPT },
           { inline_data: { mime_type: mimeType ?? 'image/jpeg', data: image } },
         ]
       : [{ text: `${TEXT_PROMPT}\n\nMeal description:\n${String(description).trim()}` }];
@@ -89,7 +110,10 @@ Deno.serve(async (req: Request) => {
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema,
-        temperature: 0.2,
+        // Label reading is transcription, not creative estimation — use 0 so
+        // the same label reads the same way every time. The meal-estimation
+        // path keeps a little temperature since it's inherently a guess.
+        temperature: isLabel ? 0 : 0.2,
       },
     });
 

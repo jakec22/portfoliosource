@@ -18,6 +18,7 @@ import { Food, MealType, SavedMeal, ServingUnit } from '../types';
 import { useStore } from '../store/useStore';
 import { searchFoods } from '../data/foods';
 import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
+import { analyzeLabelPhoto } from '../services/mealPhoto';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import Svg, { Rect } from 'react-native-svg';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
@@ -67,6 +68,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
+  const [scanLoadingText, setScanLoadingText] = useState('Looking up product…');
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [unit, setUnit] = useState<ServingUnit>('serving');
   const [amount, setAmount] = useState('1');
@@ -149,6 +151,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
 
   async function handleBarcodeScanned(barcode: string) {
     setScannerVisible(false);
+    setScanLoadingText('Looking up product…');
     setScanLoading(true);
     const food = await lookupBarcode(barcode);
     setScanLoading(false);
@@ -160,6 +163,45 @@ export function LogFoodScreen({ route, navigation }: Props) {
         'Product Not Found',
         `No nutrition data found for barcode ${barcode}. Try searching by name instead.`
       );
+    }
+  }
+
+  // Reads exact macros off a photographed Nutrition Facts label — a fallback
+  // for when a barcode database's numbers don't match what's actually printed
+  // on the package.
+  async function handleLabelCaptured(base64: string) {
+    setScannerVisible(false);
+    setScanLoadingText('Reading nutrition label…');
+    setScanLoading(true);
+    try {
+      const items = await analyzeLabelPhoto(base64);
+      const item = items[0];
+      if (!item) {
+        Alert.alert(
+          'Label Not Readable',
+          "Couldn't read a Nutrition Facts label in that photo. Try a clearer, well-lit shot with the label filling the frame."
+        );
+        return;
+      }
+      const food: Food = {
+        id: `label-${Date.now()}`,
+        name: item.name,
+        brand: 'Scanned label',
+        serving_size: item.serving_grams ?? 1,
+        serving_unit: item.serving_grams ? 'g' : 'serving',
+        macros: {
+          calories: item.calories,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+        },
+      };
+      addRecentFood(food);
+      handleSelectFood(food);
+    } catch (e: any) {
+      Alert.alert('Analysis failed', e?.message ?? 'Please try again.');
+    } finally {
+      setScanLoading(false);
     }
   }
 
@@ -577,13 +619,14 @@ export function LogFoodScreen({ route, navigation }: Props) {
         visible={scannerVisible}
         onClose={() => setScannerVisible(false)}
         onScanned={handleBarcodeScanned}
+        onLabelCaptured={handleLabelCaptured}
       />
 
       {scanLoading && (
         <View style={styles.scanOverlay}>
           <View style={styles.scanOverlayBox}>
             <ActivityIndicator size="large" color={c.primary} />
-            <Text style={styles.scanOverlayText}>Looking up product…</Text>
+            <Text style={styles.scanOverlayText}>{scanLoadingText}</Text>
           </View>
         </View>
       )}

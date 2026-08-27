@@ -32,6 +32,19 @@ export async function analyzeMealText(description: string): Promise<AnalyzedItem
   return invokeAnalyze({ description });
 }
 
+/**
+ * Send a photo of a printed Nutrition Facts label to the same Edge Function,
+ * which transcribes the values as printed (via `mode: 'label'`) instead of
+ * estimating a plated meal — for when a barcode lookup's numbers don't match
+ * what's actually on the package.
+ */
+export async function analyzeLabelPhoto(
+  base64: string,
+  mimeType = 'image/jpeg',
+): Promise<AnalyzedItem[]> {
+  return invokeAnalyze({ image: base64, mimeType, mode: 'label' });
+}
+
 async function invokeAnalyze(body: Record<string, unknown>): Promise<AnalyzedItem[]> {
   const { data, error } = await supabase.functions.invoke('analyze-meal', { body });
   if (error) {
