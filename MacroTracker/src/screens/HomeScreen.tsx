@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,14 @@ import { MealSection } from '../components/MealSection';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { MealType } from '../types';
 import { computeStreak } from '../utils/streak';
+import { sessionVolume } from '../utils/analytics';
+import { formatDuration } from '../utils/date';
+import { heartRateStats } from '../services/heartRate';
+import {
+  activeEnergyAvailable,
+  requestActiveEnergyPermission,
+  queryActiveEnergy,
+} from '../services/activeEnergy';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -38,6 +46,44 @@ export function HomeScreen({ navigation }: Props) {
     () => workoutHistory.filter((w) => w.date === selectedDate),
     [workoutHistory, selectedDate]
   );
+  const dayWorkoutStats = useMemo(() => {
+    if (dayWorkouts.length === 0) return null;
+    const totalDurationMs = dayWorkouts.reduce(
+      (n, w) => n + Math.max(0, (w.completedAt ?? w.startedAt) - w.startedAt),
+      0
+    );
+    const totalVolume = dayWorkouts.reduce((n, w) => n + sessionVolume(w), 0);
+    const totalSets = dayWorkouts.reduce(
+      (n, w) => n + w.exercises.reduce((en, e) => en + e.sets.length, 0),
+      0
+    );
+    const doneSets = dayWorkouts.reduce(
+      (n, w) => n + w.exercises.reduce((en, e) => en + e.sets.filter((s) => s.completed).length, 0),
+      0
+    );
+    const hr = heartRateStats(dayWorkouts.flatMap((w) => w.heartRateSamples ?? []));
+    return { totalDurationMs, totalVolume, totalSets, doneSets, hr };
+  }, [dayWorkouts]);
+
+  // Active Energy (kcal burned) from HealthKit — enriched by an Apple Watch
+  // when one's worn, but degrades to null (hidden) with no native module,
+  // no permission, or no data for the selected day.
+  const [activeEnergy, setActiveEnergy] = useState<number | null>(null);
+  const [hkAvailable] = useState(() => activeEnergyAvailable());
+  useEffect(() => {
+    if (!hkAvailable) return;
+    requestActiveEnergyPermission();
+  }, [hkAvailable]);
+  useEffect(() => {
+    if (!hkAvailable) return;
+    let cancelled = false;
+    queryActiveEnergy(selectedDate).then((kcal) => {
+      if (!cancelled) setActiveEnergy(kcal);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hkAvailable, selectedDate]);
   const setWater = useStore((s) => s.setWater);
   const waterGoal = useStore((s) => s.waterGoal);
   const waterIncrement = useStore((s) => s.waterIncrement);
@@ -162,6 +208,20 @@ export function HomeScreen({ navigation }: Props) {
             />
           </View>
         </View>
+
+        {/* Active Energy (Apple Health / Apple Watch) — only shown when we
+            actually got a reading, so it's invisible for anyone not using
+            HealthKit rather than showing a misleading zero. */}
+        {activeEnergy != null && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🔥 Active Energy</Text>
+            <View style={styles.energyRow}>
+              <Text style={styles.energyValue}>{activeEnergy}</Text>
+              <Text style={styles.energyUnit}>kcal burned</Text>
+            </View>
+            <Text style={styles.energyCaption}>From Apple Health</Text>
+          </View>
+        )}
 
         {/* Today's Summary + Streak */}
         {isToday && (
@@ -296,9 +356,36 @@ export function HomeScreen({ navigation }: Props) {
           />
         ))}
 
-        {dayWorkouts.length > 0 && (
+        {dayWorkouts.length > 0 && dayWorkoutStats && (
           <View style={styles.workoutsSection}>
             <Text style={styles.workoutsTitle}>Workouts</Text>
+
+            <View style={styles.workoutStatsRow}>
+              <WorkoutStat
+                label="Duration"
+                value={formatDuration(dayWorkoutStats.totalDurationMs)}
+                c={c}
+              />
+              <WorkoutStat
+                label="Volume"
+                value={
+                  dayWorkoutStats.totalVolume >= 1000
+                    ? `${(dayWorkoutStats.totalVolume / 1000).toFixed(1)}k`
+                    : String(Math.round(dayWorkoutStats.totalVolume))
+                }
+                unit="lb"
+                c={c}
+              />
+              <WorkoutStat
+                label="Sets"
+                value={`${dayWorkoutStats.doneSets}/${dayWorkoutStats.totalSets}`}
+                c={c}
+              />
+              {dayWorkoutStats.hr && (
+                <WorkoutStat label="Avg HR" value={String(dayWorkoutStats.hr.avg)} unit="bpm" c={c} />
+              )}
+            </View>
+
             {dayWorkouts.map((w) => (
               <WorkoutHistoryItem
                 key={w.id}
@@ -317,6 +404,29 @@ export function HomeScreen({ navigation }: Props) {
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function WorkoutStat({
+  label,
+  value,
+  unit,
+  c,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  c: Theme;
+}) {
+  const styles = useMemo(() => makeStyles(c), [c]);
+  return (
+    <View style={styles.workoutStat}>
+      <Text style={styles.workoutStatValue}>
+        {value}
+        {unit ? <Text style={styles.workoutStatUnit}> {unit}</Text> : null}
+      </Text>
+      <Text style={styles.workoutStatLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -498,6 +608,34 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     color: c.text,
     marginBottom: 10,
   },
+  workoutStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: c.card,
+    borderRadius: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  workoutStat: { alignItems: 'center' },
+  workoutStatValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: c.text,
+    fontVariant: ['tabular-nums'],
+  },
+  workoutStatUnit: { fontSize: 11, fontWeight: '600', color: c.textFaint },
+  workoutStatLabel: { fontSize: 11, color: c.textFaint, marginTop: 3 },
+
+  // Active Energy card
+  energyRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  energyValue: { fontSize: 28, fontWeight: '800', color: c.text, fontVariant: ['tabular-nums'] },
+  energyUnit: { fontSize: 14, color: c.textFaint, fontWeight: '600' },
+  energyCaption: { fontSize: 11, color: c.textFaint, marginTop: 6 },
   // Today's Summary card
   summaryHeader: {
     flexDirection: 'row',
