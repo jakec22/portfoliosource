@@ -43,7 +43,7 @@
       "bundleIdentifier": "com.jacobclover.macrotracker",
       "appleTeamId": "D8S2K2WAL9",
       "usesAppleSignIn": true,
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
