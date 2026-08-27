@@ -90,6 +90,27 @@ export function LogFoodScreen({ route, navigation }: Props) {
     [logs, date, meal]
   );
 
+  // Every food the user has ever logged, most-recently-eaten first and
+  // deduplicated by food id — replaces the old static "All Foods" database
+  // dump with something actually personalized to re-add from.
+  const historyFoods = useMemo(() => {
+    const entries = Object.values(logs).flat().sort((a, b) => b.timestamp - a.timestamp);
+    const seen = new Set<string>();
+    const foods: Food[] = [];
+    for (const e of entries) {
+      if (seen.has(e.food.id)) continue;
+      seen.add(e.food.id);
+      foods.push(e.food);
+    }
+    return foods;
+  }, [logs]);
+  const HISTORY_PAGE_SIZE = 20;
+  const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE_SIZE);
+  const visibleHistory = useMemo(
+    () => historyFoods.slice(0, historyLimit),
+    [historyFoods, historyLimit]
+  );
+
   // Debounced live search against USDA (falls back to local foods offline).
   // Custom foods are merged in front of API results when their name matches.
   useEffect(() => {
@@ -343,7 +364,6 @@ export function LogFoodScreen({ route, navigation }: Props) {
         </View>
 
         <FlatList
-          data={results}
           keyExtractor={(f) => f.id}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.listContent}
@@ -465,10 +485,11 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   </>
                 )}
 
-                <Text style={styles.allFoodsLabel}>All Foods</Text>
+                <Text style={styles.allFoodsLabel}>History</Text>
               </View>
             ) : null
           }
+          data={showShortcuts ? visibleHistory : results}
           renderItem={({ item }) => {
             const isFav = favoriteFoods.some((f) => f.id === item.id);
             return (
@@ -521,6 +542,13 @@ export function LogFoodScreen({ route, navigation }: Props) {
                 <ActivityIndicator color={c.primary} />
                 <Text style={styles.emptySubtext}>Searching foods…</Text>
               </View>
+            ) : showShortcuts ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>Nothing logged yet</Text>
+                <Text style={styles.emptySubtext}>
+                  Foods you log will show up here for quick re-adding
+                </Text>
+              </View>
             ) : (
               <View style={styles.empty}>
                 <Text style={styles.emptyText}>No foods found</Text>
@@ -529,6 +557,17 @@ export function LogFoodScreen({ route, navigation }: Props) {
                 </Text>
               </View>
             )
+          }
+          ListFooterComponent={
+            showShortcuts && historyLimit < historyFoods.length ? (
+              <TouchableOpacity
+                style={styles.loadMoreBtn}
+                onPress={() => setHistoryLimit((n) => n + HISTORY_PAGE_SIZE)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.loadMoreText}>Load more</Text>
+              </TouchableOpacity>
+            ) : null
           }
         />
 
@@ -810,6 +849,12 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: 4,
     marginLeft: 2,
   },
+  loadMoreBtn: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  loadMoreText: { color: c.primary, fontWeight: '700', fontSize: 14 },
   shortcutRow: {
     flexDirection: 'row',
     gap: 8,
