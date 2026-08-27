@@ -13,8 +13,12 @@ export const EXERCISE_CATALOG: ExerciseCategory[] = [
     exercises: [
       'Barbell Bench Press',
       'Incline Barbell Bench Press',
+      'Decline Bench Press',
       'Dumbbell Bench Press',
       'Incline Dumbbell Press',
+      'Chest Press',
+      'Incline Chest Press',
+      'Decline Chest Press',
       'Chest Fly',
       'Cable Crossover',
       'Push-up',
@@ -24,7 +28,6 @@ export const EXERCISE_CATALOG: ExerciseCategory[] = [
   {
     category: 'Back',
     exercises: [
-      'Deadlift',
       'Barbell Row',
       'Pull-up',
       'Chin-up',
@@ -38,6 +41,7 @@ export const EXERCISE_CATALOG: ExerciseCategory[] = [
   {
     category: 'Legs',
     exercises: [
+      'Deadlift',
       'Back Squat',
       'Front Squat',
       'Leg Press',
@@ -81,6 +85,8 @@ export const EXERCISE_CATALOG: ExerciseCategory[] = [
     exercises: [
       'Plank',
       'Hanging Leg Raise',
+      'Leg Lift',
+      'Flutter Kick',
       'Cable Crunch',
       'Russian Twist',
       'Ab Wheel Rollout',
