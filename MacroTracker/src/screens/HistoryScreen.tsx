@@ -67,16 +67,16 @@ export function HistoryScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.pageTitle}>History</Text>
 
-        {/* Trends */}
+        {/* Key Insights */}
         <TouchableOpacity
           style={styles.trendsBtn}
-          onPress={() => navigation.navigate('Analytics')}
+          onPress={() => navigation.navigate('KeyInsights')}
           activeOpacity={0.7}
         >
           <Text style={styles.trendsIcon}>📈</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.trendsTitle}>Trends</Text>
-            <Text style={styles.trendsSub}>Weight, nutrition & workout volume over time</Text>
+            <Text style={styles.trendsTitle}>Key Insights</Text>
+            <Text style={styles.trendsSub}>Weight, nutrition, consistency & workout volume</Text>
           </View>
           <Text style={styles.trendsArrow}>›</Text>
         </TouchableOpacity>

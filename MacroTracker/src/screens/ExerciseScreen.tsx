@@ -39,7 +39,7 @@ export function ExerciseScreen({ navigation }: Props) {
   const saveTemplate = useStore((s) => s.saveTemplate);
 
   // Compact progress highlights for the Exercise tab: recent PRs and the
-  // exercises that improved most. Full browsing lives under Progress & Trends.
+  // exercises that improved most. Full browsing lives under Key Insights.
   const prs = useMemo(() => recentPRs(history), [history]);
   const movers = useMemo(() => topMovers(history), [history]);
   const hasProgress = prs.length > 0 || movers.length > 0;
@@ -251,12 +251,12 @@ export function ExerciseScreen({ navigation }: Props) {
         )}
 
         {/* Progress highlights — recent PRs + top movers. Full browsing is in
-            Progress & Trends. */}
+            Key Insights. */}
         {hasProgress && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Progress</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('WorkoutInsights')}>
+              <TouchableOpacity onPress={() => navigation.navigate('KeyInsights')}>
                 <Text style={styles.seeAll}>See all ›</Text>
               </TouchableOpacity>
             </View>

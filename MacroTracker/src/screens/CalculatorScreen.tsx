@@ -376,7 +376,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         <View style={styles.weightSectionHeader}>
           <Text style={styles.sectionTitle}>Body Weight</Text>
           {navigation && (
-            <TouchableOpacity onPress={() => navigation.navigate('Analytics')}>
+            <TouchableOpacity onPress={() => navigation.navigate('KeyInsights')}>
               <Text style={styles.trendsLink}>View trends ›</Text>
             </TouchableOpacity>
           )}
