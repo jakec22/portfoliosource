@@ -46,9 +46,9 @@ export function HeartRateGraph({ samples, startMs, endMs }: Props) {
   return (
     <View>
       <View style={styles.statsRow}>
-        <Stat label="Avg" value={stats.avg} color={c.danger} />
+        <Stat label="Avg" value={stats.avg} color={c.primary} />
         <Stat label="Peak" value={stats.peak} color={c.danger} />
-        <Stat label="Low" value={stats.low} color={c.danger} />
+        <Stat label="Low" value={stats.low} color={c.info} />
       </View>
 
       <Svg viewBox={`0 0 ${W} ${H}`} width="100%" height={170}>
@@ -103,6 +103,11 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
 const makeStyles = (c: Theme) => StyleSheet.create({
   statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 8 },
   stat: { alignItems: 'center' },
-  statValue: { fontSize: 22, fontWeight: '800' },
-  statLabel: { fontSize: 11, color: c.textFaint, marginTop: 2 },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    fontFamily: c.fontDisplay,
+    fontVariant: ['tabular-nums'],
+  },
+  statLabel: { fontSize: 11, color: c.textMuted, marginTop: 2, fontWeight: '500' },
 });
