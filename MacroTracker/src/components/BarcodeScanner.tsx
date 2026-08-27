@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../theme/useTheme';
@@ -54,7 +55,13 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
     setCapturing(true);
     try {
       const photo = await cameraRef.current?.takePictureAsync({ base64: true, quality: 0.5 });
-      if (photo?.base64) onLabelCaptured(photo.base64);
+      if (photo?.base64) {
+        onLabelCaptured(photo.base64);
+      } else {
+        Alert.alert('Capture failed', 'No photo was captured. Please try again.');
+      }
+    } catch (e: any) {
+      Alert.alert('Capture failed', e?.message ?? 'Please try again.');
     } finally {
       setCapturing(false);
     }
@@ -90,11 +97,12 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
               style={StyleSheet.absoluteFill}
               facing="back"
               onCameraReady={() => setCameraReady(true)}
-              barcodeScannerSettings={
-                mode === 'barcode'
-                  ? { barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }
-                  : undefined
-              }
+              // Keep this settings object stable across mode switches — toggling it
+              // on/off forces the native capture session to reconfigure, which was
+              // leaving takePictureAsync briefly unable to capture right after
+              // switching into Label mode. Gating onBarcodeScanned below is enough
+              // to stop barcode scans from being acted on outside Barcode mode.
+              barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }}
               onBarcodeScanned={mode === 'barcode' && !locked ? handleScanned : undefined}
             />
 
