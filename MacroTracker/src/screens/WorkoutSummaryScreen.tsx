@@ -11,7 +11,6 @@ import {
   type ExercisePR,
 } from '../utils/exerciseHistory';
 import { sessionVolume } from '../utils/analytics';
-import { heartRateStats } from '../services/heartRate';
 import {
   activeEnergyAvailable,
   requestActiveEnergyPermission,
@@ -139,7 +138,6 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
     0
   );
   const totalVolume = sessionVolume(session);
-  const hr = heartRateStats(session.heartRateSamples ?? []);
 
   const prevDurationMs = previousSession
     ? (previousSession.completedAt ?? previousSession.startedAt) - previousSession.startedAt
@@ -201,18 +199,12 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
           </>
         )}
 
-        {/* Heart rate (only when samples were captured) */}
+        {/* Heart rate (only when samples were captured). HeartRateGraph
+            already renders its own Avg/Peak/Low row above the chart. */}
         {session.heartRateSamples && session.heartRateSamples.length >= 2 && (
           <>
             <Text style={styles.sectionTitle}>Heart Rate</Text>
             <View style={styles.hrCard}>
-              {hr && (
-                <View style={styles.hrStatRow}>
-                  <HrStat label="Avg" value={hr.avg} color={c.primary} c={c} />
-                  <HrStat label="Peak" value={hr.peak} color={c.danger} c={c} />
-                  <HrStat label="Low" value={hr.low} color={c.info} c={c} />
-                </View>
-              )}
               <HeartRateGraph
                 samples={session.heartRateSamples}
                 startMs={session.startedAt}
@@ -329,19 +321,6 @@ function VsStat({
   );
 }
 
-function HrStat({ label, value, color, c }: { label: string; value: number; color: string; c: Theme }) {
-  const styles = useMemo(() => makeStyles(c), [c]);
-  return (
-    <View style={styles.hrStat}>
-      <Text style={[styles.hrStatValue, { color }]}>
-        {value}
-        <Text style={styles.hrStatUnit}> bpm</Text>
-      </Text>
-      <Text style={styles.hrStatLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const makeStyles = (c: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
@@ -408,19 +387,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   vsStat: { alignItems: 'center' },
   vsValue: { fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'] },
   vsLabel: { fontSize: 12, color: c.textMuted, marginTop: 4, fontWeight: '500' },
-
-  hrStatRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 14,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
-  },
-  hrStat: { alignItems: 'center' },
-  hrStatValue: { fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  hrStatUnit: { fontSize: 11, fontWeight: '600', color: c.textFaint },
-  hrStatLabel: { fontSize: 11, color: c.textMuted, marginTop: 3, fontWeight: '500' },
 
   hrCard: {
     backgroundColor: c.card,
