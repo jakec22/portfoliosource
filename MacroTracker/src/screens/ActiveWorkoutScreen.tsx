@@ -22,6 +22,7 @@ import { formatDuration, relativeDateLabel } from '../utils/date';
 import { lastPerformance } from '../utils/exerciseHistory';
 import { DurationInput } from '../components/DurationInput';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
+import { ExercisePickerModal } from '../components/ExercisePickerModal';
 import { getHeartRateMonitor } from '../services/heartRate';
 import { subscribeWatchHeartRate, getWorkoutHrSamples } from '../services/watch';
 import { useTheme } from '../theme/useTheme';
@@ -72,6 +73,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   const workoutHistory = useStore((s) => s.workoutHistory);
 
   // Live heart rate from the Apple Watch (via HealthKit) during the workout.
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [liveBpm, setLiveBpm] = useState<number | null>(null);
   const [bpmUpdatedAt, setBpmUpdatedAt] = useState<number | null>(null);
   const monitorRef = useRef(getHeartRateMonitor());
@@ -196,20 +198,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   );
 
   function promptAddExercise() {
-    Alert.prompt(
-      'Add Exercise',
-      'Name of the exercise',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Add',
-          onPress: (name?: string) => {
-            if (name && name.trim()) addWorkoutExercise(name.trim());
-          },
-        },
-      ],
-      'plain-text'
-    );
+    setShowExercisePicker(true);
   }
 
   // Save the session and leave to the summary. When `completeAll` is set, every
@@ -509,6 +498,11 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
           </View>
         </InputAccessoryView>
       )}
+      <ExercisePickerModal
+        visible={showExercisePicker}
+        onClose={() => setShowExercisePicker(false)}
+        onSelect={(name) => addWorkoutExercise(name)}
+      />
     </SafeAreaView>
   );
 }

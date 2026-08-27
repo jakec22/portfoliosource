@@ -18,6 +18,7 @@ import { TemplateExercise, TemplateSet, WorkoutTemplate, SetType } from '../type
 import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { DurationInput } from '../components/DurationInput';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
+import { ExercisePickerModal } from '../components/ExercisePickerModal';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -72,6 +73,8 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
       ? existing.exercises.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s })) }))
       : [blankExercise()]
   );
+  // Which exercise card the picker modal is currently filling in, if any.
+  const [pickerExId, setPickerExId] = useState<string | null>(null);
 
   const activityLabel =
     WORKOUT_TYPES.find((t) => t.hk === activityType)?.label ?? 'Strength';
@@ -226,6 +229,9 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                   placeholder={`Exercise ${idx + 1}`}
                   placeholderTextColor={c.textFaint}
                 />
+                <TouchableOpacity onPress={() => setPickerExId(e.id)} style={styles.exListBtn}>
+                  <Text style={styles.exListBtnText}>List</Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => removeExercise(e.id)} style={styles.exRemove}>
                   <Text style={styles.exRemoveText}>✕</Text>
                 </TouchableOpacity>
@@ -343,6 +349,13 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
         </ScrollView>
       </KeyboardAvoidingView>
       <KeyboardDoneAccessory />
+      <ExercisePickerModal
+        visible={pickerExId !== null}
+        onClose={() => setPickerExId(null)}
+        onSelect={(name) => {
+          if (pickerExId) updateExercise(pickerExId, { name });
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -403,6 +416,15 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     color: c.text,
     paddingVertical: 6,
   },
+  exListBtn: {
+    paddingHorizontal: 10,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: c.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exListBtnText: { color: c.primaryDark, fontSize: 12, fontWeight: '700' },
   exRemove: {
     width: 28,
     height: 28,
