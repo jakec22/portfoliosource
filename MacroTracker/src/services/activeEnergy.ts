@@ -47,17 +47,17 @@ export async function requestActiveEnergyPermission(): Promise<boolean> {
 }
 
 /**
- * Cumulative Active Energy Burned (kcal) for the given YYYY-MM-DD date, or
- * null if HealthKit is unavailable, permission wasn't granted, or the read
- * failed — the caller should treat null as "hide this", not "zero".
+ * Cumulative Active Energy Burned (kcal) between two instants, or null if
+ * HealthKit is unavailable, permission wasn't granted, or the read failed —
+ * the caller should treat null as "hide this", not "zero".
  */
-export async function queryActiveEnergy(dateStr: string): Promise<number | null> {
+export async function queryActiveEnergyRange(
+  startDate: Date,
+  endDate: Date
+): Promise<number | null> {
   const hk = loadHealthKit();
   if (!hk) return null;
   try {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const startDate = new Date(y, m - 1, d, 0, 0, 0, 0);
-    const endDate = new Date(y, m - 1, d, 23, 59, 59, 999);
     const res = await hk.queryStatisticsForQuantity(ACTIVE_ENERGY_ID, ['cumulativeSum'], {
       filter: { date: { startDate, endDate } },
       unit: 'kcal',
@@ -67,4 +67,22 @@ export async function queryActiveEnergy(dateStr: string): Promise<number | null>
   } catch {
     return null;
   }
+}
+
+/** Cumulative Active Energy Burned (kcal) for the given YYYY-MM-DD date. */
+export async function queryActiveEnergy(dateStr: string): Promise<number | null> {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return queryActiveEnergyRange(
+    new Date(y, m - 1, d, 0, 0, 0, 0),
+    new Date(y, m - 1, d, 23, 59, 59, 999)
+  );
+}
+
+/** Cumulative Active Energy Burned (kcal) between two epoch-ms timestamps —
+ * for scoping the read to a specific workout's actual start/end. */
+export async function queryActiveEnergyForWorkout(
+  startMs: number,
+  endMs: number
+): Promise<number | null> {
+  return queryActiveEnergyRange(new Date(startMs), new Date(endMs));
 }

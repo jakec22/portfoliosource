@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
@@ -6,12 +6,42 @@ import { formatDuration, displayDate } from '../utils/date';
 import { formatDuration as formatSetTime } from '../utils/duration';
 import {
   detectSessionPRs,
+  estimate1RM,
   normalizeExerciseName,
   type ExercisePR,
 } from '../utils/exerciseHistory';
+import { sessionVolume } from '../utils/analytics';
+import { heartRateStats } from '../services/heartRate';
+import {
+  activeEnergyAvailable,
+  requestActiveEnergyPermission,
+  queryActiveEnergyForWorkout,
+} from '../services/activeEnergy';
 import { HeartRateGraph } from '../components/HeartRateGraph';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import type { WorkoutExercise } from '../types';
+
+// The heaviest completed working set by estimated 1RM — the single most
+// representative number for "how strong was this exercise today."
+function bestSet(ex: WorkoutExercise): { weight: number; reps: number } | null {
+  const candidates = ex.sets.filter((s) => s.completed && s.type !== 'warmup' && s.reps > 0);
+  if (candidates.length === 0) return null;
+  return candidates.reduce((best, s) =>
+    estimate1RM(s.weight, s.reps) > estimate1RM(best.weight, best.reps) ? s : best
+  );
+}
+
+// "+320 lb" / "−40 lb" / "±0 lb" style delta label.
+function deltaLabel(diff: number, unit: string, decimals = 0): string {
+  const rounded = Number(diff.toFixed(decimals));
+  if (rounded === 0) return `±0${unit}`;
+  const sign = rounded > 0 ? '+' : '−';
+  return `${sign}${Math.abs(rounded).toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })}${unit}`;
+}
 
 // Pick the most impressive record to headline for a given exercise PR.
 function prHeadline(pr: ExercisePR): string {
@@ -46,6 +76,39 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
     [prs]
   );
 
+  // The most recent earlier session of this same workout (matched by
+  // template when the workout came from one, otherwise by name) — the basis
+  // for the "vs last time" comparison below.
+  const previousSession = useMemo(() => {
+    if (!session) return null;
+    const candidates = history.filter(
+      (w) =>
+        w.id !== session.id &&
+        w.completedAt != null &&
+        w.startedAt < session.startedAt &&
+        (session.templateId ? w.templateId === session.templateId : w.name === session.name)
+    );
+    if (candidates.length === 0) return null;
+    return candidates.reduce((latest, w) => (w.startedAt > latest.startedAt ? w : latest));
+  }, [session, history]);
+
+  // Active Energy Burned from HealthKit, scoped to this workout's actual
+  // start/end — null (hidden) with no Watch/permission/data, never a fake 0.
+  const [calories, setCalories] = useState<number | null>(null);
+  useEffect(() => {
+    if (!session?.completedAt || !activeEnergyAvailable()) return;
+    let cancelled = false;
+    requestActiveEnergyPermission().then((granted) => {
+      if (!granted || cancelled) return;
+      queryActiveEnergyForWorkout(session.startedAt, session.completedAt!).then((kcal) => {
+        if (!cancelled) setCalories(kcal);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.id]);
+
   function done() {
     // Viewing a past workout returns to the list; finishing pops the stack.
     if (viewOnly) navigation.goBack();
@@ -71,12 +134,20 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
     (n, e) => n + e.sets.filter((s) => s.completed).length,
     0
   );
-  // Volume = sum of weight × reps over completed sets.
-  const totalVolume = session.exercises.reduce(
-    (n, e) =>
-      n + e.sets.filter((s) => s.completed).reduce((v, s) => v + s.weight * s.reps, 0),
+  const totalReps = session.exercises.reduce(
+    (n, e) => n + e.sets.filter((s) => s.completed).reduce((r, s) => r + (s.reps || 0), 0),
     0
   );
+  const totalVolume = sessionVolume(session);
+  const hr = heartRateStats(session.heartRateSamples ?? []);
+
+  const prevDurationMs = previousSession
+    ? (previousSession.completedAt ?? previousSession.startedAt) - previousSession.startedAt
+    : null;
+  const prevVolume = previousSession ? sessionVolume(previousSession) : null;
+  const prevCompletedSets = previousSession
+    ? previousSession.exercises.reduce((n, e) => n + e.sets.filter((s) => s.completed).length, 0)
+    : null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -94,14 +165,54 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
           <StatCard label="Duration" value={formatDuration(durationMs)} color={c.primary} c={c} />
           <StatCard label="Volume" value={`${Math.round(totalVolume).toLocaleString()} lb`} color={c.accent} c={c} />
           <StatCard label="Sets" value={`${completedSets}/${totalSets}`} color={c.warning} c={c} />
+          <StatCard label="Reps" value={String(totalReps)} color={c.macroProtein} c={c} />
           <StatCard label="Exercises" value={String(session.exercises.length)} color={c.info} c={c} />
+          {calories != null && (
+            <StatCard label="Active Energy" value={`${calories} kcal`} color={c.danger} c={c} />
+          )}
         </View>
+
+        {/* vs. the last time this workout was done */}
+        {previousSession && prevDurationMs != null && prevVolume != null && prevCompletedSets != null && (
+          <>
+            <Text style={styles.sectionTitle}>vs. Last Time ({displayDate(previousSession.date)})</Text>
+            <View style={styles.vsCard}>
+              <VsStat
+                label="Volume"
+                delta={deltaLabel(totalVolume - prevVolume, ' lb')}
+                positive={totalVolume >= prevVolume}
+                c={c}
+              />
+              <VsStat
+                label="Duration"
+                delta={deltaLabel((durationMs - prevDurationMs) / 60000, ' min')}
+                // Shorter duration for the same or more work reads as an
+                // improvement (denser session), so this one inverts.
+                positive={durationMs <= prevDurationMs}
+                c={c}
+              />
+              <VsStat
+                label="Sets"
+                delta={deltaLabel(completedSets - prevCompletedSets, '')}
+                positive={completedSets >= prevCompletedSets}
+                c={c}
+              />
+            </View>
+          </>
+        )}
 
         {/* Heart rate (only when samples were captured) */}
         {session.heartRateSamples && session.heartRateSamples.length >= 2 && (
           <>
             <Text style={styles.sectionTitle}>Heart Rate</Text>
             <View style={styles.hrCard}>
+              {hr && (
+                <View style={styles.hrStatRow}>
+                  <HrStat label="Avg" value={hr.avg} color={c.primary} c={c} />
+                  <HrStat label="Peak" value={hr.peak} color={c.danger} c={c} />
+                  <HrStat label="Low" value={hr.low} color={c.info} c={c} />
+                </View>
+              )}
               <HeartRateGraph
                 samples={session.heartRateSamples}
                 startMs={session.startedAt}
@@ -132,6 +243,7 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
           const done = e.sets.filter((s) => s.completed);
           const vol = done.reduce((v, s) => v + s.weight * s.reps, 0);
           const isPR = prNames.has(normalizeExerciseName(e.name));
+          const best = bestSet(e);
           return (
             <View key={e.id} style={styles.exRow}>
               <View style={{ flex: 1 }}>
@@ -146,6 +258,7 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
                 <Text style={styles.exDetail}>
                   {done.length}/{e.sets.length} sets
                   {vol > 0 ? ` · ${Math.round(vol).toLocaleString()} lb` : ''}
+                  {best ? ` · best ${best.weight}×${best.reps}` : ''}
                 </Text>
               </View>
               <View style={styles.setPills}>
@@ -192,6 +305,39 @@ function StatCard({
     <View style={styles.statCard}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function VsStat({
+  label,
+  delta,
+  positive,
+  c,
+}: {
+  label: string;
+  delta: string;
+  positive: boolean;
+  c: Theme;
+}) {
+  const styles = useMemo(() => makeStyles(c), [c]);
+  return (
+    <View style={styles.vsStat}>
+      <Text style={[styles.vsValue, { color: positive ? c.primary : c.danger }]}>{delta}</Text>
+      <Text style={styles.vsLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function HrStat({ label, value, color, c }: { label: string; value: number; color: string; c: Theme }) {
+  const styles = useMemo(() => makeStyles(c), [c]);
+  return (
+    <View style={styles.hrStat}>
+      <Text style={[styles.hrStatValue, { color }]}>
+        {value}
+        <Text style={styles.hrStatUnit}> bpm</Text>
+      </Text>
+      <Text style={styles.hrStatLabel}>{label}</Text>
     </View>
   );
 }
@@ -246,6 +392,36 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
+
+  vsCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: c.card,
+    borderRadius: 16,
+    paddingVertical: 16,
+    shadowColor: c.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  vsStat: { alignItems: 'center' },
+  vsValue: { fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  vsLabel: { fontSize: 12, color: c.textMuted, marginTop: 4, fontWeight: '500' },
+
+  hrStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 14,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: c.border,
+  },
+  hrStat: { alignItems: 'center' },
+  hrStatValue: { fontSize: 18, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  hrStatUnit: { fontSize: 11, fontWeight: '600', color: c.textFaint },
+  hrStatLabel: { fontSize: 11, color: c.textMuted, marginTop: 3, fontWeight: '500' },
+
   hrCard: {
     backgroundColor: c.card,
     borderRadius: 16,
