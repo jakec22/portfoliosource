@@ -199,9 +199,33 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     // Watch→phone set updates. Uses sendMessage (the proven path, same as HR
     // streaming); transferUserInfo received events are unreliable on the RN side.
     private func sendSetMessage(_ message: [String: Any]) {
+        sendReliable(message)
+    }
+
+    // sendMessage silently drops a command if the phone isn't reachable at that
+    // exact instant (screen off, momentarily out of Bluetooth range) — there's no
+    // queued fallback wired up on the phone's WatchConnectivity binding, so a
+    // one-shot send can lose a set check-off or a finished workout entirely.
+    // Retry with backoff instead of firing once and hoping; give up once the
+    // session deactivates or after a handful of attempts.
+    private func sendReliable(_ message: [String: Any], attempt: Int = 0) {
         let session = WCSession.default
         guard session.activationState == .activated else { return }
-        session.sendMessage(message, replyHandler: nil, errorHandler: nil)
+        guard session.isReachable else {
+            retryReliableSend(message, attempt: attempt)
+            return
+        }
+        session.sendMessage(message, replyHandler: nil, errorHandler: { [weak self] _ in
+            self?.retryReliableSend(message, attempt: attempt)
+        })
+    }
+
+    private func retryReliableSend(_ message: [String: Any], attempt: Int) {
+        guard attempt < 5 else { return } // ~1+2+4+8+16s of retrying, then give up
+        let delay = pow(2.0, Double(attempt))
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.sendReliable(message, attempt: attempt + 1)
+        }
     }
 
     // Complete the whole workout from the wrist: end the on-wrist session (shows
@@ -217,13 +241,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             }
         }
         WorkoutManager.shared.end()
-        let session = WCSession.default
-        guard session.activationState == .activated else { return }
-        session.sendMessage(
-            ["type": "finishWorkout", "completeAll": completeAll],
-            replyHandler: nil,
-            errorHandler: nil
-        )
+        sendReliable(["type": "finishWorkout", "completeAll": completeAll])
     }
 
     // Count of sets not yet checked off — drives the finish confirmation prompt.
@@ -241,13 +259,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         let type = HKWorkoutActivityType(rawValue: raw) ?? .functionalStrengthTraining
         WorkoutManager.shared.start(activityType: type)
         showWorkout = true
-        let session = WCSession.default
-        guard session.activationState == .activated else { return }
-        session.sendMessage(
-            ["type": "startTemplate", "templateId": template?.id ?? ""],
-            replyHandler: nil,
-            errorHandler: nil
-        )
+        sendReliable(["type": "startTemplate", "templateId": template?.id ?? ""])
     }
 
     // Auto-start / end the on-wrist workout based on the phone's workout state.
@@ -555,6 +567,17 @@ struct WorkoutView: View {
             }
         }
         .onAppear { workout.requestAuthorization() }
+        .alert(
+            "Couldn't Start Workout",
+            isPresented: Binding(
+                get: { workout.startError != nil },
+                set: { if !$0 { workout.startError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { workout.startError = nil }
+        } message: {
+            Text(workout.startError ?? "")
+        }
     }
 
     // The active workout's exercises + sets. Tap the circle to check a set off;

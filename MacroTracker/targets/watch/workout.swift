@@ -28,6 +28,9 @@ final class WorkoutManager: NSObject, ObservableObject {
     @Published var avgHeartRate: Double = 0
     @Published var activeCalories: Double = 0
     @Published var elapsed: TimeInterval = 0
+    // Set when start() fails (e.g. HealthKit authorization denied) so the UI can
+    // tell the user why nothing happened instead of silently staying idle.
+    @Published var startError: String?
 
     // Ask for the data we read (HR, active energy) and write (the workout).
     func requestAuthorization() {
@@ -77,9 +80,14 @@ final class WorkoutManager: NSObject, ObservableObject {
                 self.isPaused = false
                 self.didFinish = false
                 self.isActive = true
+                self.startError = nil
             }
         } catch {
-            // Session failed to start (e.g. authorization denied) — stay idle.
+            // Previously silently swallowed, leaving the watch stuck on the idle
+            // screen with no indication anything went wrong. Surface it instead.
+            DispatchQueue.main.async {
+                self.startError = error.localizedDescription
+            }
         }
     }
 
