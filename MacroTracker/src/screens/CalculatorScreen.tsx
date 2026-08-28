@@ -503,7 +503,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             <Switch
               value={autoRestTimer}
               onValueChange={setAutoRestTimer}
-              trackColor={{ false: c.border, true: '#6EE7B7' }}
+              trackColor={{ false: c.border, true: c.primarySoft }}
               thumbColor={autoRestTimer ? c.primary : c.textFaint}
             />
           </View>
@@ -545,7 +545,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             <Switch
               value={notificationPrefs.enabled}
               onValueChange={toggleReminders}
-              trackColor={{ false: c.border, true: '#6EE7B7' }}
+              trackColor={{ false: c.border, true: c.primarySoft }}
               thumbColor={notificationPrefs.enabled ? c.primary : c.textFaint}
             />
           </View>
@@ -566,7 +566,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                   <Switch
                     value={notificationPrefs[key]}
                     onValueChange={(v) => setReminder(key, v)}
-                    trackColor={{ false: c.border, true: '#6EE7B7' }}
+                    trackColor={{ false: c.border, true: c.primarySoft }}
                     thumbColor={notificationPrefs[key] ? c.primary : c.textFaint}
                   />
                 </View>
@@ -605,7 +605,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             <Switch
               value={showWaterTracker}
               onValueChange={setShowWaterTracker}
-              trackColor={{ false: c.border, true: '#6EE7B7' }}
+              trackColor={{ false: c.border, true: c.primarySoft }}
               thumbColor={showWaterTracker ? c.primary : c.textFaint}
             />
           </View>
@@ -731,7 +731,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     backgroundColor: c.primarySoft,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
+    borderColor: `${c.primary}66`,
     padding: 18,
     marginBottom: 24,
     gap: 14,

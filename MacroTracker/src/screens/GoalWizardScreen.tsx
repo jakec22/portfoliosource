@@ -38,6 +38,14 @@ interface Props {
 // "maintain" (there's no deficit/surplus to choose).
 type StepKey = 'goal' | 'basics' | 'body' | 'activity' | 'pace' | 'review';
 
+// Lose/Maintain/Gain accent — mirrors the app's own down/steady/up semantics
+// (info/primary/warning) rather than a fixed palette, so it follows theme.
+function goalColor(c: Theme, type: GoalType): string {
+  if (type === 'lose') return c.info;
+  if (type === 'gain') return c.warning;
+  return c.primary;
+}
+
 export function GoalWizardScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -235,21 +243,22 @@ export function GoalWizardScreen({ navigation }: Props) {
               <Text style={styles.subtitle}>We'll tailor your calories and macros to match.</Text>
               {(['lose', 'maintain', 'gain'] as GoalType[]).map((g) => {
                 const m = GOAL_META[g];
+                const gc = goalColor(c, g);
                 const active = goalType === g;
                 return (
                   <TouchableOpacity
                     key={g}
-                    style={[styles.bigCard, active && { borderColor: m.color, backgroundColor: c.cardMuted }]}
+                    style={[styles.bigCard, active && { borderColor: gc, backgroundColor: c.cardMuted }]}
                     onPress={() => handleSelectGoal(g)}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.bigCardEmoji}>{m.emoji}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.bigCardLabel, active && { color: m.color }]}>{m.label}</Text>
+                      <Text style={[styles.bigCardLabel, active && { color: gc }]}>{m.label}</Text>
                       <Text style={styles.bigCardBlurb}>{m.blurb}</Text>
                     </View>
-                    <View style={[styles.radio, active && { borderColor: m.color }]}>
-                      {active && <View style={[styles.radioDot, { backgroundColor: m.color }]} />}
+                    <View style={[styles.radio, active && { borderColor: gc }]}>
+                      {active && <View style={[styles.radioDot, { backgroundColor: gc }]} />}
                     </View>
                   </TouchableOpacity>
                 );
@@ -400,7 +409,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                       {active && <View style={[styles.radioDot, { backgroundColor: c.primary }]} />}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.optLabel, active && { color: c.scheme === 'dark' ? c.primary : '#065F46' }]}>{a.label}</Text>
+                      <Text style={[styles.optLabel, active && { color: c.primaryDark }]}>{a.label}</Text>
                       <Text style={styles.optDesc}>{a.description}</Text>
                     </View>
                   </TouchableOpacity>
@@ -435,7 +444,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                       {active && <View style={[styles.radioDot, { backgroundColor: c.primary }]} />}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.optLabel, active && { color: c.scheme === 'dark' ? c.primary : '#065F46' }]}>
+                      <Text style={[styles.optLabel, active && { color: c.primaryDark }]}>
                         {lbLabel} / week
                       </Text>
                       <Text style={styles.optDesc}>
@@ -453,16 +462,16 @@ export function GoalWizardScreen({ navigation }: Props) {
               <Text style={styles.title}>Your plan</Text>
               <Text style={styles.subtitle}>Based on the Mifflin-St Jeor equation.</Text>
 
-              <View style={[styles.reviewCard, { borderTopColor: GOAL_META[goalType].color }]}>
+              <View style={[styles.reviewCard, { borderTopColor: goalColor(c, goalType) }]}>
                 <View style={styles.reviewHead}>
                   <View>
                     <Text style={styles.reviewEmoji}>{GOAL_META[goalType].emoji}</Text>
-                    <Text style={[styles.reviewGoal, { color: GOAL_META[goalType].color }]}>
+                    <Text style={[styles.reviewGoal, { color: goalColor(c, goalType) }]}>
                       {GOAL_META[goalType].label}
                     </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.reviewCals, { color: GOAL_META[goalType].color }]}>
+                    <Text style={[styles.reviewCals, { color: goalColor(c, goalType) }]}>
                       {plan.goals.calories}
                     </Text>
                     <Text style={styles.reviewCalsUnit}>kcal/day</Text>

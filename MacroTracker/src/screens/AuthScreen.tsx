@@ -152,7 +152,7 @@ export function AuthScreen() {
             activeOpacity={0.8}
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={c.onPrimary} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {isSignup ? 'Sign Up' : 'Sign In'}

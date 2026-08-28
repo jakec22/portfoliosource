@@ -40,7 +40,7 @@ interface Props {
 
 // Simple barcode icon drawn with react-native-svg (already a project dep).
 // 7 alternating narrow/wide bars to suggest a barcode at small sizes.
-function BarcodeIcon({ size = 22, color = '#fff' }: { size?: number; color?: string }) {
+function BarcodeIcon({ size = 22, color }: { size?: number; color: string }) {
   const h = size;
   const bars = [2, 1, 3, 1, 2, 1, 3, 1, 2];
   let x = 0;
@@ -360,7 +360,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
             onPress={() => setScannerVisible(true)}
             activeOpacity={0.8}
           >
-            <BarcodeIcon size={22} color="#fff" />
+            <BarcodeIcon size={22} color={c.onPrimary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.photoBtn}
@@ -782,11 +782,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    backgroundColor: '#0284C7',
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
-    shadowColor: '#0284C7',
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,

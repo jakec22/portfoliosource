@@ -41,14 +41,16 @@ export interface GoalMeta {
   type: GoalType;
   label: string;
   emoji: string;
-  color: string;
   blurb: string;
 }
 
+// Accent color per goal is intentionally not here — it's a Theme color
+// (chosen in GoalWizardScreen via useTheme()), not a fixed hex, so it
+// follows whichever pack is active instead of hardcoding one palette.
 export const GOAL_META: Record<GoalType, GoalMeta> = {
-  lose: { type: 'lose', label: 'Lose Weight', emoji: '📉', color: '#3B82F6', blurb: 'Eat below maintenance to drop fat' },
-  maintain: { type: 'maintain', label: 'Maintain', emoji: '⚖️', color: '#10B981', blurb: 'Hold your current weight' },
-  gain: { type: 'gain', label: 'Gain Muscle', emoji: '📈', color: '#F59E0B', blurb: 'Eat above maintenance for a lean bulk' },
+  lose: { type: 'lose', label: 'Lose Weight', emoji: '📉', blurb: 'Eat below maintenance to drop fat' },
+  maintain: { type: 'maintain', label: 'Maintain', emoji: '⚖️', blurb: 'Hold your current weight' },
+  gain: { type: 'gain', label: 'Gain Muscle', emoji: '📈', blurb: 'Eat above maintenance for a lean bulk' },
 };
 
 // Pace options (lb/week) offered per goal. Maintain has none.

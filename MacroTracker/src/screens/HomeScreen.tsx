@@ -536,7 +536,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   waterDotFilled: {
     opacity: 1,
-    backgroundColor: c.scheme === 'dark' ? 'rgba(59,130,246,0.35)' : '#DBEAFE',
+    backgroundColor: c.infoSoft,
   },
   waterDotText: {
     fontSize: 18,
@@ -649,12 +649,12 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.4)' : '#FED7AA',
+    borderColor: `${c.warning}80`,
   },
   streakBadgeText: {
     fontSize: 13,
     fontWeight: '700',
-    color: c.scheme === 'dark' ? c.warning : '#C2410C',
+    color: c.warning,
   },
   summaryCalRow: {
     flexDirection: 'row',

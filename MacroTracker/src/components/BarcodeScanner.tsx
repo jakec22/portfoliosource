@@ -87,7 +87,7 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
               style={[styles.permBtn, { backgroundColor: c.primary }]}
               onPress={requestPermission}
             >
-              <Text style={styles.permBtnText}>Grant Permission</Text>
+              <Text style={[styles.permBtnText, { color: c.onPrimary }]}>Grant Permission</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelLink} onPress={onClose}>
               <Text style={styles.cancelLinkText}>Cancel</Text>
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
   },
-  permBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  permBtnText: { fontSize: 16, fontWeight: '700' },
   cancelLink: { marginTop: 16 },
   cancelLinkText: { color: '#9CA3AF', fontSize: 14 },
   overlay: {

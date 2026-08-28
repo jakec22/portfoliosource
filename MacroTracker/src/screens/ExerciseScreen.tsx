@@ -328,13 +328,13 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: c.primarySoft,
     borderWidth: 1,
-    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
+    borderColor: `${c.primary}66`,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
   },
-  resumeTitle: { fontSize: 14, fontWeight: '700', color: c.scheme === 'dark' ? c.primary : '#065F46' },
-  resumeSub: { fontSize: 12, color: c.scheme === 'dark' ? c.textMuted : '#047857', marginTop: 2 },
+  resumeTitle: { fontSize: 14, fontWeight: '700', color: c.primaryDark },
+  resumeSub: { fontSize: 12, color: c.textMuted, marginTop: 2 },
   resumeArrow: { fontSize: 28, color: c.primary, fontWeight: '300' },
 
   startBtn: {

@@ -604,11 +604,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   setBadgeText: { fontSize: 13, fontWeight: '800' },
   badgeNormal: { backgroundColor: c.cardMuted, borderColor: c.border },
   badgeNormalText: { color: c.textMuted },
-  badgeWarmup: { backgroundColor: c.warningSoft, borderColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.5)' : '#FCD34D' },
+  badgeWarmup: { backgroundColor: c.warningSoft, borderColor: `${c.warning}80` },
   badgeWarmupText: { color: c.warning },
-  badgeFailure: { backgroundColor: c.dangerSoft, borderColor: c.scheme === 'dark' ? 'rgba(239,68,68,0.5)' : '#FCA5A5' },
+  badgeFailure: { backgroundColor: c.dangerSoft, borderColor: `${c.danger}80` },
   badgeFailureText: { color: c.danger },
-  badgeDropset: { backgroundColor: c.accentSoft, borderColor: c.scheme === 'dark' ? 'rgba(139,92,246,0.5)' : '#C4B5FD' },
+  badgeDropset: { backgroundColor: c.accentSoft, borderColor: `${c.accent}80` },
   badgeDropsetText: { color: c.accent },
   setInput: {
     backgroundColor: c.input,
@@ -630,7 +630,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxOn: { backgroundColor: c.primary, borderColor: c.primary },
-  checkmark: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  checkmark: { color: c.onPrimary, fontSize: 20, fontWeight: '800' },
   swipeDeleteAction: {
     backgroundColor: c.danger,
     justifyContent: 'center',
@@ -672,6 +672,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     backgroundColor: c.primary,
     borderRadius: 10,
   },
-  fillBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  fillBtnText: { color: c.onPrimary, fontSize: 14, fontWeight: '700' },
   fillDoneText: { fontSize: 15, fontWeight: '700', color: c.primary },
 });

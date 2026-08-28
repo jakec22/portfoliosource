@@ -369,7 +369,10 @@ export function BuildMealScreen({ route, navigation }: Props) {
                 activeOpacity={0.85}
               >
                 {aiLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  // Loading always pairs with aiBtnDisabled's borderStrong
+                  // background (not primary), so the spinner needs a neutral
+                  // color that reads on that muted surface in every pack.
+                  <ActivityIndicator color={c.textMuted} size="small" />
                 ) : (
                   <Text style={styles.aiBtnText}>Generate meal breakdown</Text>
                 )}
@@ -671,13 +674,13 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: 12,
   },
   aiBtn: {
-    backgroundColor: '#0EA5E9',
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 13,
     alignItems: 'center',
   },
   aiBtnDisabled: { backgroundColor: c.borderStrong },
-  aiBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  aiBtnText: { color: c.onPrimary, fontSize: 15, fontWeight: '700' },
 
   emptyMeal: {
     alignItems: 'center',

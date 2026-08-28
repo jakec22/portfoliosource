@@ -164,7 +164,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
 
   // Rest (right)
   restSide: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  countdown: { fontSize: 22, fontWeight: '800', color: c.scheme === 'dark' ? c.primary : '#065F46', fontVariant: ['tabular-nums'] },
+  countdown: { fontSize: 22, fontWeight: '800', color: c.primaryDark, fontVariant: ['tabular-nums'] },
   addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: c.primarySoft },
   addText: { fontSize: 14, fontWeight: '700', color: c.primaryDark },
   skipBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: c.primary },
@@ -175,7 +175,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderRadius: 10,
     backgroundColor: c.primarySoft,
     borderWidth: 1,
-    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
+    borderColor: `${c.primary}66`,
   },
   restBtnText: { fontSize: 14, fontWeight: '700', color: c.primaryDark },
 });

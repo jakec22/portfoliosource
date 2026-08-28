@@ -158,7 +158,7 @@ const makeStyles = (c: Theme) =>
       backgroundColor: c.primarySoft,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
+      borderColor: `${c.primary}66`,
       paddingVertical: 14,
       paddingHorizontal: 14,
       marginBottom: 16,

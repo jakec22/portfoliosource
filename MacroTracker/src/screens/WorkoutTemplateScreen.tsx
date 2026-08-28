@@ -483,11 +483,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   setBadgeText: { fontSize: 13, fontWeight: '800' },
   badgeNormal: { backgroundColor: c.cardMuted, borderColor: c.border },
   badgeNormalText: { color: c.textMuted },
-  badgeWarmup: { backgroundColor: c.warningSoft, borderColor: c.scheme === 'dark' ? 'rgba(245,158,11,0.5)' : '#FCD34D' },
+  badgeWarmup: { backgroundColor: c.warningSoft, borderColor: `${c.warning}80` },
   badgeWarmupText: { color: c.warning },
-  badgeFailure: { backgroundColor: c.dangerSoft, borderColor: c.scheme === 'dark' ? 'rgba(239,68,68,0.5)' : '#FCA5A5' },
+  badgeFailure: { backgroundColor: c.dangerSoft, borderColor: `${c.danger}80` },
   badgeFailureText: { color: c.danger },
-  badgeDropset: { backgroundColor: c.accentSoft, borderColor: c.scheme === 'dark' ? 'rgba(139,92,246,0.5)' : '#C4B5FD' },
+  badgeDropset: { backgroundColor: c.accentSoft, borderColor: `${c.accent}80` },
   badgeDropsetText: { color: c.accent },
 
   swipeDeleteAction: {
@@ -510,7 +510,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.4)' : '#A7F3D0',
+    borderColor: `${c.primary}66`,
     marginTop: 4,
   },
   addExText: { color: c.primaryDark, fontWeight: '700', fontSize: 15 },

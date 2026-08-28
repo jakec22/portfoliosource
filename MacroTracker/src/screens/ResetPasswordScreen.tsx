@@ -90,7 +90,7 @@ export function ResetPasswordScreen({ onDone }: Props) {
             activeOpacity={0.8}
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={c.onPrimary} />
             ) : (
               <Text style={styles.btnText}>Update Password</Text>
             )}

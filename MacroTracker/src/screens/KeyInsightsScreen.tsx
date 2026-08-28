@@ -228,7 +228,7 @@ export function KeyInsightsScreen({ navigation }: Props) {
                 <ProgressLineChart
                   values={weight.map((p) => p.lbs)}
                   labels={weight.map((p) => shortDate(p.date))}
-                  color="#0EA5E9"
+                  color={c.info}
                 />
               )}
             </>
@@ -442,7 +442,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: c.scheme === 'dark' ? 'rgba(16,185,129,0.25)' : '#D1FAE5',
+    borderColor: `${c.primary}40`,
     shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
