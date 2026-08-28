@@ -132,7 +132,12 @@ const makeStyles = (c: Theme) =>
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 16,
-      paddingVertical: 12,
+      // Extra top clearance, not just SafeAreaView's edges=['top']: inside a
+      // bare <Modal> that alone wasn't reliably clearing the status bar,
+      // leaving Cancel rendered underneath the clock and unclickable —
+      // same class of issue BarcodeScanner works around with a fixed offset.
+      paddingTop: 54,
+      paddingBottom: 12,
       borderBottomWidth: 1,
       borderBottomColor: c.border,
       backgroundColor: c.card,
