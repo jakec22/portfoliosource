@@ -111,6 +111,21 @@ export function LogFoodScreen({ route, navigation }: Props) {
     [historyFoods, historyLimit]
   );
 
+  // Previously-logged foods matching the typed query — surfaced ahead of
+  // fresh search results so re-adding something you've already eaten doesn't
+  // get buried under a generic database match.
+  const historyMatches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return historyFoods.filter(
+      (f) => f.name.toLowerCase().includes(q) || (f.brand && f.brand.toLowerCase().includes(q))
+    );
+  }, [historyFoods, query]);
+  const historyMatchIds = useMemo(
+    () => new Set(historyMatches.map((f) => f.id)),
+    [historyMatches]
+  );
+
   // Debounced live search against USDA (falls back to local foods offline).
   // Custom foods are merged in front of API results when their name matches.
   useEffect(() => {
@@ -489,9 +504,14 @@ export function LogFoodScreen({ route, navigation }: Props) {
               </View>
             ) : null
           }
-          data={showShortcuts ? visibleHistory : results}
+          data={
+            showShortcuts
+              ? visibleHistory
+              : [...historyMatches, ...results.filter((f) => !historyMatchIds.has(f.id))]
+          }
           renderItem={({ item }) => {
             const isFav = favoriteFoods.some((f) => f.id === item.id);
+            const isHistoryMatch = !showShortcuts && historyMatchIds.has(item.id);
             return (
               <TouchableOpacity
                 style={[
@@ -502,7 +522,14 @@ export function LogFoodScreen({ route, navigation }: Props) {
                 activeOpacity={0.7}
               >
                 <View style={styles.foodItemLeft}>
-                  <Text style={styles.foodName}>{item.name}</Text>
+                  <View style={styles.foodNameRow}>
+                    <Text style={styles.foodName}>{item.name}</Text>
+                    {isHistoryMatch && (
+                      <View style={styles.historyTag}>
+                        <Text style={styles.historyTagText}>History</Text>
+                      </View>
+                    )}
+                  </View>
                   {item.brand && (
                     <Text style={styles.foodBrand}>{item.brand}</Text>
                   )}
@@ -959,10 +986,23 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   foodItemLeft: {
     flex: 1,
   },
+  foodNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   foodName: {
     fontSize: 15,
     fontWeight: '600',
     color: c.text,
+  },
+  historyTag: {
+    backgroundColor: c.primarySoft,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  historyTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: c.primaryDark,
+    letterSpacing: 0.4,
   },
   foodBrand: {
     fontSize: 12,
