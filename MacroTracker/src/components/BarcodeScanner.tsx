@@ -32,7 +32,6 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
   // Prevents the camera from firing dozens of callbacks for one barcode.
   const [locked, setLocked] = useState(false);
   const [mode, setMode] = useState<ScanMode>('barcode');
-  const [cameraReady, setCameraReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
@@ -46,12 +45,16 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
   function handleShow() {
     setLocked(false);
     setMode('barcode');
-    setCameraReady(false);
     setCapturing(false);
   }
 
   async function handleCapture() {
-    if (capturing || !cameraReady) return;
+    // Deliberately not gated on an onCameraReady flag: that event isn't
+    // needed by barcode scanning, so it going unfired here made this button
+    // permanently disabled with zero feedback and no way to diagnose it. If
+    // the camera genuinely isn't ready, takePictureAsync itself throws and
+    // the catch below surfaces that instead of silence.
+    if (capturing) return;
     setCapturing(true);
     try {
       const photo = await cameraRef.current?.takePictureAsync({ base64: true, quality: 0.5 });
@@ -96,7 +99,6 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
               ref={cameraRef}
               style={StyleSheet.absoluteFill}
               facing="back"
-              onCameraReady={() => setCameraReady(true)}
               // Keep this settings object stable across mode switches — toggling it
               // on/off forces the native capture session to reconfigure, which was
               // leaving takePictureAsync briefly unable to capture right after
@@ -137,7 +139,7 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
                   <TouchableOpacity
                     style={[styles.shutterBtn, { borderColor: c.primary }]}
                     onPress={handleCapture}
-                    disabled={capturing || !cameraReady}
+                    disabled={capturing}
                     activeOpacity={0.8}
                   >
                     {capturing ? (
