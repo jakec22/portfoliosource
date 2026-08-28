@@ -125,6 +125,52 @@ final class WorkoutManager: NSObject, ObservableObject {
         DispatchQueue.main.async { self.didFinish = false }
     }
 
+    // watchOS can kill this process under memory pressure mid-workout and
+    // relaunch it later — the HKWorkoutSession keeps running in HealthKit's
+    // own daemon the whole time, but our in-memory state (session, builder,
+    // elapsed/HR accumulators) is gone, so a fresh launch would otherwise show
+    // the idle "Start Workout" screen while data collection is actually still
+    // live. Call this on every launch to re-attach to that session instead of
+    // silently losing the rest of the workout.
+    func recoverActiveSessionIfNeeded() {
+        guard !isActive else { return }
+        healthStore.recoverActiveWorkoutSession { [weak self] session, _ in
+            guard let self = self, let session = session else { return }
+            let builder = session.associatedWorkoutBuilder()
+            session.delegate = self
+            builder.delegate = self
+
+            let hrUnit = HKUnit.count().unitDivided(by: .minute())
+            let hrStats = builder.statistics(for: HKQuantityType(.heartRate))
+            if let avg = hrStats?.averageQuantity()?.doubleValue(for: hrUnit) {
+                self.hrSum = avg
+                self.hrCount = 1
+                self.avgHeartRate = avg
+            }
+            if let latest = hrStats?.mostRecentQuantity()?.doubleValue(for: hrUnit) {
+                self.heartRate = latest
+            }
+            if let cals = builder.statistics(for: HKQuantityType(.activeEnergyBurned))?
+                .sumQuantity()?.doubleValue(for: .kilocalorie()) {
+                self.activeCalories = cals
+            }
+
+            self.session = session
+            self.builder = builder
+            self.accumulated = builder.elapsedTime(at: Date())
+            self.segmentStart = session.state == .running ? Date() : nil
+            self.startTimer()
+
+            DispatchQueue.main.async {
+                self.elapsed = self.accumulated
+                self.isPaused = session.state == .paused
+                self.didFinish = false
+                self.isActive = true
+                DayStats.shared.showWorkout = true
+            }
+        }
+    }
+
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in

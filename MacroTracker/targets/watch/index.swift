@@ -11,6 +11,14 @@ class WorkoutAppDelegate: NSObject, WKApplicationDelegate {
             DayStats.shared.showWorkout = true
         }
     }
+
+    // Fires on every process launch, including a system-initiated relaunch
+    // after watchOS killed the app mid-workout — re-attach to any HKWorkoutSession
+    // still running in HealthKit's daemon so the UI and HR streaming pick back up
+    // instead of silently dropping the rest of the workout.
+    func applicationDidFinishLaunching() {
+        WorkoutManager.shared.recoverActiveSessionIfNeeded()
+    }
 }
 
 @main
