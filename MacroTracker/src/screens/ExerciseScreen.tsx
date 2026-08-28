@@ -352,8 +352,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     elevation: 4,
   },
   startBtnIcon: { fontSize: 32 },
-  startBtnTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  startBtnSub: { fontSize: 12, color: '#D1FAE5', marginTop: 2, maxWidth: 240 },
+  startBtnTitle: { fontSize: 16, fontWeight: '700', color: c.onPrimary },
+  startBtnSub: { fontSize: 12, color: `${c.onPrimary}CC`, marginTop: 2, maxWidth: 240 },
 
   sectionHeader: {
     flexDirection: 'row',
