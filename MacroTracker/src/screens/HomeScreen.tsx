@@ -550,11 +550,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#0284C7',
+    backgroundColor: c.primary,
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
-    shadowColor: '#0284C7',
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -566,11 +566,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   snapTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: c.onPrimary,
   },
   snapSub: {
     fontSize: 12,
-    color: '#BAE6FD',
+    color: `${c.onPrimary}CC`,
     marginTop: 2,
   },
   trendsBtn: {

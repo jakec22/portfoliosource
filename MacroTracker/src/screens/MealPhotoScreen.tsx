@@ -558,13 +558,13 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: 12,
   },
   describeBtn: {
-    backgroundColor: '#0284C7',
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 13,
     alignItems: 'center',
   },
   describeBtnDisabled: { backgroundColor: c.borderStrong },
-  describeBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  describeBtnText: { color: c.onPrimary, fontSize: 15, fontWeight: '700' },
 
   loadingBox: { alignItems: 'center', paddingVertical: 40 },
   loadingText: { marginTop: 12, fontSize: 14, color: c.textMuted, fontWeight: '500' },
