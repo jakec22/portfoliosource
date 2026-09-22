@@ -84,7 +84,11 @@ const makeStyles = (c: Theme) =>
     track: {
       height: 6,
       borderRadius: 3,
-      backgroundColor: c.cardMuted,
+      // borderStrong, not cardMuted: at 6px tall the unfilled remainder has to
+      // stay readable against the card, and cardMuted sits only ~1.1:1 from it
+      // on the Modern pack's dark card — you'd see what you'd eaten but not
+      // what was left.
+      backgroundColor: c.borderStrong,
       overflow: 'hidden',
     },
     fill: {
