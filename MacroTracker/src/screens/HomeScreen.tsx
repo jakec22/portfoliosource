@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
 import { todayString, displayDate, formatDate } from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
-import { MacroRing } from '../components/MacroRing';
+import { MacroBar } from '../components/MacroBar';
 import { MealSection } from '../components/MealSection';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { MealType } from '../types';
@@ -178,29 +178,29 @@ export function HomeScreen({ navigation }: Props) {
           <CalorieSummary consumed={totals.calories} goal={goals.calories} />
         </View>
 
-        {/* Macro Rings */}
+        {/* Macros */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Macros</Text>
-          <View style={styles.macroRow}>
-            <MacroRing
+          <View style={styles.macroList}>
+            <MacroBar
               current={totals.protein}
               goal={goals.protein}
               label="Protein"
               color={c.macroProtein}
             />
-            <MacroRing
+            <MacroBar
               current={totals.carbs}
               goal={goals.carbs}
               label="Carbs"
               color={c.macroCarbs}
             />
-            <MacroRing
+            <MacroBar
               current={totals.fat}
               goal={goals.fat}
               label="Fat"
               color={c.macroFat}
             />
-            <MacroRing
+            <MacroBar
               current={totals.fiber ?? 0}
               goal={goals.fiber}
               label="Fiber"
@@ -487,9 +487,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     color: c.gray700,
     marginBottom: 16,
   },
-  macroRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  macroList: {
+    gap: 14,
   },
   waterHeader: {
     flexDirection: 'row',

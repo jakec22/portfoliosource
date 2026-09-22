@@ -9,7 +9,7 @@
 // Font families reference the constant names exported by the
 // @expo-google-fonts/* packages loaded in App.tsx (see the font map there) —
 // those constants double as the RN `fontFamily` string once registered via
-// expo-font. `fontDisplay` is used for hero numerals (calorie/macro rings);
+// expo-font. `fontDisplay` is used for hero numerals (calorie ring, macro bars);
 // `fontBody` is available for screens that want the pack's body face
 // explicitly (not applied globally, to avoid an unverified app-wide patch).
 
