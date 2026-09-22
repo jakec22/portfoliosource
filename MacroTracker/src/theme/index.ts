@@ -9,9 +9,10 @@
 // Font families reference the constant names exported by the
 // @expo-google-fonts/* packages loaded in App.tsx (see the font map there) —
 // those constants double as the RN `fontFamily` string once registered via
-// expo-font. `fontDisplay` is used for hero numerals (calorie ring, macro bars);
-// `fontBody` is available for screens that want the pack's body face
-// explicitly (not applied globally, to avoid an unverified app-wide patch).
+// expo-font. `fontDisplay` carries headlines and hero numerals; `fontBody` /
+// `fontBodyBold` carry labels and supporting copy. Applying them is what makes
+// the packs read as different products rather than one layout recolored, so
+// screens should reach for them rather than falling back to the system face.
 
 export type { ThemeMode } from '../types';
 import type { ThemeMode } from '../types';
@@ -68,8 +69,14 @@ export interface Theme {
   overlay: string; // modal scrim
 
   // Custom font families for this pack (registered names — see App.tsx).
-  fontDisplay: string; // hero numerals (calorie/macro rings)
-  fontBody: string; // pack's body face, for screens that opt in
+  //
+  // iOS does not synthesize weights for custom families: pairing fontBody with
+  // fontWeight:'700' renders at the family's own weight, not bold. So weight is
+  // selected by picking the family, and styles that set one of these should not
+  // also set fontWeight.
+  fontDisplay: string; // headlines and hero numerals
+  fontBody: string; // body/labels at normal weight
+  fontBodyBold: string; // body/labels at bold weight
 
   // Raw gray ramp (escape hatch for 1:1 hex replacements)
   gray900: string;
@@ -130,6 +137,7 @@ export const editorialTheme: Theme = {
 
   fontDisplay: 'DMSerifDisplay_400Regular',
   fontBody: 'Manrope_500Medium',
+  fontBodyBold: 'Manrope_700Bold',
 
   gray900: '#221F1B',
   gray700: '#4A443C',
@@ -188,6 +196,7 @@ export const sportTechTheme: Theme = {
 
   fontDisplay: 'SpaceGrotesk_700Bold',
   fontBody: 'SpaceGrotesk_500Medium',
+  fontBodyBold: 'SpaceGrotesk_700Bold',
 
   gray900: '#F5F7FA',
   gray700: '#C4CBD4',
@@ -245,6 +254,7 @@ export const warmWellnessTheme: Theme = {
 
   fontDisplay: 'BricolageGrotesque_700Bold',
   fontBody: 'NunitoSans_500Medium',
+  fontBodyBold: 'NunitoSans_700Bold',
 
   gray900: '#3B2E24',
   gray700: '#6B5A48',

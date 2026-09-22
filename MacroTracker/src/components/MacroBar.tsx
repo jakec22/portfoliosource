@@ -72,7 +72,6 @@ const makeStyles = (c: Theme) =>
     },
     current: {
       fontSize: 15,
-      fontWeight: '700',
       fontFamily: c.fontDisplay,
       color: c.text,
     },

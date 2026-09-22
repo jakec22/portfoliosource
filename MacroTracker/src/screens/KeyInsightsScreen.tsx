@@ -408,18 +408,16 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderBottomColor: c.border,
     backgroundColor: c.card,
   },
-  back: { fontSize: 16, color: c.primary, fontWeight: '600', width: 64 },
+  back: { fontSize: 15, color: c.primary, fontFamily: c.fontBodyBold, width: 64 },
   backSpacer: { width: 64 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800', color: c.text },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: c.fontDisplay, color: c.text },
   content: { padding: 16, paddingBottom: 40 },
 
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: c.textFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: 8,
+    fontSize: 20,
+    fontFamily: c.fontDisplay,
+    color: c.text,
+    marginTop: 14,
     marginBottom: 10,
   },
   card: {
@@ -433,35 +431,31 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  caption: { fontSize: 11, color: c.textFaint, marginTop: 8, lineHeight: 16 },
+  caption: { fontSize: 11, color: c.textFaint, marginTop: 8, lineHeight: 16, fontFamily: c.fontBody },
 
-  // "This Week" card
+  // "This Week" hero. Deliberately not a card: it sits directly on the page
+  // with a rule beneath it so it outranks the chart cards below instead of
+  // being one more equal-weight box in the stack.
   insightCard: {
-    backgroundColor: c.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: `${c.primary}40`,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    paddingTop: 2,
+    paddingBottom: 18,
+    marginBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: c.borderStrong,
   },
-  insightEmpty: { fontSize: 13, color: c.textMuted, lineHeight: 19 },
+  insightEmpty: { fontSize: 13, color: c.textMuted, lineHeight: 19, fontFamily: c.fontBody },
   insightStatRow: { flexDirection: 'row', gap: 12 },
   insightStat: { flex: 1, alignItems: 'flex-start' },
-  insightStatValue: { fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  insightStatUnit: { fontSize: 11, color: c.textFaint, marginTop: -2 },
-  insightStatLabel: { fontSize: 12, color: c.textMuted, marginTop: 3, fontWeight: '500' },
+  insightStatValue: { fontSize: 26, fontFamily: c.fontDisplay, fontVariant: ['tabular-nums'] },
+  insightStatUnit: { fontSize: 11, color: c.textFaint, marginTop: -2, fontFamily: c.fontBody },
+  insightStatLabel: { fontSize: 12, color: c.textMuted, marginTop: 3, fontFamily: c.fontBody },
   insightMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     marginTop: 14,
   },
-  insightMeta: { fontSize: 12, color: c.textMuted, fontWeight: '600' },
+  insightMeta: { fontSize: 12, color: c.textMuted, fontFamily: c.fontBody },
   insightBest: {
     fontSize: 13,
     color: c.text,
@@ -474,8 +468,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   highlightList: { marginTop: 12, gap: 8 },
   highlightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   highlightIcon: { fontSize: 15, lineHeight: 20 },
-  highlightText: { flex: 1, fontSize: 13, color: c.textMuted, lineHeight: 19 },
-  highlightPositive: { color: c.primaryDark, fontWeight: '600' },
+  highlightText: { flex: 1, fontSize: 13, color: c.textMuted, lineHeight: 19, fontFamily: c.fontBody },
+  highlightPositive: { color: c.primaryDark, fontFamily: c.fontBodyBold },
 
   // Consistency stat grid
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
@@ -491,9 +485,9 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  statValue: { fontSize: 26, fontWeight: '800', fontFamily: c.fontDisplay, fontVariant: ['tabular-nums'] },
-  statUnit: { fontSize: 11, color: c.textFaint, marginTop: 2 },
-  statLabel: { fontSize: 12, color: c.textMuted, marginTop: 6, fontWeight: '500' },
+  statValue: { fontSize: 28, fontFamily: c.fontDisplay, fontVariant: ['tabular-nums'] },
+  statUnit: { fontSize: 11, color: c.textFaint, marginTop: 2, fontFamily: c.fontBody },
+  statLabel: { fontSize: 12, color: c.textMuted, marginTop: 6, fontFamily: c.fontBody },
 
   // Weight / nutrition 2-up mini stats
   miniStatRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },

@@ -195,7 +195,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   stat: { alignItems: 'center' },
   statValue: {
     fontSize: 22,
-    fontWeight: '800',
     fontFamily: c.fontDisplay,
     fontVariant: ['tabular-nums'],
   },

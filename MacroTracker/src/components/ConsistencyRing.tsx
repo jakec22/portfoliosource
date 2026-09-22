@@ -86,7 +86,6 @@ const makeStyles = (c: Theme) =>
     center: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
     count: {
       fontSize: 28,
-      fontWeight: '800',
       fontFamily: c.fontDisplay,
       color: c.text,
       lineHeight: 30,

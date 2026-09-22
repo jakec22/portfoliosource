@@ -22,7 +22,7 @@ import { consistencyStats, trainingSplit } from '../utils/trainingSplit';
 import { formatDuration as formatSetTime } from '../utils/duration';
 import { ProgressCardRow } from '../components/ProgressCardRow';
 import { ConsistencyRing } from '../components/ConsistencyRing';
-import { DonutChart } from '../components/DonutChart';
+import { BodyHeatMap } from '../components/BodyHeatMap';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -280,11 +280,7 @@ export function ExerciseScreen({ navigation }: Props) {
             {split.length > 0 && (
               <View style={styles.chartCard}>
                 <Text style={styles.chartTitle}>Training Split</Text>
-                <DonutChart
-                  slices={split}
-                  centerValue={`${SPLIT_DAYS}d`}
-                  centerLabel="by volume"
-                />
+                <BodyHeatMap slices={split} days={SPLIT_DAYS} />
               </View>
             )}
           </>
@@ -356,7 +352,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.bg },
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 32 },
-  screenTitle: { fontSize: 28, fontWeight: '800', color: c.text, marginBottom: 16 },
+  screenTitle: { fontSize: 34, fontFamily: c.fontDisplay, color: c.text, marginBottom: 16 },
 
   resumeBanner: {
     flexDirection: 'row',
@@ -388,8 +384,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     elevation: 4,
   },
   startBtnIcon: { fontSize: 32 },
-  startBtnTitle: { fontSize: 16, fontWeight: '700', color: c.onPrimary },
-  startBtnSub: { fontSize: 12, color: `${c.onPrimary}CC`, marginTop: 2, maxWidth: 240 },
+  startBtnTitle: { fontSize: 17, fontFamily: c.fontBodyBold, color: c.onPrimary },
+  startBtnSub: { fontSize: 12, color: `${c.onPrimary}CC`, marginTop: 2, maxWidth: 240, fontFamily: c.fontBody },
 
   sectionHeader: {
     flexDirection: 'row',
@@ -398,9 +394,9 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: 10,
     marginTop: 4,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: c.text },
-  seeAll: { fontSize: 14, fontWeight: '600', color: c.primary },
-  subHeader: { fontSize: 13, fontWeight: '600', color: c.textMuted, marginBottom: 8 },
+  sectionTitle: { fontSize: 20, fontFamily: c.fontDisplay, color: c.text },
+  seeAll: { fontSize: 13.5, fontFamily: c.fontBodyBold, color: c.primary },
+  subHeader: { fontSize: 13, fontFamily: c.fontBodyBold, color: c.textMuted, marginBottom: 8 },
   prCard: {
     backgroundColor: c.card,
     borderRadius: 12,
@@ -417,11 +413,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     padding: 16,
     marginBottom: 14,
   },
-  chartTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 14 },
-  prHeader: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 8 },
+  chartTitle: { fontSize: 15, fontFamily: c.fontBodyBold, color: c.text, marginBottom: 14 },
+  prHeader: { fontSize: 15, fontFamily: c.fontBodyBold, color: c.text, marginBottom: 8 },
   prRow: { marginBottom: 6 },
-  prName: { fontSize: 14, fontWeight: '600', color: c.text },
-  prValue: { fontSize: 13, color: c.primaryDark, fontWeight: '600' },
+  prName: { fontSize: 14, fontFamily: c.fontBody, color: c.text },
+  prValue: { fontSize: 13, color: c.primaryDark, fontFamily: c.fontBodyBold },
   prPrev: { color: c.textFaint, fontWeight: '400' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   importLink: { fontSize: 15, fontWeight: '700', color: c.accent },
@@ -433,7 +429,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     padding: 20,
     marginBottom: 16,
   },
-  emptyText: { fontSize: 14, color: c.textMuted, lineHeight: 20 },
+  emptyText: { fontSize: 14, color: c.textMuted, lineHeight: 20, fontFamily: c.fontBody },
 
   templateCard: {
     backgroundColor: c.card,
@@ -447,8 +443,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     elevation: 2,
   },
   templateMain: {},
-  templateName: { fontSize: 16, fontWeight: '700', color: c.text },
-  templateMeta: { fontSize: 12, color: c.textFaint, marginTop: 4 },
+  templateName: { fontSize: 16, fontFamily: c.fontBodyBold, color: c.text },
+  templateMeta: { fontSize: 12, color: c.textFaint, marginTop: 4, fontFamily: c.fontBody },
   templateActions: {
     flexDirection: 'row',
     gap: 16,
