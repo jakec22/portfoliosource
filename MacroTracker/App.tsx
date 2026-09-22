@@ -49,6 +49,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
 import { useTemplateImport } from './src/hooks/useTemplateImport';
 import { useWatchSync } from './src/hooks/useWatchSync';
+import { useWidgetSync } from './src/hooks/useWidgetSync';
 import { useWatchWorkout } from './src/hooks/useWatchWorkout';
 import { navigationRef } from './src/services/navigation';
 import { supabase } from './src/services/supabase';
@@ -143,6 +144,8 @@ function MainTabs() {
   useWatchSync();
   // Mirror the active workout's exercises/sets to the watch.
   useWatchWorkout();
+  // Mirror today's calories/macros to the home screen widget.
+  useWidgetSync();
 
   const navTheme = {
     ...(c.scheme === 'dark' ? NavDarkTheme : NavLightTheme),

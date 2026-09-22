@@ -44,6 +44,11 @@
       "appleTeamId": "D8S2K2WAL9",
       "usesAppleSignIn": true,
       "buildNumber": "2",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.com.jacobclover.macrotracker"
+        ]
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
