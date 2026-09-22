@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Vibration, AppState } from 'r
 import { formatDuration } from '../utils/date';
 import { useStore } from '../store/useStore';
 import { startWatchRest, stopWatchRest } from '../services/watch';
+import { colorForBpm, maxHeartRate } from '../utils/heartRateZones';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
@@ -20,12 +21,8 @@ function ageLabel(updatedAt: number): string {
   return `${mins}m ago`;
 }
 
-// Color the readout by intensity zone.
-function zoneColor(bpm: number, c: Theme): string {
-  if (bpm >= 160) return c.danger; // high
-  if (bpm >= 120) return c.warning; // moderate
-  return c.primary; // easy
-}
+// Zone coloring lives in utils/heartRateZones so the live readout, the workout
+// summary chart, and the watch all grade effort the same way.
 
 // The sticky bottom bar during an active workout. Left: live heart rate with a
 // pulsing heart. Right: the rest countdown — auto-starts when a set is checked
@@ -48,6 +45,7 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
 
   const restTrigger = useStore((s) => s.restTrigger);
   const defaultRest = useStore((s) => s.defaultRestSeconds);
+  const profile = useStore((s) => s.profile);
   const lastTrigger = useRef(restTrigger);
 
   useEffect(() => {
@@ -80,6 +78,7 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
 
   const running = endAt != null;
   const hasHeart = bpm != null;
+  const maxHr = maxHeartRate(profile);
 
   return (
     <View style={[styles.bar, running && styles.barRunning]}>
@@ -87,7 +86,7 @@ export function WorkoutStatusBar({ bpm, bpmUpdatedAt }: Props) {
       {hasHeart && (
         <View style={styles.hrSide}>
           <View style={styles.hrText}>
-            <Text style={[styles.hrValue, { color: zoneColor(bpm!, c) }]}>
+            <Text style={[styles.hrValue, { color: colorForBpm(bpm!, maxHr, c) }]}>
               {Math.round(bpm!)}
               <Text style={styles.hrUnit}> bpm</Text>
             </Text>

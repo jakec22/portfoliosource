@@ -54,6 +54,15 @@ export interface Theme {
   macroFat: string;
   macroFiber: string;
 
+  // Heart-rate training zones 1–5, cool (recovery) → hot (max effort). Tuned
+  // per pack rather than hardcoded in the chart: the ramp has to stay ordered
+  // and legible in each pack's own palette, the same way the macro hues do.
+  hrZone1: string;
+  hrZone2: string;
+  hrZone3: string;
+  hrZone4: string;
+  hrZone5: string;
+
   // Misc
   shadow: string;
   overlay: string; // modal scrim
@@ -110,6 +119,12 @@ export const editorialTheme: Theme = {
   macroFat: '#A46C74',
   macroFiber: '#6E7B63',
 
+  hrZone1: '#4A6E85',
+  hrZone2: '#74965C',
+  hrZone3: '#C9A227',
+  hrZone4: '#C4703A',
+  hrZone5: '#A8342A',
+
   shadow: '#000000',
   overlay: 'rgba(0,0,0,0.5)',
 
@@ -162,6 +177,12 @@ export const sportTechTheme: Theme = {
   macroFat: '#F2408F',
   macroFiber: '#A78BFA',
 
+  hrZone1: '#38BDF8',
+  hrZone2: '#C9F04D',
+  hrZone3: '#FBBF24',
+  hrZone4: '#FB923C',
+  hrZone5: '#F2456B',
+
   shadow: '#000000',
   overlay: 'rgba(0,0,0,0.65)',
 
@@ -212,6 +233,12 @@ export const warmWellnessTheme: Theme = {
   macroCarbs: '#D6A03E',
   macroFat: '#7A9A6E',
   macroFiber: '#9C7FA0',
+
+  hrZone1: '#5E8FA8',
+  hrZone2: '#7A9A6E',
+  hrZone3: '#D6A03E',
+  hrZone4: '#D2722F',
+  hrZone5: '#B03636',
 
   shadow: '#7A4B2E',
   overlay: 'rgba(59,46,36,0.5)',

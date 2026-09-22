@@ -18,14 +18,20 @@ import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { recentPRs, topMovers } from '../utils/exerciseHistory';
+import { consistencyStats, trainingSplit } from '../utils/trainingSplit';
 import { formatDuration as formatSetTime } from '../utils/duration';
 import { ProgressCardRow } from '../components/ProgressCardRow';
+import { ConsistencyRing } from '../components/ConsistencyRing';
+import { DonutChart } from '../components/DonutChart';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 
 interface Props {
   navigation: any;
 }
+
+// Window the training-split donut summarizes.
+const SPLIT_DAYS = 30;
 
 export function ExerciseScreen({ navigation }: Props) {
   const c = useTheme();
@@ -43,6 +49,12 @@ export function ExerciseScreen({ navigation }: Props) {
   const prs = useMemo(() => recentPRs(history), [history]);
   const movers = useMemo(() => topMovers(history), [history]);
   const hasProgress = prs.length > 0 || movers.length > 0;
+
+  // Visual training summary: how consistent the last week was, and what the
+  // volume was actually spent on.
+  const consistency = useMemo(() => consistencyStats(history), [history]);
+  const split = useMemo(() => trainingSplit(history, SPLIT_DAYS, c), [history, c]);
+  const hasTrained = consistency.totalSessions > 0;
 
   // Ask for the workout type (so Apple Health categorizes it), then start. On
   // Android there's no native action sheet, so just start with the default.
@@ -250,15 +262,39 @@ export function ExerciseScreen({ navigation }: Props) {
           ))
         )}
 
-        {/* Progress highlights — recent PRs + top movers. Full browsing is in
-            Key Insights. */}
+        {/* Training summary — consistency ring and where the volume went.
+            Full browsing lives in Key Insights. */}
+        {hasTrained && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Training</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('KeyInsights')}>
+                <Text style={styles.seeAll}>See all ›</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.chartCard}>
+              <ConsistencyRing stats={consistency} />
+            </View>
+
+            {split.length > 0 && (
+              <View style={styles.chartCard}>
+                <Text style={styles.chartTitle}>Training Split</Text>
+                <DonutChart
+                  slices={split}
+                  centerValue={`${SPLIT_DAYS}d`}
+                  centerLabel="by volume"
+                />
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Progress highlights — recent PRs + top movers. */}
         {hasProgress && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Progress</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('KeyInsights')}>
-                <Text style={styles.seeAll}>See all ›</Text>
-              </TouchableOpacity>
             </View>
 
             {prs.length > 0 && (
@@ -373,6 +409,15 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     padding: 14,
     marginBottom: 14,
   },
+  chartCard: {
+    backgroundColor: c.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.border,
+    padding: 16,
+    marginBottom: 14,
+  },
+  chartTitle: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 14 },
   prHeader: { fontSize: 14, fontWeight: '700', color: c.text, marginBottom: 8 },
   prRow: { marginBottom: 6 },
   prName: { fontSize: 14, fontWeight: '600', color: c.text },
