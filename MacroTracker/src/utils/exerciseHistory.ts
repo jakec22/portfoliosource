@@ -388,13 +388,6 @@ export function exerciseProgressCards(history: WorkoutSession[]): ProgressCard[]
 
 // The exercises that improved most in their latest session, for a "top movers"
 // highlight. Only exercises with at least two sessions and a positive change
-// qualify; ranked by absolute gain in the headline metric.
-export function topMovers(history: WorkoutSession[], limit = 3): ProgressCard[] {
-  return exerciseProgressCards(history)
-    .filter((c) => c.previous != null && c.latest > c.previous)
-    .sort((a, b) => b.latest - b.previous! - (a.latest - a.previous!))
-    .slice(0, limit);
-}
 
 // A single recently-set personal record, formatted for display.
 export interface RecentPR {
