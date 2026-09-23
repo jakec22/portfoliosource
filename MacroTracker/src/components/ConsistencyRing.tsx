@@ -90,16 +90,16 @@ const makeStyles = (c: Theme) =>
       color: c.text,
       lineHeight: 30,
     },
-    of: { fontSize: 11, color: c.textFaint },
+    of: { fontSize: 11, fontFamily: c.fontBody, color: c.textFaint },
 
     side: { flex: 1, gap: 7 },
-    headline: { fontSize: 14, fontWeight: '700', color: c.text },
+    headline: { fontSize: 14, fontFamily: c.fontBodyBold, color: c.text },
     metaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
     metaValue: {
       fontSize: 16,
-      fontWeight: '700',
+      fontFamily: c.fontDisplay,
       color: c.primary,
       fontVariant: ['tabular-nums'],
     },
-    metaLabel: { fontSize: 12.5, color: c.textMuted },
+    metaLabel: { fontSize: 12.5, fontFamily: c.fontBody, color: c.textMuted },
   });

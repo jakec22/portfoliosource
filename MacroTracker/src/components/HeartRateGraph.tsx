@@ -198,7 +198,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     fontFamily: c.fontDisplay,
     fontVariant: ['tabular-nums'],
   },
-  statLabel: { fontSize: 11, color: c.textMuted, marginTop: 2, fontWeight: '500' },
+  statLabel: { fontSize: 11, color: c.textMuted, marginTop: 2, fontFamily: c.fontBody },
 
   zoneBlock: { marginTop: 10, gap: 7 },
   zoneBar: {
@@ -210,11 +210,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendName: { fontSize: 12.5, fontWeight: '600', color: c.text, width: 72 },
-  legendRange: { fontSize: 11.5, color: c.textFaint, flex: 1 },
+  legendName: { fontSize: 12.5, fontFamily: c.fontBodyBold, color: c.text, width: 72 },
+  legendRange: { fontSize: 11.5, fontFamily: c.fontBody, color: c.textFaint, flex: 1 },
   legendTime: {
     fontSize: 12.5,
-    fontWeight: '600',
+    fontFamily: c.fontBodyBold,
     color: c.textMuted,
     fontVariant: ['tabular-nums'],
   },

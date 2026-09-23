@@ -99,13 +99,13 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   consumedValue: {
     fontSize: 32,
-    fontWeight: '800',
     fontFamily: c.fontDisplay,
     color: c.text,
     lineHeight: 36,
   },
   consumedLabel: {
     fontSize: 12,
+    fontFamily: c.fontBody,
     color: c.textFaint,
     marginBottom: 4,
   },
@@ -117,12 +117,13 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   remainingValue: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: c.fontDisplay,
     color: c.primary,
     lineHeight: 24,
   },
   remainingLabel: {
     fontSize: 11,
+    fontFamily: c.fontBody,
     color: c.textFaint,
   },
   overValue: {
@@ -139,21 +140,22 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   statValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: c.fontDisplay,
     color: c.text,
   },
   statLabel: {
     fontSize: 11,
+    fontFamily: c.fontBody,
     color: c.textFaint,
   },
   minus: {
     fontSize: 18,
+    fontFamily: c.fontBody,
     color: c.textFaint,
-    fontWeight: '300',
   },
   equals: {
     fontSize: 18,
+    fontFamily: c.fontBody,
     color: c.textFaint,
-    fontWeight: '300',
   },
 });

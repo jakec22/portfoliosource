@@ -63,7 +63,7 @@ const makeStyles = (c: Theme) =>
     },
     label: {
       fontSize: 14,
-      fontWeight: '600',
+      fontFamily: c.fontBodyBold,
       color: c.text,
     },
     readout: {
@@ -77,6 +77,7 @@ const makeStyles = (c: Theme) =>
     },
     goal: {
       fontSize: 12,
+      fontFamily: c.fontDisplay,
       color: c.textFaint,
     },
     over: { color: c.danger },

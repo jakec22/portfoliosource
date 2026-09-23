@@ -365,7 +365,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   insightBest: {
     fontSize: 13,
     color: c.text,
-    fontWeight: '600',
+    fontFamily: c.fontBodyBold,
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
@@ -381,8 +381,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   // Weight / nutrition 2-up mini stats
   miniStatRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   miniStat: { flex: 1 },
-  miniStatValue: { fontSize: 22, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  miniStatLabel: { fontSize: 12, color: c.textFaint, marginTop: 2 },
+  miniStatValue: { fontSize: 22, fontFamily: c.fontDisplay, fontVariant: ['tabular-nums'] },
+  miniStatLabel: { fontSize: 12, fontFamily: c.fontBody, color: c.textFaint, marginTop: 2 },
 
 
 });
