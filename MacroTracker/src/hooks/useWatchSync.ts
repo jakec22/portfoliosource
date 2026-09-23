@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { useStore, sumMacros } from '../store/useStore';
 import { todayString } from '../utils/date';
-import { sendWatchContext } from '../services/watch';
+import { sendWatchContext, setWatchPalette } from '../services/watch';
+import { watchPalette } from '../utils/watchPalette';
+import { resolveTheme } from '../theme';
 
 // Mirrors today's calories, macros, and water to the Apple Watch whenever any
 // of them change. One-way (phone → watch); the watch glance is read-only.
@@ -10,6 +12,7 @@ export function useWatchSync(): void {
   const goals = useStore((s) => s.goals);
   const waterIntake = useStore((s) => s.waterIntake);
   const waterGoal = useStore((s) => s.waterGoal);
+  const themeMode = useStore((s) => s.themeMode);
 
   useEffect(() => {
     const today = todayString();
@@ -28,4 +31,10 @@ export function useWatchSync(): void {
       updatedAt: Date.now(),
     });
   }, [logs, goals, waterIntake, waterGoal]);
+
+  // Pack changes don't touch the nutrition numbers, so the palette pushes on
+  // its own trigger rather than riding along with the stats effect.
+  useEffect(() => {
+    setWatchPalette(watchPalette(resolveTheme(themeMode)));
+  }, [themeMode]);
 }

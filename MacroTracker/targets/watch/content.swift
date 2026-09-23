@@ -4,13 +4,63 @@ import WatchConnectivity
 import HealthKit
 import WatchKit
 
-// Brand + macro colors (match the phone app).
+// Fallback accents, used until the phone pushes the active theme pack's
+// palette (see WatchPalette). Matches the app's original green.
 extension Color {
     static let hmGreen = Color(red: 16 / 255, green: 185 / 255, blue: 129 / 255)
     static let macroProtein = Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255) // #3B82F6
     static let macroCarbs = Color(red: 245 / 255, green: 158 / 255, blue: 11 / 255)    // #F59E0B
     static let macroFat = Color(red: 239 / 255, green: 68 / 255, blue: 68 / 255)        // #EF4444
     static let waterBlue = Color(red: 56 / 255, green: 189 / 255, blue: 248 / 255)      // #38BDF8
+
+    // "#RRGGBB" → Color, falling back to a supplied default on anything
+    // malformed so a bad payload can't blank the UI.
+    init(hex: String, fallback: Color) {
+        let raw = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var value: UInt64 = 0
+        guard raw.count == 6, Scanner(string: raw).scanHexInt64(&value) else {
+            self = fallback
+            return
+        }
+        self = Color(
+            .sRGB,
+            red: Double((value & 0xFF0000) >> 16) / 255,
+            green: Double((value & 0x00FF00) >> 8) / 255,
+            blue: Double(value & 0x0000FF) / 255,
+            opacity: 1
+        )
+    }
+}
+
+// The active pack's accents. The watch keeps its black background whatever the
+// pack — only accents are themed — and the phone lifts any color too dark to
+// read on black before sending it.
+struct WatchPalette {
+    var accent: Color = .hmGreen
+    var protein: Color = .macroProtein
+    var carbs: Color = .macroCarbs
+    var fat: Color = .macroFat
+    var water: Color = .waterBlue
+    var zoneEasy: Color = .hmGreen
+    var zoneMid: Color = .orange
+    var zoneHigh: Color = .red
+
+    static func from(_ ctx: [String: Any], current: WatchPalette) -> WatchPalette {
+        func color(_ key: String, _ fallback: Color) -> Color {
+            guard let hex = ctx[key] as? String else { return fallback }
+            return Color(hex: hex, fallback: fallback)
+        }
+        return WatchPalette(
+            accent: color("themeAccent", current.accent),
+            protein: color("themeProtein", current.protein),
+            carbs: color("themeCarbs", current.carbs),
+            fat: color("themeFat", current.fat),
+            water: color("themeWater", current.water),
+            zoneEasy: color("themeZoneEasy", current.zoneEasy),
+            zoneMid: color("themeZoneMid", current.zoneMid),
+            zoneHigh: color("themeZoneHigh", current.zoneHigh)
+        )
+    }
 }
 
 // One planned/performed set of the active workout, mirrored from the phone.
@@ -58,6 +108,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var showWorkout = false // drives the full-screen workout cover
     @Published var exercises: [WatchExercise] = [] // active workout plan
     @Published var templates: [WatchTemplate] = [] // saved templates to start from
+    @Published var palette = WatchPalette() // active pack's accents
 
     var caloriesRemaining: Int { max(0, calorieGoal - caloriesConsumed) }
     var calorieProgress: Double { ratio(caloriesConsumed, calorieGoal) }
@@ -111,6 +162,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             // Calorie/macro keys may be absent on a workout-only push; only flip
             // hasData once we've actually received nutrition numbers.
             if ctx["calorieGoal"] != nil { self.hasData = true }
+            self.palette = WatchPalette.from(ctx, current: self.palette)
             self.handleWorkoutState(ctx)
             self.parsePlan(ctx)
             self.parseTemplates(ctx)
@@ -415,7 +467,7 @@ struct ContentView: View {
                     VStack(spacing: 6) {
                         Image(systemName: "iphone.and.arrow.forward")
                             .font(.title3)
-                            .foregroundColor(.hmGreen)
+                            .foregroundColor(stats.palette.accent)
                         Text("Open Holy Macro on your iPhone to sync.")
                             .font(.footnote)
                             .multilineTextAlignment(.center)
@@ -426,15 +478,15 @@ struct ContentView: View {
                     // Hero: calories remaining ring
                     ZStack {
                         Circle()
-                            .stroke(Color.hmGreen.opacity(0.2), lineWidth: 9)
+                            .stroke(stats.palette.accent.opacity(0.2), lineWidth: 9)
                         Circle()
                             .trim(from: 0, to: stats.calorieProgress)
-                            .stroke(Color.hmGreen, style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                            .stroke(stats.palette.accent, style: StrokeStyle(lineWidth: 9, lineCap: .round))
                             .rotationEffect(.degrees(-90))
                         VStack(spacing: 0) {
                             Text("\(stats.caloriesRemaining)")
                                 .font(.system(size: 30, weight: .bold, design: .rounded))
-                                .foregroundColor(.hmGreen)
+                                .foregroundColor(stats.palette.accent)
                             Text("cal left")
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
@@ -448,9 +500,9 @@ struct ContentView: View {
                     // competing circles on a 40mm screen; bars let the calorie
                     // ring stay the one focal point and give the numbers room.
                     VStack(spacing: 7) {
-                        MacroBar(label: "Protein", value: stats.protein, goal: stats.proteinGoal, color: .macroProtein)
-                        MacroBar(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal, color: .macroCarbs)
-                        MacroBar(label: "Fat", value: stats.fat, goal: stats.fatGoal, color: .macroFat)
+                        MacroBar(label: "Protein", value: stats.protein, goal: stats.proteinGoal, color: stats.palette.protein)
+                        MacroBar(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal, color: stats.palette.carbs)
+                        MacroBar(label: "Fat", value: stats.fat, goal: stats.fatGoal, color: stats.palette.fat)
                     }
                     .padding(.top, 2)
 
@@ -467,9 +519,9 @@ struct ContentView: View {
                         }
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color.waterBlue.opacity(0.22))
+                                Capsule().fill(stats.palette.water.opacity(0.22))
                                 Capsule()
-                                    .fill(Color.waterBlue)
+                                    .fill(stats.palette.water)
                                     .frame(width: max(6, geo.size.width * stats.waterProgress))
                             }
                         }
@@ -487,7 +539,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.hmGreen)
+                .tint(stats.palette.accent)
                 .padding(.top, 2)
             }
             .padding(.horizontal)
@@ -598,7 +650,7 @@ struct WorkoutView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Exercises")
                 .font(.caption2)
-                .foregroundColor(.hmGreen)
+                .foregroundColor(stats.palette.accent)
                 .fontWeight(.semibold)
 
             if stats.exercises.isEmpty {
@@ -615,7 +667,7 @@ struct WorkoutView: View {
                                     stats.toggleSet(exerciseId: ex.id, setId: set.id)
                                 } label: {
                                     Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
-                                        .foregroundColor(set.completed ? .hmGreen : .secondary)
+                                        .foregroundColor(set.completed ? stats.palette.accent : .secondary)
                                 }
                                 .buttonStyle(.plain)
 
@@ -637,7 +689,7 @@ struct WorkoutView: View {
                                         Spacer()
                                         Image(systemName: "square.and.pencil")
                                             .font(.caption2)
-                                            .foregroundColor(.hmGreen)
+                                            .foregroundColor(stats.palette.accent)
                                     }
                                 }
                                 .buttonStyle(.plain)
@@ -671,20 +723,20 @@ struct WorkoutView: View {
             // Rest countdown mirrored from the phone (buzzes when it hits 0).
             if rest.active {
                 HStack(spacing: 5) {
-                    Image(systemName: "timer").foregroundColor(.hmGreen)
+                    Image(systemName: "timer").foregroundColor(stats.palette.accent)
                     Text("Rest \(timeString(rest.remaining))")
                         .font(.footnote).fontWeight(.bold)
                         .monospacedDigit()
                 }
                 .padding(.vertical, 4)
                 .padding(.horizontal, 10)
-                .background(Color.hmGreen.opacity(0.18))
+                .background(stats.palette.accent.opacity(0.18))
                 .clipShape(Capsule())
             }
 
             Text(timeString(workout.elapsed))
                 .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundColor(workout.isPaused ? .secondary : .hmGreen)
+                .foregroundColor(workout.isPaused ? .secondary : stats.palette.accent)
                 .monospacedDigit()
 
             if workout.isPaused {
@@ -694,7 +746,7 @@ struct WorkoutView: View {
             HStack(spacing: 4) {
                 Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
                     .font(.title2).fontWeight(.bold)
-                    .foregroundColor(workout.heartRate > 0 ? hrZoneColor(workout.heartRate) : .secondary)
+                    .foregroundColor(workout.heartRate > 0 ? hrZoneColor(workout.heartRate, stats.palette) : .secondary)
                 Text("bpm").font(.caption2).foregroundColor(.secondary)
             }
 
@@ -711,7 +763,7 @@ struct WorkoutView: View {
                     Image(systemName: workout.isPaused ? "play.fill" : "pause.fill")
                         .frame(maxWidth: .infinity)
                 }
-                .tint(.hmGreen)
+                .tint(stats.palette.accent)
 
                 Button(role: .destructive) {
                     workout.end()
@@ -736,7 +788,7 @@ struct WorkoutView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.hmGreen)
+            .tint(stats.palette.accent)
             .padding(.top, 2)
             .confirmationDialog(
                 "\(stats.uncheckedSetCount) set\(stats.uncheckedSetCount == 1 ? "" : "s") still unchecked",
@@ -759,7 +811,7 @@ struct WorkoutView: View {
         VStack(spacing: 8) {
             Text("Workout Complete")
                 .font(.headline)
-                .foregroundColor(.hmGreen)
+                .foregroundColor(stats.palette.accent)
             summaryRow("Time", timeString(workout.elapsed))
             summaryRow("Avg HR", workout.avgHeartRate > 0 ? "\(Int(workout.avgHeartRate)) bpm" : "--")
             summaryRow("Calories", "\(Int(workout.activeCalories))")
@@ -770,7 +822,7 @@ struct WorkoutView: View {
                 Text("Done").frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.hmGreen)
+            .tint(stats.palette.accent)
             .padding(.top, 4)
         }
     }
@@ -779,7 +831,7 @@ struct WorkoutView: View {
         VStack(spacing: 8) {
             Text("Start Workout")
                 .font(.headline)
-                .foregroundColor(.hmGreen)
+                .foregroundColor(stats.palette.accent)
 
             // Saved templates from the phone — tap one to start it.
             if stats.templates.isEmpty {
@@ -802,7 +854,7 @@ struct WorkoutView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
-                    .tint(.hmGreen)
+                    .tint(stats.palette.accent)
                 }
             }
 
@@ -815,7 +867,7 @@ struct WorkoutView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.hmGreen)
+            .tint(stats.palette.accent)
             .padding(.top, 2)
 
             Button("Cancel") { stats.showWorkout = false }
@@ -899,7 +951,7 @@ struct SetEditView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.hmGreen)
+                .tint(stats.palette.accent)
             }
             .padding()
         }
@@ -935,11 +987,12 @@ func weightString(_ w: Double) -> String {
     w == w.rounded() ? String(Int(w)) : String(format: "%.1f", w)
 }
 
-// Color the heart rate by intensity zone (mirrors the phone).
-func hrZoneColor(_ bpm: Double) -> Color {
-    if bpm >= 160 { return .red }
-    if bpm >= 120 { return .orange }
-    return .hmGreen
+// Color the heart rate by intensity zone (mirrors the phone). Takes the
+// palette rather than reading a global, so it stays a pure function.
+func hrZoneColor(_ bpm: Double, _ palette: WatchPalette) -> Color {
+    if bpm >= 160 { return palette.zoneHigh }
+    if bpm >= 120 { return palette.zoneMid }
+    return palette.zoneEasy
 }
 
 struct ContentView_Previews: PreviewProvider {

@@ -48,6 +48,10 @@ export interface WatchPlanExercise {
 }
 
 let lastStats: WatchContext | null = null;
+// Accent colors for the active theme pack, adjusted for the watch's black
+// screen. Kept separate from lastStats so a pack change can re-push without
+// waiting for the next nutrition update.
+let palette: Record<string, string> | null = null;
 let workoutState = {
   workoutActive: false,
   workoutId: '',
@@ -129,6 +133,7 @@ function pushContext(): void {
   if (Platform.OS !== 'ios' || !watchPaired) return;
   const ctx: Record<string, unknown> = {
     ...(lastStats ?? {}),
+    ...(palette ?? {}),
     workoutPlan,
   };
   // Only advertise the workout lifecycle once we actually know it. The watch
@@ -145,6 +150,22 @@ function pushContext(): void {
 
 export function sendWatchContext(ctx: WatchContext): void {
   lastStats = ctx;
+  pushContext();
+}
+
+// Mirror the active pack's accents to the watch. The watch keeps its black
+// background whatever the pack — only the accents travel.
+export function setWatchPalette(p: Record<string, string>): void {
+  palette = {
+    themeAccent: p.accent,
+    themeProtein: p.protein,
+    themeCarbs: p.carbs,
+    themeFat: p.fat,
+    themeWater: p.water,
+    themeZoneEasy: p.zoneEasy,
+    themeZoneMid: p.zoneMid,
+    themeZoneHigh: p.zoneHigh,
+  };
   pushContext();
 }
 
