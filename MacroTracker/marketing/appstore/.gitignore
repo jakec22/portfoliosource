@@ -1,0 +1,5 @@
+# Intermediates: gen.py rewrites these, shoot.js reads them.
+slide*.html
+# Anything rendered at a prefix other than the committed `appstore-*`.
+preview-*.png
+check-*.png
