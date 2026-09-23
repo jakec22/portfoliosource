@@ -145,7 +145,7 @@ matters: App Store search results only show the first three.
 
 | # | Kicker | Headline | Shows |
 |---|--------|----------|-------|
-| 1 | AI meal photo | Snap it. / It's logged. | Meal Photo result → macro bars |
+| 1 | AI meal photo | Snap it. / It's logged. | Meal Photo: detected items → total |
 | 2 | Smart camera | Read the label. / Know the truth. | Nutrition Facts capture |
 | 3 | Nutrition | Every macro, / one glance. | Home: calorie ring, macro bars, water |
 | 4 | Adaptive goals | Targets that / follow your weight. | Goals-updated card, weight trend |
@@ -154,14 +154,25 @@ matters: App Store search results only show the first three.
 
 ### Slide 1 needs a real photograph
 
-`gen.py` embeds `marketing/appstore/meal.jpg` (`.jpeg`/`.png` also work) into
-the Meal Photo card. Until that file exists the slot renders as a visible
-placeholder, which is deliberate — the slide advertises photo recognition, so
-a drawn plate would be showing a photo the app never analysed. Shoot one meal
-through the app, export it, drop it in, re-run.
+`gen.py` embeds `marketing/appstore/meal.jpg` (`.jpeg`/`.png` also work) as the
+photo on the Meal Photo screen. Until that file exists the slot renders as a
+visible placeholder, which is deliberate: the slide advertises photo
+recognition, so a drawn plate would be showing a photo the app never analysed.
 
-Anything roughly 3:2 and landscape works; it is cropped with `object-fit:
-cover` into a 132 × 224 CSS slot.
+**The file is gitignored on purpose.** This repository is public, and the
+frame a phone captures holds more than the plate — the table, the next diner's
+lunch, whoever is holding it. The committed PNGs carry only the crop; the
+original stays local. Which means a fresh clone renders the placeholder until
+someone supplies a photo, and that is the intended failure mode.
+
+Any orientation works. It is cropped with `object-fit: cover` into a
+150 × 224 CSS slot, so a portrait phone photo keeps a horizontal band through
+its middle — adjust `object-position` in `.shot img` if the plate sits high or
+low in the frame.
+
+The item rows beside it have to match whatever is in the photo. They are the
+`ITEMS` list in `gen.py`: name, the AI's serving estimate, and the macros,
+laid out the way `MealPhotoScreen` renders them.
 
 ### Regenerating them
 

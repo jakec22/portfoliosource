@@ -228,21 +228,32 @@ h1{{font-family:'DM Serif Display',serif;font-weight:400;font-size:33px;line-hei
 .nl-fine{{font-size:6px;line-height:1.35;border-top:4px solid #000;padding-top:3px;margin-top:2px}}
 
 /* meal photo — src/screens/MealPhotoScreen.tsx */
-.shot{{height:132px;border-radius:12px;overflow:hidden;background:{CARD_MUTED}}}
-.shot img{{width:100%;height:100%;object-fit:cover;display:block}}
-.slot{{height:132px;border-radius:12px;border:1.5px dashed {BORDER_STRONG};
+.mphdr{{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}}
+.mphdr a{{font-size:10.5px;font-weight:700;color:{PRIMARY};text-decoration:none;width:44px}}
+.mphdr b{{font-size:12px;font-weight:800;color:{TEXT}}}
+.mphdr i{{width:44px}}
+.shot{{height:150px;border-radius:12px;overflow:hidden;background:{CARD_MUTED}}}
+.shot img{{width:100%;height:100%;object-fit:cover;object-position:center 50%;display:block}}
+.slot{{height:150px;border-radius:12px;border:1.5px dashed {BORDER_STRONG};
  background:{CARD_MUTED};display:flex;flex-direction:column;align-items:center;
  justify-content:center;gap:7px;color:{MUTED};text-align:center;padding:0 18px}}
 .slot b{{font-size:10.5px;font-weight:800;color:{TEXT}}}
 .slot s{{text-decoration:none;font-size:9px;line-height:1.45}}
-.chip{{display:inline-flex;align-items:center;gap:5px;background:{PRIMARY_SOFT};
- color:{PRIMARY_DARK};border-radius:99px;padding:4.5px 10px;font-size:9px;font-weight:800}}
-.mealname{{font-family:'DM Serif Display',serif;font-size:15px;color:{TEXT};margin-top:10px}}
-.mealkcal{{font-size:9.5px;color:{MUTED};margin-top:3px;margin-bottom:12px}}
-.pills{{display:flex;gap:5px;margin-bottom:12px}}
-.pills span{{flex:1;text-align:center;font-size:9px;font-weight:700;color:{MUTED};
- background:{CARD};border:1px solid {BORDER};border-radius:99px;padding:5.5px 0}}
-.pills span.on{{background:{PRIMARY};border-color:{PRIMARY};color:#fff}}
+.detected{{font-size:9.5px;color:{MUTED};margin:13px 2px 8px}}
+.itemcard{{background:{CARD};border-radius:13px;padding:10px 11px;margin-bottom:8px;
+ display:flex;align-items:flex-start;gap:8px;box-shadow:0 1px 3px rgba(34,31,27,.06)}}
+.itemleft{{flex:1;min-width:0}}
+.itemname{{font-size:10.5px;font-weight:700;color:{TEXT}}}
+.itemserving{{font-size:8.5px;color:{FAINT};margin-top:2px}}
+.itemmacros{{font-size:9px;color:{MUTED};margin-top:4px;font-variant-numeric:tabular-nums}}
+.itemright{{display:flex;align-items:center;gap:7px;padding-top:1px}}
+.amt{{font-size:9.5px;font-weight:700;color:{PRIMARY};background:{PRIMARY_SOFT};
+ padding:3px 7px;border-radius:99px}}
+.chev{{font-size:10px;color:{FAINT}}}
+.totalrow{{display:flex;align-items:baseline;justify-content:space-between;
+ margin:12px 2px 9px}}
+.totallabel{{font-size:10.5px;font-weight:800;color:{TEXT}}}
+.totalvalue{{font-family:'DM Serif Display',serif;font-size:17px;color:{TEXT}}}
 .cta{{background:{PRIMARY};color:#fff;text-align:center;font-size:11px;font-weight:800;
  padding:11px 0;border-radius:12px}}
 """
@@ -301,19 +312,28 @@ else:
             '<s>Save one as marketing/appstore/meal.jpg and re-run gen.py.<br>'
             'A drawn plate would be advertising a photo the app never analyzed.</s></div>')
 
+ITEMS = [
+    ("Steak sandwich on ciabatta", "1 sandwich", 620, 38, 52, 28, "1\u00d7"),
+    ("French fries", "5 oz", 360, 4, 46, 18, "5 oz"),
+    ("Arugula salad, vinaigrette", "1 cup", 90, 2, 5, 7, "1\u00d7"),
+]
+items = "".join(
+    f'<div class="itemcard"><div class="itemleft">'
+    f'<div class="itemname">{n}</div>'
+    f'<div class="itemserving">AI estimate: {serv}</div>'
+    f'<div class="itemmacros">{kc} kcal &middot; P{pr} &middot; C{cb} &middot; F{ft}</div></div>'
+    f'<div class="itemright"><span class="amt">{amt}</span><span class="chev">&darr;</span></div>'
+    f'</div>'
+    for n, serv, kc, pr, cb, ft, amt in ITEMS)
+
 s1 = f"""<div class="body">
-<div class="navbar"><a class="q">Retake</a><div class="mid"><div class="t">Meal Photo</div>
-<div class="st">Analyzed in 3.1s</div></div><a>Save</a></div>
-<div class="card">{shot}
-<div style="margin-top:11px"><span class="chip">&#10003; Identified</span></div>
-<div class="mealname">Grilled chicken &amp; rice bowl</div>
-<div class="mealkcal">1 bowl &middot; 612 kcal</div>
-{bar("Protein", 48, 52, PROTEIN)}
-{bar("Carbs", 61, 68, CARBS)}
-{bar("Fat", 18, 22, FAT)}
-</div>
-<div class="pills"><span>Breakfast</span><span class="on">Lunch</span><span>Dinner</span><span>Snack</span></div>
-<div class="cta">Save to today</div>
+<div class="mphdr"><a>&lsaquo; Back</a><b>Photo &rarr; Lunch</b><i></i></div>
+{shot}
+<div class="detected">Detected items &middot; tap to adjust serving</div>
+{items}
+<div class="totalrow"><span class="totallabel">Total</span>
+<span class="totalvalue">1,070 kcal</span></div>
+<div class="cta">Add 3 items to Lunch</div>
 </div>"""
 
 # ---------------------------------------------------------------- slide 2
