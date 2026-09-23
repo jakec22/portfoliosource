@@ -66,6 +66,8 @@ export const useStore = create<AppState>()(
         const s = get();
         const snap: SettingsSnapshot = {
           goals: s.goals,
+          goalsAutoUpdate: s.goalsAutoUpdate,
+          goalsBasisWeightLbs: s.goalsBasisWeightLbs,
           waterGoal: s.waterGoal,
           waterIncrement: s.waterIncrement,
           showWaterTracker: s.showWaterTracker,

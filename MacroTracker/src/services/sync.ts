@@ -51,6 +51,8 @@ function enabled(): boolean {
 
 export interface SettingsSnapshot {
   goals: DailyGoals;
+  goalsAutoUpdate: boolean;
+  goalsBasisWeightLbs?: number;
   waterGoal: number;
   waterIncrement: number;
   showWaterTracker: boolean;
@@ -112,6 +114,8 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
   const { error } = await supabase.from('user_settings').upsert({
     user_id: userId,
     goals: s.goals,
+    goals_auto_update: s.goalsAutoUpdate,
+    goals_basis_weight_lbs: s.goalsBasisWeightLbs ?? null,
     water_goal: s.waterGoal,
     water_increment: s.waterIncrement,
     show_water_tracker: s.showWaterTracker,

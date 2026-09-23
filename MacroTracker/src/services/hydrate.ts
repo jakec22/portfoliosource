@@ -201,6 +201,13 @@ export async function syncOnLogin(userId: string): Promise<void> {
     useStore.setState((state) => ({
       logs,
       goals: settings?.goals ?? state.goals,
+      goalsAutoUpdate: settings?.goals_auto_update ?? state.goalsAutoUpdate,
+      // null in the row means hand-set goals, which is meaningful — so only
+      // fall back to local state when the column is absent entirely.
+      goalsBasisWeightLbs:
+        settings?.goals_basis_weight_lbs === undefined
+          ? state.goalsBasisWeightLbs
+          : settings.goals_basis_weight_lbs ?? undefined,
       waterGoal: settings?.water_goal ?? state.waterGoal,
       waterIncrement: settings?.water_increment ?? state.waterIncrement,
       showWaterTracker: settings?.show_water_tracker ?? state.showWaterTracker,

@@ -443,12 +443,16 @@ struct ContentView: View {
                     .frame(width: 112, height: 112)
                     .padding(.top, 2)
 
-                    // Macros as colored rings
-                    HStack(spacing: 6) {
-                        MacroRing(label: "Protein", value: stats.protein, goal: stats.proteinGoal, color: .macroProtein)
-                        MacroRing(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal, color: .macroCarbs)
-                        MacroRing(label: "Fat", value: stats.fat, goal: stats.fatGoal, color: .macroFat)
+                    // Macros as bars, matching the phone and the widget. Three
+                    // small rings under a larger calorie ring read as four
+                    // competing circles on a 40mm screen; bars let the calorie
+                    // ring stay the one focal point and give the numbers room.
+                    VStack(spacing: 7) {
+                        MacroBar(label: "Protein", value: stats.protein, goal: stats.proteinGoal, color: .macroProtein)
+                        MacroBar(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal, color: .macroCarbs)
+                        MacroBar(label: "Fat", value: stats.fat, goal: stats.fatGoal, color: .macroFat)
                     }
+                    .padding(.top, 2)
 
                     // Water bar
                     VStack(spacing: 4) {
@@ -497,7 +501,9 @@ struct ContentView: View {
 
 // A small colored progress ring with the consumed grams in the center and the
 // macro name below.
-struct MacroRing: View {
+// One macro as a labelled bar: name and value on one line, a filled track
+// underneath. Mirrors MacroBar.tsx on the phone and the widget's rows.
+struct MacroBar: View {
     let label: String
     let value: Int
     let goal: Int
@@ -506,25 +512,31 @@ struct MacroRing: View {
     private var progress: Double {
         goal > 0 ? min(1, Double(value) / Double(goal)) : 0
     }
+    private var over: Bool { goal > 0 && value > goal }
 
     var body: some View {
-        VStack(spacing: 3) {
-            ZStack {
-                Circle().stroke(color.opacity(0.22), lineWidth: 5)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold))
+                Spacer()
                 Text("\(value)")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .minimumScaleFactor(0.6)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(over ? .red : .primary)
+                + Text(" / \(goal)g")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
             }
-            .frame(width: 46, height: 46)
-            Text(label)
-                .font(.system(size: 9))
-                .foregroundColor(.secondary)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(color.opacity(0.22))
+                    Capsule()
+                        .fill(over ? Color.red : color)
+                        .frame(width: max(2, geo.size.width * progress))
+                }
+            }
+            .frame(height: 5)
         }
-        .frame(maxWidth: .infinity)
     }
 }
 
