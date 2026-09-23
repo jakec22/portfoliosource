@@ -15,13 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { WorkoutTemplate } from '../types';
 import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
-import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { progressHighlights } from '../utils/exerciseHistory';
-import { consistencyStats, trainingSplit } from '../utils/trainingSplit';
+import { consistencyStats, trainingCalendar, trainingSplit } from '../utils/trainingSplit';
 import { formatDuration as formatSetTime } from '../utils/duration';
 import { ConsistencyRing } from '../components/ConsistencyRing';
 import { ProgressExplorer } from '../components/ProgressExplorer';
+import { TrainingCalendar } from '../components/TrainingCalendar';
 import { BodyHeatMap } from '../components/BodyHeatMap';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
@@ -30,8 +30,10 @@ interface Props {
   navigation: any;
 }
 
-// Window the training-split donut summarizes.
+// Window the training-split figure summarizes.
 const SPLIT_DAYS = 30;
+// Weeks shown in the consistency grid.
+const CALENDAR_WEEKS = 12;
 
 export function ExerciseScreen({ navigation }: Props) {
   const c = useTheme();
@@ -41,7 +43,6 @@ export function ExerciseScreen({ navigation }: Props) {
   const history = useStore((s) => s.workoutHistory);
   const startWorkout = useStore((s) => s.startWorkout);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
-  const deleteWorkout = useStore((s) => s.deleteWorkout);
   const saveTemplate = useStore((s) => s.saveTemplate);
 
   // One merged progress list — PR'd lifts first, then biggest improvers.
@@ -52,6 +53,7 @@ export function ExerciseScreen({ navigation }: Props) {
   // volume was actually spent on.
   const consistency = useMemo(() => consistencyStats(history), [history]);
   const split = useMemo(() => trainingSplit(history, SPLIT_DAYS, c), [history, c]);
+  const calendar = useMemo(() => trainingCalendar(history, CALENDAR_WEEKS), [history]);
   const hasTrained = consistency.totalSessions > 0;
 
   // Ask for the workout type (so Apple Health categorizes it), then start. On
@@ -299,22 +301,17 @@ export function ExerciseScreen({ navigation }: Props) {
           </>
         )}
 
-        {/* History */}
-        {history.length > 0 && (
+        {/* Rhythm — when the training actually happened. Browsing individual
+            sessions lives on the History tab, which does it properly, so this
+            slot shows the pattern instead of repeating that list. */}
+        {hasTrained && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent</Text>
+              <Text style={styles.sectionTitle}>Consistency</Text>
             </View>
-            {history.slice(0, 8).map((h) => (
-              <WorkoutHistoryItem
-                key={h.id}
-                session={h}
-                onPress={() =>
-                  navigation.navigate('WorkoutSummary', { sessionId: h.id, viewOnly: true })
-                }
-                onDelete={() => deleteWorkout(h.id)}
-              />
-            ))}
+            <View style={styles.chartCard}>
+              <TrainingCalendar calendar={calendar} />
+            </View>
           </>
         )}
       </ScrollView>

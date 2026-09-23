@@ -146,3 +146,97 @@ export function consistencyStats(history: WorkoutSession[]): ConsistencyStats {
 
   return { thisWeek, weekStreak, totalSessions: done.length };
 }
+
+export interface CalendarDay {
+  date: string; // YYYY-MM-DD
+  volume: number;
+  /** 0–1 against the window's busiest day; 0 when untrained. */
+  intensity: number;
+  /** True for days after today in the trailing week. */
+  future: boolean;
+}
+
+export interface TrainingCalendar {
+  /** Columns, oldest → newest. Each is a Mon→Sun week. */
+  weeks: CalendarDay[][];
+  sessions: number;
+  /** Longest run of consecutive untrained days inside the window. */
+  longestGapDays: number;
+  /** Month labels aligned to week columns; '' where the month repeats. */
+  monthLabels: string[];
+}
+
+/**
+ * Per-day training volume over the trailing `weeks` weeks, laid out as Mon→Sun
+ * columns for a contribution-style grid. Surfaces rhythm and gaps, which the
+ * consistency ring (a single week) and the split donut (totals) can't show.
+ */
+export function trainingCalendar(history: WorkoutSession[], weeks = 12): TrainingCalendar {
+  const volumeByDate = new Map<string, number>();
+  let sessions = 0;
+
+  const todayMs = parseDate(todayString()).getTime();
+  // Monday of the current week, so the grid always ends on a whole week.
+  const todayDow = (new Date(todayMs).getDay() + 6) % 7; // 0 = Monday
+  const startMs = todayMs - (todayDow + (weeks - 1) * 7) * 86400000;
+
+  for (const s of history) {
+    if (s.completedAt == null) continue;
+    const dayMs = parseDate(s.date).getTime();
+    if (dayMs < startMs || dayMs > todayMs) continue;
+    sessions += 1;
+    let vol = 0;
+    for (const ex of s.exercises) {
+      for (const set of ex.sets) {
+        if (!set.completed) continue;
+        vol += set.weight * set.reps || 1; // bodyweight/time sets still count
+      }
+    }
+    volumeByDate.set(s.date, (volumeByDate.get(s.date) ?? 0) + vol);
+  }
+
+  const maxVolume = Math.max(...volumeByDate.values(), 0);
+
+  const grid: CalendarDay[][] = [];
+  const monthLabels: string[] = [];
+  let lastMonth = '';
+  let gap = 0;
+  let longestGapDays = 0;
+
+  for (let w = 0; w < weeks; w++) {
+    const week: CalendarDay[] = [];
+    for (let d = 0; d < 7; d++) {
+      const ms = startMs + (w * 7 + d) * 86400000;
+      const date = formatDate(new Date(ms));
+      const volume = volumeByDate.get(date) ?? 0;
+      const future = ms > todayMs;
+
+      if (!future) {
+        if (volume > 0) {
+          gap = 0;
+        } else {
+          gap += 1;
+          if (gap > longestGapDays) longestGapDays = gap;
+        }
+      }
+
+      week.push({
+        date,
+        volume,
+        intensity: volume > 0 && maxVolume > 0 ? volume / maxVolume : 0,
+        future,
+      });
+    }
+    grid.push(week);
+
+    // Label a column only when its month differs from the previous one, so
+    // the axis reads "Jul … Aug … Sep" rather than repeating every column.
+    const month = new Date(startMs + w * 7 * 86400000).toLocaleDateString('en-US', {
+      month: 'short',
+    });
+    monthLabels.push(month === lastMonth ? '' : month);
+    lastMonth = month;
+  }
+
+  return { weeks: grid, sessions, longestGapDays, monthLabels };
+}
