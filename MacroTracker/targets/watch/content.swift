@@ -104,6 +104,9 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var fatGoal = 0
     @Published var water = 0
     @Published var waterGoal = 0
+    // Mirrors the phone's toggle. Defaults to true so an older phone build,
+    // which doesn't send the key, keeps showing water as it always has.
+    @Published var showWater = true
     @Published var hasData = false
     @Published var showWorkout = false // drives the full-screen workout cover
     @Published var exercises: [WatchExercise] = [] // active workout plan
@@ -139,6 +142,13 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         return nil
     }
 
+    // JS booleans arrive as NSNumber across the bridge, same as the numbers.
+    private func boolVal(_ any: Any?) -> Bool? {
+        if let n = any as? NSNumber { return n.boolValue }
+        if let b = any as? Bool { return b }
+        return nil
+    }
+
     private func doubleVal(_ any: Any?) -> Double? {
         if let n = any as? NSNumber { return n.doubleValue }
         if let d = any as? Double { return d }
@@ -159,6 +169,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             if let v = self.intVal(ctx["fatGoal"]) { self.fatGoal = v }
             if let v = self.intVal(ctx["water"]) { self.water = v }
             if let v = self.intVal(ctx["waterGoal"]) { self.waterGoal = v }
+            if let v = self.boolVal(ctx["showWaterTracker"]) { self.showWater = v }
             // Calorie/macro keys may be absent on a workout-only push; only flip
             // hasData once we've actually received nutrition numbers.
             if ctx["calorieGoal"] != nil { self.hasData = true }
@@ -506,28 +517,30 @@ struct ContentView: View {
                     }
                     .padding(.top, 2)
 
-                    // Water bar
-                    VStack(spacing: 4) {
-                        HStack {
-                            Text("Water")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text("\(stats.water) / \(stats.waterGoal) oz")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                        }
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(stats.palette.water.opacity(0.22))
-                                Capsule()
-                                    .fill(stats.palette.water)
-                                    .frame(width: max(6, geo.size.width * stats.waterProgress))
+                    // Water bar — hidden when the phone's tracker is off.
+                    if stats.showWater {
+                        VStack(spacing: 4) {
+                            HStack {
+                                Text("Water")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("\(stats.water) / \(stats.waterGoal) oz")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
                             }
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(stats.palette.water.opacity(0.22))
+                                    Capsule()
+                                        .fill(stats.palette.water)
+                                        .frame(width: max(6, geo.size.width * stats.waterProgress))
+                                }
+                            }
+                            .frame(height: 6)
                         }
-                        .frame(height: 6)
+                        .padding(.top, 2)
                     }
-                    .padding(.top, 2)
                 }
 
                 // Start a native on-wrist workout (live HR + calories).

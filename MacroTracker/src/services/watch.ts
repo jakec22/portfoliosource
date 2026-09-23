@@ -23,6 +23,8 @@ export interface WatchContext {
   fatGoal: number;
   water: number;
   waterGoal: number;
+  // Mirrors the phone's water tracker toggle — hiding it there hides it here.
+  showWaterTracker: boolean;
   updatedAt: number;
 }
 

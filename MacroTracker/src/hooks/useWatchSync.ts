@@ -13,6 +13,7 @@ export function useWatchSync(): void {
   const waterIntake = useStore((s) => s.waterIntake);
   const waterGoal = useStore((s) => s.waterGoal);
   const themeMode = useStore((s) => s.themeMode);
+  const showWaterTracker = useStore((s) => s.showWaterTracker);
 
   useEffect(() => {
     const today = todayString();
@@ -28,9 +29,10 @@ export function useWatchSync(): void {
       fatGoal: Math.round(goals.fat),
       water: Math.round(waterIntake[today] ?? 0),
       waterGoal: Math.round(waterGoal),
+      showWaterTracker,
       updatedAt: Date.now(),
     });
-  }, [logs, goals, waterIntake, waterGoal]);
+  }, [logs, goals, waterIntake, waterGoal, showWaterTracker]);
 
   // Pack changes don't touch the nutrition numbers, so the palette pushes on
   // its own trigger rather than riding along with the stats effect.
