@@ -36,6 +36,10 @@ extension Color {
 // pack — only accents are themed — and the phone lifts any color too dark to
 // read on black before sending it.
 struct WatchPalette {
+    // Background the app paints. The watch stays dark whatever the pack —
+    // watchOS has no light mode, and black pixels are off on OLED — but a warm
+    // near-black reads as a surface rather than a void.
+    var ground: Color = .black
     var accent: Color = .hmGreen
     var protein: Color = .macroProtein
     var carbs: Color = .macroCarbs
@@ -51,6 +55,7 @@ struct WatchPalette {
             return Color(hex: hex, fallback: fallback)
         }
         return WatchPalette(
+            ground: color("themeGround", current.ground),
             accent: color("themeAccent", current.accent),
             protein: color("themeProtein", current.protein),
             carbs: color("themeCarbs", current.carbs),
@@ -558,6 +563,9 @@ struct ContentView: View {
             .padding(.horizontal)
             .frame(maxWidth: .infinity)
         }
+        // ignoresSafeArea so the ground reaches under the clock and the bottom
+        // curve rather than leaving black bands around a tinted middle.
+        .background(stats.palette.ground.ignoresSafeArea())
         .fullScreenCover(isPresented: $stats.showWorkout) {
             WorkoutView()
         }
@@ -643,6 +651,7 @@ struct WorkoutView: View {
                 ScrollView { idleScreen.padding() }
             }
         }
+        .background(stats.palette.ground.ignoresSafeArea())
         .onAppear { workout.requestAuthorization() }
         .alert(
             "Couldn't Start Workout",

@@ -159,6 +159,7 @@ export function sendWatchContext(ctx: WatchContext): void {
 // background whatever the pack — only the accents travel.
 export function setWatchPalette(p: Record<string, string>): void {
   palette = {
+    themeGround: p.ground,
     themeAccent: p.accent,
     themeProtein: p.protein,
     themeCarbs: p.carbs,

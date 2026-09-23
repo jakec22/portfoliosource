@@ -1,20 +1,32 @@
 import type { Theme } from '../theme';
+import type { ThemeMode } from '../types';
 
 /**
- * Minimum contrast a color must have against the watch's black background.
+ * The surface each pack renders on.
+ *
+ * Not the pack's own background — the watch stays dark whatever the pack, for
+ * OLED battery and because watchOS has no light mode to follow. Executive's
+ * warm near-black reads as a considered surface rather than a void, and it
+ * flatters Wellness better than Wellness's own ground does: that pack's
+ * surface and accent tones share a hue family, so its own brown makes the
+ * terracotta ring compete with its background. Modern keeps pure black, where
+ * its neon accents already sit at 5-16:1.
+ */
+export const WATCH_GROUND: Record<ThemeMode, string> = {
+  editorial: '#221F1B',
+  warmWellness: '#221F1B',
+  sportTech: '#000000',
+};
+
+/**
+ * Minimum contrast a color must have against the watch's background.
  *
  * The packs were designed for the phone's surfaces — Executive's deep green
  * sits at 3.4:1 on black, which is legible but noticeably dimmer than the
  * watch's previous hardcoded green (8.3:1). That matters on a wrist glanced at
  * mid-set in daylight, so colors below this are lifted for the watch only.
  */
-const MIN_CONTRAST_ON_BLACK = 4.5;
-
-/**
- * Against pure black, contrast simplifies to (L + 0.05) / 0.05, so the
- * required relative luminance is a constant rather than a search over pairs.
- */
-const MIN_LUMINANCE = MIN_CONTRAST_ON_BLACK * 0.05 - 0.05;
+const MIN_CONTRAST = 4.5;
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
@@ -68,32 +80,40 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   return [channel(h + 1 / 3), channel(h), channel(h - 1 / 3)];
 }
 
-/**
- * Raise a color's lightness until it clears the contrast floor against black,
- * keeping hue and saturation so the pack still reads as itself. Colors already
- * above the floor are returned untouched.
- */
-export function liftForBlack(hex: string, minLuminance = MIN_LUMINANCE): string {
-  const [r, g, b] = hexToRgb(hex);
-  if (relativeLuminance(r, g, b) >= minLuminance) return hex.toUpperCase();
+function contrast(a: string, b: string): number {
+  const la = relativeLuminance(...hexToRgb(a));
+  const lb = relativeLuminance(...hexToRgb(b));
+  const [hi, lo] = la >= lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
+}
 
-  const [h, s] = rgbToHsl(r, g, b);
-  // Binary search the lightness that just clears the floor — monotonic in L,
-  // so ~20 iterations lands well inside a single 8-bit step.
-  let lo = rgbToHsl(r, g, b)[2];
+/**
+ * Raise a color's lightness until it clears the contrast floor against the
+ * given background, keeping hue and saturation so the pack still reads as
+ * itself. Colors already above the floor are returned untouched.
+ */
+export function liftForGround(hex: string, ground: string, minContrast = MIN_CONTRAST): string {
+  if (contrast(hex, ground) >= minContrast) return hex.toUpperCase();
+
+  const [r, g, b] = hexToRgb(hex);
+  const [h, s, startL] = rgbToHsl(r, g, b);
+  // Contrast against a fixed dark ground rises monotonically with lightness,
+  // so a binary search lands well inside a single 8-bit step in ~20 passes.
+  let lo = startL;
   let hi = 1;
   for (let i = 0; i < 20; i++) {
     const mid = (lo + hi) / 2;
-    const [mr, mg, mb] = hslToRgb(h, s, mid);
-    if (relativeLuminance(mr, mg, mb) >= minLuminance) hi = mid;
+    const candidate = rgbToHex(...hslToRgb(h, s, mid));
+    if (contrast(candidate, ground) >= minContrast) hi = mid;
     else lo = mid;
   }
-  const [fr, fg, fb] = hslToRgb(h, s, hi);
-  return rgbToHex(fr, fg, fb);
+  return rgbToHex(...hslToRgb(h, s, hi));
 }
 
 /** Colors the watch renders with, mirrored from the active pack. */
 export interface WatchPalette {
+  /** Background the watch paints, per pack. */
+  ground: string;
   accent: string;
   protein: string;
   carbs: string;
@@ -111,15 +131,18 @@ export interface WatchPalette {
  * pack, because OLED black is what watchOS expects and what preserves battery
  * — a cream surface from the Executive pack would be wrong on a wrist.
  */
-export function watchPalette(c: Theme): WatchPalette {
+export function watchPalette(c: Theme, mode: ThemeMode): WatchPalette {
+  const ground = WATCH_GROUND[mode] ?? '#000000';
+  const lift = (hex: string) => liftForGround(hex, ground);
   return {
-    accent: liftForBlack(c.primary),
-    protein: liftForBlack(c.macroProtein),
-    carbs: liftForBlack(c.macroCarbs),
-    fat: liftForBlack(c.macroFat),
-    water: liftForBlack(c.info),
-    zoneEasy: liftForBlack(c.hrZone2),
-    zoneMid: liftForBlack(c.hrZone3),
-    zoneHigh: liftForBlack(c.hrZone5),
+    ground,
+    accent: lift(c.primary),
+    protein: lift(c.macroProtein),
+    carbs: lift(c.macroCarbs),
+    fat: lift(c.macroFat),
+    water: lift(c.info),
+    zoneEasy: lift(c.hrZone2),
+    zoneMid: lift(c.hrZone3),
+    zoneHigh: lift(c.hrZone5),
   };
 }

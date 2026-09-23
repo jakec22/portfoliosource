@@ -37,6 +37,6 @@ export function useWatchSync(): void {
   // Pack changes don't touch the nutrition numbers, so the palette pushes on
   // its own trigger rather than riding along with the stats effect.
   useEffect(() => {
-    setWatchPalette(watchPalette(resolveTheme(themeMode)));
+    setWatchPalette(watchPalette(resolveTheme(themeMode), themeMode));
   }, [themeMode]);
 }
