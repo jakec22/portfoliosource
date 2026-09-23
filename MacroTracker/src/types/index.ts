@@ -175,6 +175,17 @@ export interface UserProfile {
   updatedAt: number;
 }
 
+// Summary of an automatic goal rebuild, shown once on Home.
+export interface GoalsUpdateNotice {
+  at: number;
+  fromWeightLbs: number;
+  toWeightLbs: number;
+  previousCalories: number;
+  previousProtein: number;
+  calories: number;
+  protein: number;
+}
+
 export interface AppState {
   goals: DailyGoals;
   logs: Record<string, FoodEntry[]>; // date -> entries
@@ -190,6 +201,15 @@ export interface AppState {
   bodyWeightLbs?: number; // most recent body weight, used for the TDEE calc
   bodyWeightLog: BodyWeightEntry[]; // dated weight history, newest first
   profile?: UserProfile; // saved Goal Wizard inputs, used to pre-fill on re-run
+  // Goals follow body weight when they came from the wizard. Typing goals in
+  // by hand turns this off, so a weigh-in can't overwrite deliberate numbers.
+  goalsAutoUpdate: boolean;
+  // Body weight the current goals were computed from; undefined for hand-set
+  // goals, which is what marks them as not wizard-managed.
+  goalsBasisWeightLbs?: number;
+  // Set when goals were rebuilt automatically, so Home can explain the change.
+  // Cleared on dismiss.
+  goalsUpdateNotice?: GoalsUpdateNotice;
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
   favoriteFoods: Food[]; // user-starred foods, shown above recents
   customFoods: Food[]; // user-created foods with custom macros
@@ -198,6 +218,11 @@ export interface AppState {
   activeWorkout: WorkoutSession | null;
   workoutHistory: WorkoutSession[]; // completed sessions, newest first
   setGoals: (goals: DailyGoals) => void;
+  // Applies goals derived from the wizard (or an automatic rebuild) and
+  // records the weight they were built on, keeping auto-update active.
+  applyGoalPlan: (goals: DailyGoals, basisWeightLbs: number) => void;
+  setGoalsAutoUpdate: (enabled: boolean) => void;
+  dismissGoalsUpdateNotice: () => void;
   addEntry: (entry: FoodEntry) => void;
   addRecentFood: (food: Food) => void;
   removeEntry: (date: string, entryId: string) => void;

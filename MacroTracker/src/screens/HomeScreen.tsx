@@ -13,6 +13,7 @@ import { useStore, sumMacros } from '../store/useStore';
 import { todayString, displayDate, formatDate } from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
 import { MacroBar } from '../components/MacroBar';
+import { GoalsUpdatedCard } from '../components/GoalsUpdatedCard';
 import { MealSection } from '../components/MealSection';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { MealType } from '../types';
@@ -41,6 +42,9 @@ export function HomeScreen({ navigation }: Props) {
   const workoutHistory = useStore((s) => s.workoutHistory);
   const deleteWorkout = useStore((s) => s.deleteWorkout);
   const waterIntake = useStore((s) => s.waterIntake);
+  const goalsUpdateNotice = useStore((s) => s.goalsUpdateNotice);
+  const dismissGoalsUpdateNotice = useStore((s) => s.dismissGoalsUpdateNotice);
+  const setGoalsAutoUpdate = useStore((s) => s.setGoalsAutoUpdate);
 
   const dayWorkouts = useMemo(
     () => workoutHistory.filter((w) => w.date === selectedDate),
@@ -171,6 +175,18 @@ export function HomeScreen({ navigation }: Props) {
             <Text style={[styles.navArrow, isToday && styles.navArrowDisabled]}>›</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Goals changed on their own — say so before showing the new numbers. */}
+        {goalsUpdateNotice && (
+          <GoalsUpdatedCard
+            notice={goalsUpdateNotice}
+            onDismiss={dismissGoalsUpdateNotice}
+            onTurnOff={() => {
+              setGoalsAutoUpdate(false);
+              dismissGoalsUpdateNotice();
+            }}
+          />
+        )}
 
         {/* Calorie Summary */}
         <View style={styles.card}>

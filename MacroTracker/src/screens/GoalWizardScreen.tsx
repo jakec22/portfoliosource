@@ -53,7 +53,7 @@ export function GoalWizardScreen({ navigation }: Props) {
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
   const bodyWeightLbs = useStore((s) => s.bodyWeightLbs);
   const setProfile = useStore((s) => s.setProfile);
-  const setGoals = useStore((s) => s.setGoals);
+  const applyGoalPlan = useStore((s) => s.applyGoalPlan);
   const setBodyWeight = useStore((s) => s.setBodyWeight);
   const logBodyWeight = useStore((s) => s.logBodyWeight);
 
@@ -200,7 +200,9 @@ export function GoalWizardScreen({ navigation }: Props) {
     if (hasToday) setBodyWeight(wLbs);
     else logBodyWeight(wLbs);
 
-    setGoals(plan.goals);
+    // Records the weight these targets were built on, so later weigh-ins
+    // can tell how far the user has drifted from them.
+    applyGoalPlan(plan.goals, wLbs);
 
     Alert.alert(
       'Goals set! 🎯',

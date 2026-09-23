@@ -13,6 +13,7 @@ import {
   WorkoutSession,
   WorkoutTemplate,
 } from '../types';
+import { evaluateGoalsUpdate } from '../utils/adaptiveGoals';
 import { todayString } from '../utils/date';
 import { prefillFromLastPerformance } from '../utils/exerciseHistory';
 import {
@@ -110,6 +111,9 @@ export const useStore = create<AppState>()(
       restTrigger: 0,
       bodyWeightLbs: undefined,
       bodyWeightLog: [],
+      goalsAutoUpdate: true,
+      goalsBasisWeightLbs: undefined,
+      goalsUpdateNotice: undefined,
       profile: undefined,
       recentFoods: [],
       favoriteFoods: [],
@@ -119,10 +123,33 @@ export const useStore = create<AppState>()(
       activeWorkout: null,
       workoutHistory: [],
 
+      // Typing goals in by hand is a deliberate override, so it clears the
+      // basis weight — that's what marks goals as no longer wizard-managed and
+      // stops a later weigh-in from silently replacing them.
       setGoals: (goals) => {
-        set({ goals });
+        set({ goals, goalsBasisWeightLbs: undefined, goalsUpdateNotice: undefined });
         syncSettings();
       },
+
+      // Goals computed from the profile (wizard run, or an automatic rebuild).
+      applyGoalPlan: (goals, basisWeightLbs) => {
+        set({
+          goals,
+          goalsBasisWeightLbs: Math.round(basisWeightLbs * 10) / 10,
+          // The wizard logs a weigh-in before applying its plan, which can
+          // raise an automatic-update notice moments before these goals land.
+          // Applying a plan explicitly supersedes it.
+          goalsUpdateNotice: undefined,
+        });
+        syncSettings();
+      },
+
+      setGoalsAutoUpdate: (enabled) => {
+        set({ goalsAutoUpdate: enabled });
+        syncSettings();
+      },
+
+      dismissGoalsUpdateNotice: () => set({ goalsUpdateNotice: undefined }),
 
       addRecentFood: (food) => {
         set((state) => ({
@@ -257,7 +284,40 @@ export const useStore = create<AppState>()(
             )
             .slice(0, 1000);
           // Keep the scalar "current weight" in step with the latest reading.
-          return { bodyWeightLog: log, bodyWeightLbs: Math.round(log[0].lbs) };
+          const next: Partial<AppState> = {
+            bodyWeightLog: log,
+            bodyWeightLbs: Math.round(log[0].lbs),
+          };
+
+          // Goals track body weight: rebuild them when the smoothed weight has
+          // drifted far enough from what the current targets were built on.
+          // Returns null for hand-set goals, auto-update off, or small drift.
+          const update = evaluateGoalsUpdate({
+            profile: state.profile,
+            goals: state.goals,
+            bodyWeightLog: log,
+            goalsAutoUpdate: state.goalsAutoUpdate,
+            goalsBasisWeightLbs: state.goalsBasisWeightLbs,
+          });
+          if (update) {
+            next.goals = update.plan.goals;
+            next.goalsBasisWeightLbs = update.toWeightLbs;
+            next.goalsUpdateNotice = {
+              at: Date.now(),
+              fromWeightLbs: update.fromWeightLbs,
+              toWeightLbs: update.toWeightLbs,
+              previousCalories: update.previousGoals.calories,
+              previousProtein: update.previousGoals.protein,
+              calories: update.plan.goals.calories,
+              protein: update.plan.goals.protein,
+            };
+            // Keep the profile's stored weight in step, so a later wizard run
+            // pre-fills with reality rather than the weight from signup.
+            if (state.profile) {
+              next.profile = { ...state.profile, weightLbs: update.toWeightLbs };
+            }
+          }
+          return next as Partial<AppState>;
         });
         syncSettings();
       },
@@ -645,6 +705,9 @@ export const useStore = create<AppState>()(
           bodyWeightLbs: undefined,
           bodyWeightLog: [],
           profile: undefined,
+          goalsAutoUpdate: true,
+          goalsBasisWeightLbs: undefined,
+          goalsUpdateNotice: undefined,
           recentFoods: [],
           favoriteFoods: [],
           customFoods: [],
@@ -671,7 +734,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 9,
+      version: 10,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -770,6 +833,19 @@ export const useStore = create<AppState>()(
         // original/default look. Anyone who had Classic selected lands there.
         if (version < 9 && state?.themeMode === 'classic') {
           state = { ...state, themeMode: 'editorial' };
+        }
+        // v10 made goals follow body weight. Existing users who ran the wizard
+        // have a profile but no recorded basis weight, so seed it from the
+        // profile's weight — otherwise their first weigh-in would look like an
+        // infinite drift and immediately rewrite their targets.
+        if (version < 10 && state) {
+          state = {
+            ...state,
+            goalsAutoUpdate: state.goalsAutoUpdate ?? true,
+            goalsBasisWeightLbs:
+              state.goalsBasisWeightLbs ?? state.profile?.weightLbs ?? undefined,
+            goalsUpdateNotice: undefined,
+          };
         }
         return state;
       },
