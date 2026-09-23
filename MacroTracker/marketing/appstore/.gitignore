@@ -3,3 +3,8 @@ slide*.html
 # Anything rendered at a prefix other than the committed `appstore-*`.
 preview-*.png
 check-*.png
+
+# The meal photo is a real photograph you supply; it is not committed.
+meal.jpg
+meal.jpeg
+meal.png

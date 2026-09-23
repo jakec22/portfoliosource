@@ -101,8 +101,8 @@ NUTRITION
 TRAINING
 • Log sets, reps and weight from your saved templates, or build a session as
   you go
-• Live Apple Watch heart rate while you train, with the line colored by the
-  training zone you're actually in
+• Live Apple Watch heart rate while you train, then a breakdown afterwards of
+  how long you actually spent in each training zone
 • A body map of where your volume went — front and back, by muscle group
 • A twelve-week consistency grid, current streak and weekly volume trend
 • Recent personal records as a chart you can read, not a table you have to
@@ -149,8 +149,19 @@ matters: App Store search results only show the first three.
 | 2 | Smart camera | Read the label. / Know the truth. | Nutrition Facts capture |
 | 3 | Nutrition | Every macro, / one glance. | Home: calorie ring, macro bars, water |
 | 4 | Adaptive goals | Targets that / follow your weight. | Goals-updated card, weight trend |
-| 5 | Training insights | See where the / work actually went. | Body map, consistency, volume |
-| 6 | Live training | Every set. / Every beat. | Set logger with HR zone chart |
+| 5 | Training insights | See where the / work actually went. | Body map, consistency grid |
+| 6 | Every session | Every set. / Every beat. | Workout summary: stats, HR zones |
+
+### Slide 1 needs a real photograph
+
+`gen.py` embeds `marketing/appstore/meal.jpg` (`.jpeg`/`.png` also work) into
+the Meal Photo card. Until that file exists the slot renders as a visible
+placeholder, which is deliberate — the slide advertises photo recognition, so
+a drawn plate would be showing a photo the app never analysed. Shoot one meal
+through the app, export it, drop it in, re-run.
+
+Anything roughly 3:2 and landscape works; it is cropped with `object-fit:
+cover` into a 132 × 224 CSS slot.
 
 ### Regenerating them
 
@@ -169,5 +180,21 @@ Playwright is required rather than `chrome --headless --screenshot`: that flag
 reserves ~87px of the window for browser chrome, so the viewport ends up
 shorter than the page and everything below it silently fails to paint. The
 in-slide UI is rebuilt from the real `src/theme` tokens and mirrors
-`MacroBar.tsx` and `GoalsUpdatedCard.tsx` — if the palette moves, update the
-constants at the top of `gen.py`.
+`MacroBar.tsx`, `GoalsUpdatedCard.tsx`, `BodyHeatMap.tsx` and
+`HeartRateGraph.tsx` — if the palette moves, update the constants at the top
+of `gen.py`.
+
+Two things to hold on to when editing the slides:
+
+**Each phone screen carries few, large elements.** The device is 264 CSS px
+wide inside a 428 px slide, so at 3× it occupies about 790 of the image's 1284
+pixels — and the store then shrinks that again for search results. Rendering
+is pixel-sharp at full size; the failure mode is type that is *small*, not
+soft. Pack a screen with four cards and the result reads as mush at thumbnail
+size, which is why slide 3 shows only calories and macros and slide 5 stops
+after the consistency grid.
+
+**Check the component before drawing a screen.** The zone-coloured heart-rate
+chart lives on `WorkoutSummaryScreen`, not on the live workout screen — an
+earlier pass put it on the set logger, where the app only ever shows a bpm
+readout in the status bar.
