@@ -4,14 +4,19 @@ import WatchConnectivity
 import HealthKit
 import WatchKit
 
-// Fallback accents, used until the phone pushes the active theme pack's
-// palette (see WatchPalette). Matches the app's original green.
+// Fallback palette, used until the phone pushes the active theme pack's colors
+// (see WatchPalette).
+//
+// These are exactly what watchPalette() produces for the default Executive
+// pack — the pack's tokens, lifted to 4.5:1 against the watch's warm near-black
+// ground. They used to be the app's original emerald set, which meant a watch
+// that hadn't synced yet showed a palette the phone had long since dropped.
 extension Color {
-    static let hmGreen = Color(red: 16 / 255, green: 185 / 255, blue: 129 / 255)
-    static let macroProtein = Color(red: 59 / 255, green: 130 / 255, blue: 246 / 255) // #3B82F6
-    static let macroCarbs = Color(red: 245 / 255, green: 158 / 255, blue: 11 / 255)    // #F59E0B
-    static let macroFat = Color(red: 239 / 255, green: 68 / 255, blue: 68 / 255)        // #EF4444
-    static let waterBlue = Color(red: 56 / 255, green: 189 / 255, blue: 248 / 255)      // #38BDF8
+    static let hmGreen = Color(red: 0x56 / 255, green: 0x93 / 255, blue: 0x70 / 255) // #569370
+    static let macroProtein = Color(red: 0xB8 / 255, green: 0x76 / 255, blue: 0x5F / 255) // #B8765F
+    static let macroCarbs = Color(red: 0xB9 / 255, green: 0x8A / 255, blue: 0x3E / 255)   // #B98A3E
+    static let macroFat = Color(red: 0xAC / 255, green: 0x79 / 255, blue: 0x80 / 255)     // #AC7980
+    static let waterBlue = Color(red: 0x6C / 255, green: 0x8A / 255, blue: 0x9D / 255)    // #6C8A9D
 
     // "#RRGGBB" → Color, falling back to a supplied default on anything
     // malformed so a bad payload can't blank the UI.
@@ -32,22 +37,23 @@ extension Color {
     }
 }
 
-// The active pack's accents. The watch keeps its black background whatever the
-// pack — only accents are themed — and the phone lifts any color too dark to
-// read on black before sending it.
+// The active pack's colors, pushed by the phone. Every pack stays dark on the
+// wrist — watchOS has no light mode to follow — and the phone lifts anything
+// too dim to read against that ground before sending it.
 struct WatchPalette {
-    // Background the app paints. The watch stays dark whatever the pack —
-    // watchOS has no light mode, and black pixels are off on OLED — but a warm
-    // near-black reads as a surface rather than a void.
-    var ground: Color = .black
+    // Background the app paints, per pack: Executive and Wellness get a warm
+    // near-black that reads as a surface rather than a void, Modern keeps pure
+    // black where its neon accents already sit high. See watchPalette.ts.
+    var ground: Color = Color(red: 0x22 / 255, green: 0x1F / 255, blue: 0x1B / 255) // #221F1B
     var accent: Color = .hmGreen
     var protein: Color = .macroProtein
     var carbs: Color = .macroCarbs
     var fat: Color = .macroFat
     var water: Color = .waterBlue
-    var zoneEasy: Color = .hmGreen
-    var zoneMid: Color = .orange
-    var zoneHigh: Color = .red
+    // Executive's hrZone2 / hrZone3 / hrZone5, lifted for the ground.
+    var zoneEasy: Color = Color(red: 0x74 / 255, green: 0x96 / 255, blue: 0x5C / 255) // #74965C
+    var zoneMid: Color = Color(red: 0xC9 / 255, green: 0xA2 / 255, blue: 0x27 / 255)  // #C9A227
+    var zoneHigh: Color = Color(red: 0xD6 / 255, green: 0x63 / 255, blue: 0x59 / 255) // #D66359
 
     static func from(_ ctx: [String: Any], current: WatchPalette) -> WatchPalette {
         func color(_ key: String, _ fallback: Color) -> Color {
@@ -566,6 +572,12 @@ struct ContentView: View {
         // ignoresSafeArea so the ground reaches under the clock and the bottom
         // curve rather than leaving black bands around a tinted middle.
         .background(stats.palette.ground.ignoresSafeArea())
+        // Every control SwiftUI draws for us — Stepper's ± buttons, toggles,
+        // the crown indicator — otherwise falls back to the target's static
+        // $accent from expo-target.config.js, which no theme sync can reach.
+        // Set here rather than per-control so a control added later is themed
+        // by default instead of quietly shipping the asset-catalog color.
+        .tint(stats.palette.accent)
         .fullScreenCover(isPresented: $stats.showWorkout) {
             WorkoutView()
         }
@@ -652,6 +664,9 @@ struct WorkoutView: View {
             }
         }
         .background(stats.palette.ground.ignoresSafeArea())
+        // Set again here, not inherited: this view is presented in a
+        // fullScreenCover, which starts its own hierarchy.
+        .tint(stats.palette.accent)
         .onAppear { workout.requestAuthorization() }
         .alert(
             "Couldn't Start Workout",
@@ -973,10 +988,16 @@ struct SetEditView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(stats.palette.accent)
             }
             .padding()
         }
+        // The steppers' ± buttons are drawn by SwiftUI from the accent color,
+        // so without this they render in the target's static $accent — the old
+        // emerald — while everything around them follows the synced pack. This
+        // view is presented in a sheet, so it needs its own tint rather than
+        // inheriting WorkoutView's.
+        .tint(stats.palette.accent)
+        .background(stats.palette.ground.ignoresSafeArea())
     }
 
     private func field(_ label: String, _ value: String) -> some View {
