@@ -148,8 +148,54 @@ struct MacroBarRow: View {
     }
 }
 
+// A calories-only ring for the small family: at 2x2 there isn't room for four
+// labelled bars, and squeezing them in would make all five numbers unreadable
+// rather than one legible.
+struct CalorieRingView: View {
+    let consumed: Double
+    let goal: Double
+    let accent: Color
+    let track: Color
+    let muted: Color
+    let danger: Color
+
+    private var progress: Double { goal > 0 ? min(consumed / goal, 1) : 0 }
+    private var over: Bool { goal > 0 && consumed > goal }
+    private var remaining: Int { Int(abs(goal - consumed).rounded()) }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle().stroke(track, lineWidth: 10)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        over ? danger : accent,
+                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 0) {
+                    Text("\(remaining)")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(over ? danger : accent)
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
+                    Text(over ? "over" : "left")
+                        .font(.system(size: 11))
+                        .foregroundColor(muted)
+                }
+            }
+
+            Text("\(Int(consumed)) / \(Int(goal)) cal")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(muted)
+        }
+    }
+}
+
 struct MacroWidgetView: View {
     var entry: MacroEntry
+    @Environment(\.widgetFamily) private var family
 
     private var p: MacroPayload { entry.payload }
     private var text: Color { Color(hex: p.textColor) }
@@ -161,6 +207,24 @@ struct MacroWidgetView: View {
     }
 
     var body: some View {
+        Group {
+            if family == .systemSmall {
+                CalorieRingView(
+                    consumed: p.caloriesConsumed,
+                    goal: p.calorieGoal,
+                    accent: Color(hex: p.accentColor),
+                    track: track,
+                    muted: muted,
+                    danger: Color(hex: p.dangerColor)
+                )
+            } else {
+                mediumBody
+            }
+        }
+        .containerBackground(for: .widget) { Color(hex: p.cardColor) }
+    }
+
+    private var mediumBody: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
                 Text("\(remaining)")
@@ -192,7 +256,6 @@ struct MacroWidgetView: View {
                         mutedColor: muted, trackColor: track,
                         dangerColor: Color(hex: p.dangerColor))
         }
-        .containerBackground(for: .widget) { Color(hex: p.cardColor) }
     }
 }
 
@@ -204,8 +267,8 @@ struct MacroWidget: Widget {
             MacroWidgetView(entry: entry)
         }
         .configurationDisplayName("Macros")
-        .description("Today's calories and macro progress.")
-        .supportedFamilies([.systemMedium])
+        .description("Calories left at a glance, or the full macro breakdown.")
+        .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
 
