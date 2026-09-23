@@ -10,6 +10,8 @@ interface Props {
   /** Short labels aligned with values; only the endpoints are drawn. */
   labels: string[];
   color: string;
+  /** Ring the final point — used to mark a session that set a record. */
+  markLast?: boolean;
 }
 
 const W = 320; // viewBox width (scales to container)
@@ -27,7 +29,7 @@ function fmt(v: number): string {
 
 // A lightweight SVG line chart for a per-session metric over time. Handles the
 // single-point case (one dot + value) and a flat series (sensible Y padding).
-export function ProgressLineChart({ values, labels, color }: Props) {
+export function ProgressLineChart({ values, labels, color, markLast }: Props) {
   const c = useTheme();
   if (values.length === 0) return null;
 
@@ -75,6 +77,23 @@ export function ProgressLineChart({ values, labels, color }: Props) {
       {values.map((v, i) => (
         <Circle key={i} cx={x(i)} cy={y(v)} r={n > 24 ? 1.6 : 3} fill={color} />
       ))}
+
+      {/* A haloed final point, so a record reads on the chart itself rather
+          than only in the text above it. */}
+      {markLast && n > 0 && (
+        <>
+          <Circle
+            cx={x(n - 1)}
+            cy={y(values[n - 1])}
+            r={7}
+            fill="none"
+            stroke={color}
+            strokeWidth={1.5}
+            opacity={0.45}
+          />
+          <Circle cx={x(n - 1)} cy={y(values[n - 1])} r={4} fill={color} />
+        </>
+      )}
 
       {/* X endpoints */}
       <SvgText x={PAD_L} y={H - 6} fontSize={9} fill={c.textFaint}>

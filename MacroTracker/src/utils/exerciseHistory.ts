@@ -427,3 +427,58 @@ export function recentPRs(history: WorkoutSession[], sessionLimit = 4): RecentPR
   }
   return out;
 }
+
+// A progress card plus whether that exercise recently set a record.
+export interface ProgressHighlight extends ProgressCard {
+  /** Metric that was beaten, when the exercise PR'd recently. */
+  prLabel?: string;
+}
+
+/**
+ * One list for the Exercise tab's progress section, replacing the separate
+ * "recent PRs" and "top movers" lists.
+ *
+ * Those two overlapped almost entirely — an exercise that sets a top-weight PR
+ * is by definition one where the latest session beat the previous, so the same
+ * lift showed up in both, with the same number formatted two different ways.
+ * Here a PR is an attribute of the exercise rather than its own list: anything
+ * that recently PR'd leads, then whatever improved most, deduped by exercise.
+ */
+export function progressHighlights(
+  history: WorkoutSession[],
+  limit = 6,
+  sessionLimit = 4
+): ProgressHighlight[] {
+  const cards = exerciseProgressCards(history).filter((card) => card.values.length > 0);
+  const byKey = new Map(cards.map((card) => [card.key, card]));
+
+  // Most recent PR per exercise, keyed the same way progress cards are.
+  const prLabelByKey = new Map<string, string>();
+  for (const pr of recentPRs(history, sessionLimit)) {
+    const key = normalizeExerciseName(pr.name);
+    if (!prLabelByKey.has(key)) prLabelByKey.set(key, pr.label);
+  }
+
+  const seen = new Set<string>();
+  const out: ProgressHighlight[] = [];
+
+  // PR'd exercises first — a record is the thing most worth surfacing.
+  for (const [key, prLabel] of prLabelByKey) {
+    const card = byKey.get(key);
+    if (!card || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...card, prLabel });
+  }
+
+  // Then the biggest improvers that didn't already make the cut.
+  const movers = cards
+    .filter((card) => card.previous != null && card.latest > card.previous && !seen.has(card.key))
+    .sort((a, b) => b.latest - b.previous! - (a.latest - a.previous!));
+  for (const card of movers) {
+    if (out.length >= limit) break;
+    seen.add(card.key);
+    out.push(card);
+  }
+
+  return out.slice(0, limit);
+}

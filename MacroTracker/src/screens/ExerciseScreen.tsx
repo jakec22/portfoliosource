@@ -17,11 +17,11 @@ import { WorkoutTemplate } from '../types';
 import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
-import { recentPRs, topMovers } from '../utils/exerciseHistory';
+import { progressHighlights } from '../utils/exerciseHistory';
 import { consistencyStats, trainingSplit } from '../utils/trainingSplit';
 import { formatDuration as formatSetTime } from '../utils/duration';
-import { ProgressCardRow } from '../components/ProgressCardRow';
 import { ConsistencyRing } from '../components/ConsistencyRing';
+import { ProgressExplorer } from '../components/ProgressExplorer';
 import { BodyHeatMap } from '../components/BodyHeatMap';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
@@ -44,11 +44,9 @@ export function ExerciseScreen({ navigation }: Props) {
   const deleteWorkout = useStore((s) => s.deleteWorkout);
   const saveTemplate = useStore((s) => s.saveTemplate);
 
-  // Compact progress highlights for the Exercise tab: recent PRs and the
-  // exercises that improved most. Full browsing lives under Key Insights.
-  const prs = useMemo(() => recentPRs(history), [history]);
-  const movers = useMemo(() => topMovers(history), [history]);
-  const hasProgress = prs.length > 0 || movers.length > 0;
+  // One merged progress list — PR'd lifts first, then biggest improvers.
+  // Full browsing lives under Key Insights.
+  const highlights = useMemo(() => progressHighlights(history), [history]);
 
   // Visual training summary: how consistent the last week was, and what the
   // volume was actually spent on.
@@ -286,42 +284,18 @@ export function ExerciseScreen({ navigation }: Props) {
           </>
         )}
 
-        {/* Progress highlights — recent PRs + top movers. */}
-        {hasProgress && (
+        {/* Progress — one chart, switched between the lifts worth watching. */}
+        {highlights.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Progress</Text>
             </View>
-
-            {prs.length > 0 && (
-              <View style={styles.prCard}>
-                <Text style={styles.prHeader}>Recent PRs</Text>
-                {prs.slice(0, 3).map((pr, i) => (
-                  <View key={`${pr.name}-${i}`} style={styles.prRow}>
-                    <Text style={styles.prName} numberOfLines={1}>
-                      {pr.name}
-                    </Text>
-                    <Text style={styles.prValue}>
-                      {pr.label} {pr.value}
-                      <Text style={styles.prPrev}> (was {pr.prev})</Text>
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {movers.length > 0 && (
-              <>
-                <Text style={styles.subHeader}>Top movers</Text>
-                {movers.map((card) => (
-                  <ProgressCardRow
-                    key={card.key}
-                    card={card}
-                    onPress={() => navigation.navigate('ExerciseProgress', { name: card.name })}
-                  />
-                ))}
-              </>
-            )}
+            <View style={styles.chartCard}>
+              <ProgressExplorer
+                highlights={highlights}
+                onOpen={(name) => navigation.navigate('ExerciseProgress', { name })}
+              />
+            </View>
           </>
         )}
 
@@ -396,15 +370,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   sectionTitle: { fontSize: 20, fontFamily: c.fontDisplay, color: c.text },
   seeAll: { fontSize: 13.5, fontFamily: c.fontBodyBold, color: c.primary },
-  subHeader: { fontSize: 13, fontFamily: c.fontBodyBold, color: c.textMuted, marginBottom: 8 },
-  prCard: {
-    backgroundColor: c.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: c.border,
-    padding: 14,
-    marginBottom: 14,
-  },
   chartCard: {
     backgroundColor: c.card,
     borderRadius: 12,
@@ -414,11 +379,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: 14,
   },
   chartTitle: { fontSize: 15, fontFamily: c.fontBodyBold, color: c.text, marginBottom: 14 },
-  prHeader: { fontSize: 15, fontFamily: c.fontBodyBold, color: c.text, marginBottom: 8 },
-  prRow: { marginBottom: 6 },
-  prName: { fontSize: 14, fontFamily: c.fontBody, color: c.text },
-  prValue: { fontSize: 13, color: c.primaryDark, fontFamily: c.fontBodyBold },
-  prPrev: { color: c.textFaint, fontWeight: '400' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   importLink: { fontSize: 15, fontWeight: '700', color: c.accent },
   createLink: { fontSize: 15, fontWeight: '700', color: c.primary },
