@@ -787,6 +787,18 @@ struct WorkoutView: View {
                 Text("bpm").font(.caption2).foregroundColor(.secondary)
             }
 
+            // A denied HealthKit read looks exactly like a workout where the
+            // heart simply hasn't been measured yet — empty results, no error.
+            // Without this the only symptom is "--" sitting there forever,
+            // which reads as a sensor problem rather than a permission one.
+            if workout.hrUnavailable {
+                Text("No heart rate yet. Check Health access for Holy Macro in Watch settings.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 4)
+            }
+
             HStack(spacing: 5) {
                 Image(systemName: "flame.fill").foregroundColor(.orange)
                 Text("\(Int(workout.activeCalories)) cal")

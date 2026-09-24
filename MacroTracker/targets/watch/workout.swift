@@ -20,6 +20,18 @@ final class WorkoutManager: NSObject, ObservableObject {
     private var segmentStart: Date?
     private var hrSum: Double = 0
     private var hrCount: Int = 0
+    // Guards against a second start() while the authorization sheet is up.
+    private var isStarting = false
+    // When the current builder began collecting, so the no-heart-rate watchdog
+    // measures from that point rather than from the workout's start — a
+    // recovered session is already minutes old when we re-attach to it.
+    private var collectionStartedAt: Date?
+    private var hasHeartRateSample = false
+
+    /// How long a running workout may go without a single heart-rate sample
+    /// before we say so. Long enough to cover a loose band settling, short
+    /// enough that the user finds out mid-warmup rather than at the summary.
+    private static let heartRateGracePeriod: TimeInterval = 30
 
     @Published var isActive = false
     @Published var isPaused = false
@@ -31,22 +43,48 @@ final class WorkoutManager: NSObject, ObservableObject {
     // Set when start() fails (e.g. HealthKit authorization denied) so the UI can
     // tell the user why nothing happened instead of silently staying idle.
     @Published var startError: String?
+    // Set when a running workout has gone heartRateGracePeriod without a
+    // sample. HealthKit reports a denied *read* as an empty result, never as an
+    // error — authorizationStatus(for:) deliberately won't tell us either — so
+    // a silent stream is the only signal there is that something is wrong.
+    @Published var hrUnavailable = false
 
     // Ask for the data we read (HR, active energy) and write (the workout).
-    func requestAuthorization() {
-        guard HKHealthStore.isHealthDataAvailable() else { return }
+    func requestAuthorization(completion: ((Error?) -> Void)? = nil) {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            completion?(nil)
+            return
+        }
         let share: Set<HKSampleType> = [HKQuantityType.workoutType()]
         let read: Set<HKObjectType> = [
             HKQuantityType(.heartRate),
             HKQuantityType(.activeEnergyBurned),
         ]
-        healthStore.requestAuthorization(toShare: share, read: read) { _, _ in }
+        healthStore.requestAuthorization(toShare: share, read: read) { _, error in
+            completion?(error)
+        }
     }
 
     func start(activityType: HKWorkoutActivityType = .functionalStrengthTraining) {
-        guard !isActive else { return } // ignore duplicate start commands
+        guard !isActive, !isStarting else { return } // ignore duplicate start commands
+        isStarting = true
+        // Authorization has to resolve *before* collection begins. This used to
+        // fire and forget, so on the first workout after install the builder
+        // started collecting while the permission sheet was still on screen,
+        // and the session recorded no heart rate at all. Nothing surfaced it:
+        // HealthKit answers an unauthorized read with an empty result.
+        requestAuthorization { [weak self] error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isStarting = false
+                self.beginSession(activityType: activityType, authError: error)
+            }
+        }
+    }
 
-        requestAuthorization()
+    private func beginSession(activityType: HKWorkoutActivityType, authError: Error?) {
+        guard !isActive else { return }
+
         let config = HKWorkoutConfiguration()
         config.activityType = activityType
         config.locationType = .unknown
@@ -71,6 +109,8 @@ final class WorkoutManager: NSObject, ObservableObject {
             self.segmentStart = start
             self.hrSum = 0
             self.hrCount = 0
+            self.hasHeartRateSample = false
+            self.collectionStartedAt = start
             startTimer()
             DispatchQueue.main.async {
                 self.heartRate = 0
@@ -81,12 +121,13 @@ final class WorkoutManager: NSObject, ObservableObject {
                 self.didFinish = false
                 self.isActive = true
                 self.startError = nil
+                self.hrUnavailable = false
             }
         } catch {
             // Previously silently swallowed, leaving the watch stuck on the idle
             // screen with no indication anything went wrong. Surface it instead.
             DispatchQueue.main.async {
-                self.startError = error.localizedDescription
+                self.startError = authError?.localizedDescription ?? error.localizedDescription
             }
         }
     }
@@ -118,11 +159,13 @@ final class WorkoutManager: NSObject, ObservableObject {
         builder?.endCollection(withEnd: Date()) { [weak self] _, _ in
             self?.builder?.finishWorkout { _, _ in }
         }
+        collectionStartedAt = nil
         DispatchQueue.main.async {
             self.elapsed = self.accumulated
             self.isActive = false
             self.isPaused = false
             self.didFinish = true // drives the on-watch summary screen
+            self.hrUnavailable = false
             self.session = nil
             self.builder = nil
         }
@@ -145,6 +188,18 @@ final class WorkoutManager: NSObject, ObservableObject {
         healthStore.recoverActiveWorkoutSession { [weak self] session, _ in
             guard let self = self, let session = session else { return }
             let builder = session.associatedWorkoutBuilder()
+
+            // The data source is an in-process object; the HKWorkoutSession
+            // that survived in HealthKit's daemon did not bring one with it, so
+            // a recovered builder has none. Without this, the builder never
+            // collects, workoutBuilder(_:didCollectDataOf:) is never called,
+            // and the rest of the workout shows "--" for heart rate and streams
+            // nothing to the phone — while the daemon keeps recording happily,
+            // so the built-in Heart Rate app looks completely normal.
+            builder.dataSource = HKLiveWorkoutDataSource(
+                healthStore: self.healthStore,
+                workoutConfiguration: session.workoutConfiguration
+            )
             session.delegate = self
             builder.delegate = self
 
@@ -167,13 +222,25 @@ final class WorkoutManager: NSObject, ObservableObject {
             self.builder = builder
             self.accumulated = builder.elapsedTime(at: Date())
             self.segmentStart = session.state == .running ? Date() : nil
-            self.startTimer()
+            // Deliberately not seeded from the statistics above: those are what
+            // the daemon banked before the relaunch and say nothing about
+            // whether this process's new data source is delivering. Let the
+            // watchdog confirm collection actually resumed.
+            self.hasHeartRateSample = false
+            self.collectionStartedAt = Date()
 
             DispatchQueue.main.async {
                 self.elapsed = self.accumulated
                 self.isPaused = session.state == .paused
                 self.didFinish = false
                 self.isActive = true
+                self.hrUnavailable = false
+                // Inside the main hop, not outside it: scheduledTimer attaches
+                // to the calling thread's run loop, and HealthKit calls this
+                // completion back on a queue of its own choosing — one with no
+                // run loop spinning, where the timer would never fire and the
+                // recovered workout's clock would sit frozen.
+                self.startTimer()
                 DayStats.shared.showWorkout = true
             }
         }
@@ -186,6 +253,12 @@ final class WorkoutManager: NSObject, ObservableObject {
             if self.isPaused { return }
             let current = self.segmentStart.map { Date().timeIntervalSince($0) } ?? 0
             self.elapsed = self.accumulated + current
+
+            if !self.hasHeartRateSample, !self.hrUnavailable,
+               let since = self.collectionStartedAt,
+               Date().timeIntervalSince(since) > Self.heartRateGracePeriod {
+                self.hrUnavailable = true
+            }
         }
     }
 
@@ -240,6 +313,8 @@ extension WorkoutManager: HKLiveWorkoutBuilderDelegate {
                         self.hrSum += bpm
                         self.hrCount += 1
                         self.avgHeartRate = self.hrSum / Double(self.hrCount)
+                        self.hasHeartRateSample = true
+                        self.hrUnavailable = false
                         self.streamHeartRate(bpm)
                     }
                 } else if quantityType == HKQuantityType(.activeEnergyBurned) {
