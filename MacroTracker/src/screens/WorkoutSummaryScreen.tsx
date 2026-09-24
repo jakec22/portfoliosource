@@ -1,9 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { formatDuration, displayDate } from '../utils/date';
 import { formatDuration as formatSetTime } from '../utils/duration';
+import { sanitizeDecimal, sanitizeInteger } from '../utils/numberInput';
+import { DurationInput } from '../components/DurationInput';
 import {
   detectSessionPRs,
   estimate1RM,
@@ -62,6 +74,53 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
   const { sessionId, viewOnly } = route.params;
   const session = useStore((s) => s.workoutHistory.find((w) => w.id === sessionId));
   const history = useStore((s) => s.workoutHistory);
+  const updateHistoryWorkoutSet = useStore((s) => s.updateHistoryWorkoutSet);
+
+  // The set being corrected, plus its draft text. Held as a draft rather than
+  // written through on each keystroke like the live workout screen: this is
+  // editing the past, so a mis-tap on the wrong pill should be cancellable
+  // without having already overwritten a recorded number.
+  const [editing, setEditing] = useState<{
+    exerciseId: string;
+    setId: string;
+    exerciseName: string;
+    setNumber: number;
+    isTime: boolean;
+  } | null>(null);
+  const [draftWeight, setDraftWeight] = useState('');
+  const [draftReps, setDraftReps] = useState('');
+  const [draftSeconds, setDraftSeconds] = useState(0);
+
+  function beginEdit(
+    exercise: WorkoutExercise,
+    set: { id: string; weight: number; reps: number; durationSeconds?: number },
+    index: number
+  ) {
+    const isTime = (exercise.mode ?? 'reps') === 'time';
+    setDraftWeight(set.weight === 0 ? '' : String(set.weight));
+    setDraftReps(set.reps === 0 ? '' : String(set.reps));
+    setDraftSeconds(set.durationSeconds ?? 0);
+    setEditing({
+      exerciseId: exercise.id,
+      setId: set.id,
+      exerciseName: exercise.name,
+      setNumber: index + 1,
+      isTime,
+    });
+  }
+
+  function saveEdit() {
+    if (!editing) return;
+    const weight = parseFloat(draftWeight);
+    const reps = parseInt(draftReps, 10);
+    updateHistoryWorkoutSet(sessionId, editing.exerciseId, editing.setId, {
+      weight: Number.isNaN(weight) ? 0 : weight,
+      ...(editing.isTime
+        ? { durationSeconds: draftSeconds }
+        : { reps: Number.isNaN(reps) ? 0 : reps }),
+    });
+    setEditing(null);
+  }
 
   // PRs are only meaningful for a just-finished session (compared against all
   // prior history). Skip when re-viewing an old workout, where "prior" would
@@ -231,6 +290,7 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
 
         {/* Per-exercise breakdown */}
         <Text style={styles.sectionTitle}>Breakdown</Text>
+        <Text style={styles.sectionHint}>Tap a set to correct it.</Text>
         {session.exercises.map((e) => {
           const done = e.sets.filter((s) => s.completed);
           const vol = done.reduce((v, s) => v + s.weight * s.reps, 0);
@@ -254,18 +314,20 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
                 </Text>
               </View>
               <View style={styles.setPills}>
-                {e.sets.map((s) => {
+                {e.sets.map((s, i) => {
                   const isTime = (e.mode ?? 'reps') === 'time';
                   const measure = isTime ? formatSetTime(s.durationSeconds ?? 0) : `${s.reps}`;
                   return (
-                    <View
+                    <TouchableOpacity
                       key={s.id}
                       style={[styles.setPill, s.completed && styles.setPillDone]}
+                      onPress={() => beginEdit(e, s, i)}
+                      activeOpacity={0.6}
                     >
                       <Text style={[styles.setPillText, s.completed && styles.setPillTextDone]}>
                         {s.weight ? `${s.weight}×${measure}` : measure}
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>
@@ -277,6 +339,88 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
           <Text style={styles.doneText}>{viewOnly ? 'Close' : 'Done'}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal
+        visible={editing != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditing(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.sheetBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          {/* Tapping the dimmed area behind the card dismisses without saving,
+              matching the Cancel button rather than committing the draft. */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setEditing(null)}
+          />
+          {editing && (
+            <View style={styles.sheet}>
+              <Text style={styles.sheetTitle}>{editing.exerciseName}</Text>
+              <Text style={styles.sheetSubtitle}>Set {editing.setNumber}</Text>
+
+              <View style={styles.sheetFields}>
+                <View style={styles.sheetField}>
+                  <Text style={styles.sheetLabel}>Weight (lb)</Text>
+                  <TextInput
+                    style={styles.sheetInput}
+                    value={draftWeight}
+                    onChangeText={(v) => setDraftWeight(sanitizeDecimal(v))}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor={c.textFaint}
+                    autoFocus
+                    selectTextOnFocus
+                  />
+                </View>
+
+                <View style={styles.sheetField}>
+                  <Text style={styles.sheetLabel}>{editing.isTime ? 'Time' : 'Reps'}</Text>
+                  {editing.isTime ? (
+                    <DurationInput
+                      style={styles.sheetInput}
+                      seconds={draftSeconds}
+                      onChange={setDraftSeconds}
+                      placeholder="0:00"
+                      placeholderTextColor={c.textFaint}
+                    />
+                  ) : (
+                    <TextInput
+                      style={styles.sheetInput}
+                      value={draftReps}
+                      onChangeText={(v) => setDraftReps(sanitizeInteger(v))}
+                      keyboardType="number-pad"
+                      placeholder="0"
+                      placeholderTextColor={c.textFaint}
+                      selectTextOnFocus
+                    />
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.sheetActions}>
+                <TouchableOpacity
+                  style={[styles.sheetBtn, styles.sheetBtnGhost]}
+                  onPress={() => setEditing(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.sheetBtnGhostText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.sheetBtn, styles.sheetBtnPrimary]}
+                  onPress={saveEdit}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.sheetBtnPrimaryText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -371,6 +515,14 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
+  // The pills don't look tappable on their own, and a correction is the sort
+  // of thing people go looking for only once they've already been annoyed.
+  sectionHint: {
+    fontSize: 12,
+    color: c.textFaint,
+    marginTop: -6,
+    marginBottom: 10,
+  },
 
   vsCard: {
     flexDirection: 'row',
@@ -453,4 +605,50 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginTop: 20,
   },
   doneText: { color: c.onPrimary, fontWeight: '700', fontSize: 16 },
+
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  sheet: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: c.card,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: c.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: '800', color: c.text },
+  sheetSubtitle: { fontSize: 13, color: c.textMuted, marginTop: 3 },
+
+  sheetFields: { flexDirection: 'row', gap: 12, marginTop: 18 },
+  sheetField: { flex: 1 },
+  sheetLabel: { fontSize: 12, color: c.textMuted, marginBottom: 6, fontWeight: '600' },
+  sheetInput: {
+    backgroundColor: c.input,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 18,
+    fontWeight: '700',
+    color: c.text,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
+
+  sheetActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  sheetBtn: { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+  sheetBtnGhost: { backgroundColor: c.cardMuted },
+  sheetBtnGhostText: { color: c.textMuted, fontWeight: '700', fontSize: 15 },
+  sheetBtnPrimary: { backgroundColor: c.primary },
+  sheetBtnPrimaryText: { color: c.onPrimary, fontWeight: '700', fontSize: 15 },
 });

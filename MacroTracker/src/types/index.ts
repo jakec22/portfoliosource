@@ -266,6 +266,21 @@ export interface AppState {
     setId: string,
     patch: Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'durationSeconds' | 'type'>>
   ) => void;
+  /**
+   * Correct a set in an already-finished workout.
+   *
+   * Everything downstream — session volume, the "vs last time" comparison,
+   * PR detection, the progress charts, the training split and body map — is
+   * derived from workoutHistory on read, so a mistyped weight isn't a cosmetic
+   * blemish on one session: it silently skews every one of those until it's
+   * fixed, and a fat-fingered 1850 can plant a permanent fake PR.
+   */
+  updateHistoryWorkoutSet: (
+    sessionId: string,
+    exerciseId: string,
+    setId: string,
+    patch: Partial<Pick<WorkoutSet, 'weight' | 'reps' | 'durationSeconds'>>
+  ) => void;
   setExerciseMode: (exerciseId: string, mode: ExerciseMode) => void;
   toggleWorkoutSet: (exerciseId: string, setId: string) => void;
   setWorkoutSetCompleted: (exerciseId: string, setId: string, completed: boolean) => void;

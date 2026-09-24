@@ -22,7 +22,7 @@ import {
   pushSettings,
   pushWorkout,
   deleteWorkoutRemote,
-  type SettingsSnapshot,
+  settingsSnapshot,
 } from '../services/sync';
 import { startWatchWorkout, endWatchWorkout } from '../services/watch';
 import { downsampleHeartRate } from '../services/heartRate';
@@ -63,28 +63,7 @@ export const useStore = create<AppState>()(
       // Snapshot of the cloud-synced "settings" fields, pushed after any
       // change to one of them. Fire-and-forget; no-op until a user is signed in.
       const syncSettings = () => {
-        const s = get();
-        const snap: SettingsSnapshot = {
-          goals: s.goals,
-          goalsAutoUpdate: s.goalsAutoUpdate,
-          goalsBasisWeightLbs: s.goalsBasisWeightLbs,
-          waterGoal: s.waterGoal,
-          waterIncrement: s.waterIncrement,
-          showWaterTracker: s.showWaterTracker,
-          themeMode: s.themeMode,
-          autoRestTimer: s.autoRestTimer,
-          defaultRestSeconds: s.defaultRestSeconds,
-          bodyWeightLbs: s.bodyWeightLbs,
-          bodyWeightLog: s.bodyWeightLog,
-          profile: s.profile,
-          recentFoods: s.recentFoods,
-          favoriteFoods: s.favoriteFoods,
-          customFoods: s.customFoods,
-          savedMeals: s.savedMeals,
-          waterIntake: s.waterIntake,
-          workoutTemplates: s.workoutTemplates,
-        };
-        void pushSettings(snap);
+        void pushSettings(settingsSnapshot(get()));
       };
 
       return {
@@ -576,6 +555,30 @@ export const useStore = create<AppState>()(
             },
           };
         });
+      },
+
+      updateHistoryWorkoutSet: (sessionId, exerciseId, setId, patch) => {
+        let edited: WorkoutSession | undefined;
+        set((state) => {
+          const workoutHistory = state.workoutHistory.map((w) => {
+            if (w.id !== sessionId) return w;
+            edited = {
+              ...w,
+              exercises: w.exercises.map((e) =>
+                e.id !== exerciseId
+                  ? e
+                  : { ...e, sets: e.sets.map((s) => (s.id === setId ? { ...s, ...patch } : s)) }
+              ),
+            };
+            return edited;
+          });
+          // Nothing matched: leave the slice identity alone so subscribers
+          // don't re-render over a no-op.
+          return edited ? { workoutHistory } : {};
+        });
+        // Upsert, so the correction reaches the other devices that already
+        // pulled the typo down.
+        if (edited) void pushWorkout(edited);
       },
 
       setExerciseMode: (exerciseId, mode) => {

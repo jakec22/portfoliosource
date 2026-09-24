@@ -20,6 +20,7 @@ import { useStore } from '../store/useStore';
 import type { SetType } from '../types';
 import { formatDuration, relativeDateLabel } from '../utils/date';
 import { lastPerformance } from '../utils/exerciseHistory';
+import { sanitizeDecimal } from '../utils/numberInput';
 import { DurationInput } from '../components/DurationInput';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
 import { ExercisePickerModal } from '../components/ExercisePickerModal';
@@ -124,15 +125,6 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
   // trailing dot before the next digit lands, so a decimal like 12.5 could never
   // actually form. Cleared on blur so the display reformats from the store.
   const [weightDrafts, setWeightDrafts] = useState<Record<string, string>>({});
-
-  function sanitizeDecimal(v: string): string {
-    let cleaned = v.replace(/[^0-9.]/g, '');
-    const firstDot = cleaned.indexOf('.');
-    if (firstDot !== -1) {
-      cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
-    }
-    return cleaned;
-  }
 
   function fillAll() {
     if (!focusCtx || !workout) return;
