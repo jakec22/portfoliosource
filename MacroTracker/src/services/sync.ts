@@ -1,6 +1,7 @@
 import { Alert } from 'react-native';
 import { supabase } from './supabase';
 import type {
+  AppState,
   BodyWeightEntry,
   DailyGoals,
   Food,
@@ -68,6 +69,39 @@ export interface SettingsSnapshot {
   savedMeals: SavedMeal[];
   waterIntake: Record<string, number>;
   workoutTemplates: WorkoutTemplate[];
+}
+
+/**
+ * Pick the cloud-synced settings out of the store.
+ *
+ * One builder, because there were two — the store's and hydrate's — and when
+ * the adaptive-goal fields were added, only the store's was updated. Every
+ * push down the hydrate path then wrote goals_basis_weight_lbs: null, and a
+ * null basis is exactly what marks goals as hand-set, so signing in on a
+ * second device switched adaptive goals off. tsc did flag it; nothing was
+ * running tsc. Hence `npm run typecheck`.
+ */
+export function settingsSnapshot(s: AppState): SettingsSnapshot {
+  return {
+    goals: s.goals,
+    goalsAutoUpdate: s.goalsAutoUpdate,
+    goalsBasisWeightLbs: s.goalsBasisWeightLbs,
+    waterGoal: s.waterGoal,
+    waterIncrement: s.waterIncrement,
+    showWaterTracker: s.showWaterTracker,
+    themeMode: s.themeMode,
+    autoRestTimer: s.autoRestTimer,
+    defaultRestSeconds: s.defaultRestSeconds,
+    bodyWeightLbs: s.bodyWeightLbs,
+    bodyWeightLog: s.bodyWeightLog,
+    profile: s.profile,
+    recentFoods: s.recentFoods,
+    favoriteFoods: s.favoriteFoods,
+    customFoods: s.customFoods,
+    savedMeals: s.savedMeals,
+    waterIntake: s.waterIntake,
+    workoutTemplates: s.workoutTemplates,
+  };
 }
 
 function entryRow(entry: FoodEntry) {

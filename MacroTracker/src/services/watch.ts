@@ -9,6 +9,7 @@ import {
 } from 'react-native-watch-connectivity';
 import { startWatchApp } from '@kingstinct/react-native-healthkit';
 import type { HeartRateSample } from '../types';
+import type { WatchPalette } from '../utils/watchPalette';
 
 // Today's stats mirrored to the Apple Watch glance. Keys must match what the
 // watch's WCSession delegate reads (see targets/watch/content.swift).
@@ -157,7 +158,10 @@ export function sendWatchContext(ctx: WatchContext): void {
 
 // Mirror the active pack's accents to the watch. The watch keeps its black
 // background whatever the pack — only the accents travel.
-export function setWatchPalette(p: Record<string, string>): void {
+// Takes WatchPalette rather than Record<string, string>: the body reads nine
+// named keys, and against an index signature a renamed field would type-check
+// happily and push undefined, blanking that colour on the wrist.
+export function setWatchPalette(p: WatchPalette): void {
   palette = {
     themeGround: p.ground,
     themeAccent: p.accent,

@@ -8,7 +8,7 @@ import {
   pushSettings,
   pushWorkouts,
   reportSyncError,
-  type SettingsSnapshot,
+  settingsSnapshot,
 } from './sync';
 import type { FoodEntry, WorkoutSession } from '../types';
 
@@ -44,27 +44,7 @@ function markSynced(userId: string): void {
   AsyncStorage.setItem(lastSyncedKey(userId), String(Date.now())).catch(() => {});
 }
 
-function snapshot(): SettingsSnapshot {
-  const s = useStore.getState();
-  return {
-    goals: s.goals,
-    waterGoal: s.waterGoal,
-    waterIncrement: s.waterIncrement,
-    showWaterTracker: s.showWaterTracker,
-    themeMode: s.themeMode,
-    autoRestTimer: s.autoRestTimer,
-    defaultRestSeconds: s.defaultRestSeconds,
-    bodyWeightLbs: s.bodyWeightLbs,
-    bodyWeightLog: s.bodyWeightLog,
-    profile: s.profile,
-    recentFoods: s.recentFoods,
-    favoriteFoods: s.favoriteFoods,
-    customFoods: s.customFoods,
-    savedMeals: s.savedMeals,
-    waterIntake: s.waterIntake,
-    workoutTemplates: s.workoutTemplates,
-  };
-}
+const snapshot = () => settingsSnapshot(useStore.getState());
 
 // Map a `workouts` table row back into a WorkoutSession.
 function rowToWorkout(row: any): WorkoutSession {
