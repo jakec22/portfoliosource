@@ -20,8 +20,20 @@ final class WorkoutManager: NSObject, ObservableObject {
     private var segmentStart: Date?
     private var hrSum: Double = 0
     private var hrCount: Int = 0
-    // Guards against a second start() while the authorization sheet is up.
-    private var isStarting = false
+    // True from the moment a start is requested until the session is live or
+    // has failed.
+    //
+    // Load-bearing twice over. It guards against a second start(): the phone
+    // fires three independent triggers for one workout — an application
+    // context push, startWatchApp, and a sendMessage command — each of which
+    // lands here, and `guard !isActive` alone could not stop them, because
+    // isActive only became true a main-queue turn later. Two of them arriving
+    // in the same turn both passed the guard and built a second
+    // HKWorkoutSession on top of the first.
+    //
+    // It is also what the UI shows "Starting…" on, so a remotely-started
+    // workout doesn't flash the template picker on its way to the live screen.
+    @Published var isStarting = false
     // When the current builder began collecting, so the no-heart-rate watchdog
     // measures from that point rather than from the workout's start — a
     // recovered session is already minutes old when we re-attach to it.
@@ -76,14 +88,21 @@ final class WorkoutManager: NSObject, ObservableObject {
         requestAuthorization { [weak self] error in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.isStarting = false
                 self.beginSession(activityType: activityType, authError: error)
             }
         }
     }
 
+    // Always called on the main queue, from start()'s authorization callback.
+    // The published values below are therefore assigned directly rather than
+    // hopped onto main again: that extra turn is a window where isStarting has
+    // been cleared but isActive isn't set yet, and the UI falls through to the
+    // template picker for a frame.
     private func beginSession(activityType: HKWorkoutActivityType, authError: Error?) {
-        guard !isActive else { return }
+        guard !isActive else {
+            isStarting = false
+            return
+        }
 
         let config = HKWorkoutConfiguration()
         config.activityType = activityType
@@ -112,23 +131,21 @@ final class WorkoutManager: NSObject, ObservableObject {
             self.hasHeartRateSample = false
             self.collectionStartedAt = start
             startTimer()
-            DispatchQueue.main.async {
-                self.heartRate = 0
-                self.avgHeartRate = 0
-                self.activeCalories = 0
-                self.elapsed = 0
-                self.isPaused = false
-                self.didFinish = false
-                self.isActive = true
-                self.startError = nil
-                self.hrUnavailable = false
-            }
+            heartRate = 0
+            avgHeartRate = 0
+            activeCalories = 0
+            elapsed = 0
+            isPaused = false
+            didFinish = false
+            isActive = true
+            isStarting = false
+            startError = nil
+            hrUnavailable = false
         } catch {
             // Previously silently swallowed, leaving the watch stuck on the idle
             // screen with no indication anything went wrong. Surface it instead.
-            DispatchQueue.main.async {
-                self.startError = authError?.localizedDescription ?? error.localizedDescription
-            }
+            isStarting = false
+            startError = authError?.localizedDescription ?? error.localizedDescription
         }
     }
 
@@ -163,6 +180,7 @@ final class WorkoutManager: NSObject, ObservableObject {
         DispatchQueue.main.async {
             self.elapsed = self.accumulated
             self.isActive = false
+            self.isStarting = false
             self.isPaused = false
             self.didFinish = true // drives the on-watch summary screen
             self.hrUnavailable = false
@@ -184,62 +202,73 @@ final class WorkoutManager: NSObject, ObservableObject {
     // live. Call this on every launch to re-attach to that session instead of
     // silently losing the rest of the workout.
     func recoverActiveSessionIfNeeded() {
-        guard !isActive else { return }
+        guard !isActive, !isStarting else { return }
         healthStore.recoverActiveWorkoutSession { [weak self] session, _ in
-            guard let self = self, let session = session else { return }
-            let builder = session.associatedWorkoutBuilder()
-
-            // The data source is an in-process object; the HKWorkoutSession
-            // that survived in HealthKit's daemon did not bring one with it, so
-            // a recovered builder has none. Without this, the builder never
-            // collects, workoutBuilder(_:didCollectDataOf:) is never called,
-            // and the rest of the workout shows "--" for heart rate and streams
-            // nothing to the phone — while the daemon keeps recording happily,
-            // so the built-in Heart Rate app looks completely normal.
-            builder.dataSource = HKLiveWorkoutDataSource(
-                healthStore: self.healthStore,
-                workoutConfiguration: session.workoutConfiguration
-            )
-            session.delegate = self
-            builder.delegate = self
-
-            let hrUnit = HKUnit.count().unitDivided(by: .minute())
-            let hrStats = builder.statistics(for: HKQuantityType(.heartRate))
-            if let avg = hrStats?.averageQuantity()?.doubleValue(for: hrUnit) {
-                self.hrSum = avg
-                self.hrCount = 1
-                self.avgHeartRate = avg
-            }
-            if let latest = hrStats?.mostRecentQuantity()?.doubleValue(for: hrUnit) {
-                self.heartRate = latest
-            }
-            if let cals = builder.statistics(for: HKQuantityType(.activeEnergyBurned))?
-                .sumQuantity()?.doubleValue(for: .kilocalorie()) {
-                self.activeCalories = cals
-            }
-
-            self.session = session
-            self.builder = builder
-            self.accumulated = builder.elapsedTime(at: Date())
-            self.segmentStart = session.state == .running ? Date() : nil
-            // Deliberately not seeded from the statistics above: those are what
-            // the daemon banked before the relaunch and say nothing about
-            // whether this process's new data source is delivering. Let the
-            // watchdog confirm collection actually resumed.
-            self.hasHeartRateSample = false
-            self.collectionStartedAt = Date()
-
+            guard let session = session else { return }
+            // The whole attach runs on main. HealthKit picks the queue it calls
+            // back on, and two things depend on this being main: scheduledTimer
+            // attaches to the calling thread's run loop — on a queue with none
+            // spinning the timer never fires and the recovered clock sits
+            // frozen — and the guard below has to be read on the same queue
+            // that start() writes it from, or it isn't a guard at all.
             DispatchQueue.main.async {
+                guard let self = self else { return }
+                // Re-checked here, not just at the top: launch fires this and
+                // handle(_ workoutConfiguration:) together when the phone uses
+                // startWatchApp, and the round trip above leaves room for that
+                // start to have built a session in the meantime. Recovery would
+                // then "recover" it, overwriting session and builder and
+                // scheduling a second timer over a workout already running.
+                guard !self.isActive, !self.isStarting else { return }
+
+                let builder = session.associatedWorkoutBuilder()
+
+                // The data source is an in-process object; the HKWorkoutSession
+                // that survived in HealthKit's daemon did not bring one with
+                // it, so a recovered builder has none. Without this the builder
+                // never collects, workoutBuilder(_:didCollectDataOf:) is never
+                // called, and the rest of the workout shows "--" for heart rate
+                // and streams nothing to the phone — while the daemon keeps
+                // recording happily, so the built-in Heart Rate app looks
+                // completely normal.
+                builder.dataSource = HKLiveWorkoutDataSource(
+                    healthStore: self.healthStore,
+                    workoutConfiguration: session.workoutConfiguration
+                )
+                session.delegate = self
+                builder.delegate = self
+
+                let hrUnit = HKUnit.count().unitDivided(by: .minute())
+                let hrStats = builder.statistics(for: HKQuantityType(.heartRate))
+                if let avg = hrStats?.averageQuantity()?.doubleValue(for: hrUnit) {
+                    self.hrSum = avg
+                    self.hrCount = 1
+                    self.avgHeartRate = avg
+                }
+                if let latest = hrStats?.mostRecentQuantity()?.doubleValue(for: hrUnit) {
+                    self.heartRate = latest
+                }
+                if let cals = builder.statistics(for: HKQuantityType(.activeEnergyBurned))?
+                    .sumQuantity()?.doubleValue(for: .kilocalorie()) {
+                    self.activeCalories = cals
+                }
+
+                self.session = session
+                self.builder = builder
+                self.accumulated = builder.elapsedTime(at: Date())
+                self.segmentStart = session.state == .running ? Date() : nil
+                // Deliberately not seeded from the statistics above: those are
+                // what the daemon banked before the relaunch and say nothing
+                // about whether this process's new data source is delivering.
+                // Let the watchdog confirm collection actually resumed.
+                self.hasHeartRateSample = false
+                self.collectionStartedAt = Date()
+
                 self.elapsed = self.accumulated
                 self.isPaused = session.state == .paused
                 self.didFinish = false
                 self.isActive = true
                 self.hrUnavailable = false
-                // Inside the main hop, not outside it: scheduledTimer attaches
-                // to the calling thread's run loop, and HealthKit calls this
-                // completion back on a queue of its own choosing — one with no
-                // run loop spinning, where the timer would never fire and the
-                // recovered workout's clock would sit frozen.
                 self.startTimer()
                 DayStats.shared.showWorkout = true
             }
@@ -290,7 +319,11 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
     ) {}
 
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
-        DispatchQueue.main.async { self.isActive = false }
+        DispatchQueue.main.async {
+            self.isActive = false
+            self.isStarting = false
+            self.startError = error.localizedDescription
+        }
     }
 }
 

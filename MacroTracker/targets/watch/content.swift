@@ -482,7 +482,25 @@ final class RestManager: ObservableObject {
 struct ContentView: View {
     @StateObject private var stats = DayStats.shared
 
+    // The workout screen swaps in place rather than being presented.
+    //
+    // It used to be a fullScreenCover, and watchOS gives every modal
+    // presentation a toolbar with a dismiss "✕" in the top-leading corner —
+    // which is not optional, and which inset every workout screen downward to
+    // make room for itself. The workout is a mode of this app, not something
+    // stacked on top of it, and the idle screen has its own Cancel, so the
+    // system's affordance was redundant as well as intrusive.
     var body: some View {
+        Group {
+            if stats.showWorkout {
+                WorkoutView()
+            } else {
+                dayScreen
+            }
+        }
+    }
+
+    private var dayScreen: some View {
         ScrollView {
             VStack(spacing: 16) {
                 if !stats.hasData {
@@ -578,9 +596,6 @@ struct ContentView: View {
         // Set here rather than per-control so a control added later is themed
         // by default instead of quietly shipping the asset-catalog color.
         .tint(stats.palette.accent)
-        .fullScreenCover(isPresented: $stats.showWorkout) {
-            WorkoutView()
-        }
     }
 }
 
@@ -657,6 +672,13 @@ struct WorkoutView: View {
                     ScrollView { exercisesScreen.padding() }
                 }
                 .tabViewStyle(.page)
+            } else if workout.isStarting {
+                // A workout started from the phone arrives here before the
+                // HealthKit session is live. Without this it fell through to
+                // the template picker, so starting a workout on the phone
+                // flashed "pick a template" on the wrist on its way to the
+                // screen you actually wanted.
+                startingScreen
             } else if workout.didFinish {
                 ScrollView { summaryScreen.padding() }
             } else {
@@ -874,6 +896,16 @@ struct WorkoutView: View {
             .tint(stats.palette.accent)
             .padding(.top, 4)
         }
+    }
+
+    private var startingScreen: some View {
+        VStack(spacing: 10) {
+            ProgressView()
+            Text("Starting workout…")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var idleScreen: some View {
