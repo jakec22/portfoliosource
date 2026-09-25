@@ -20,20 +20,16 @@ final class WorkoutManager: NSObject, ObservableObject {
     private var segmentStart: Date?
     private var hrSum: Double = 0
     private var hrCount: Int = 0
-    // True from the moment a start is requested until the session is live or
-    // has failed.
+    // True for the duration of a start.
     //
-    // Load-bearing twice over. It guards against a second start(): the phone
-    // fires three independent triggers for one workout — an application
-    // context push, startWatchApp, and a sendMessage command — each of which
-    // lands here, and `guard !isActive` alone could not stop them, because
-    // isActive only became true a main-queue turn later. Two of them arriving
-    // in the same turn both passed the guard and built a second
-    // HKWorkoutSession on top of the first.
-    //
-    // It is also what the UI shows "Starting…" on, so a remotely-started
-    // workout doesn't flash the template picker on its way to the live screen.
-    @Published var isStarting = false
+    // The phone fires three independent triggers for one workout — an
+    // application context push, startWatchApp, and a sendMessage command — and
+    // each lands in start(). This is what stops the second and third from
+    // building an HKWorkoutSession on top of the first. It is belt and braces
+    // now that a start completes synchronously and sets isActive before
+    // returning, but it is also what the recovery path checks to avoid
+    // "recovering" a session start() is in the middle of creating.
+    private var isStarting = false
     // When the current builder began collecting, so the no-heart-rate watchdog
     // measures from that point rather than from the workout's start — a
     // recovered session is already minutes old when we re-attach to it.
@@ -80,25 +76,47 @@ final class WorkoutManager: NSObject, ObservableObject {
     func start(activityType: HKWorkoutActivityType = .functionalStrengthTraining) {
         guard !isActive, !isStarting else { return } // ignore duplicate start commands
         isStarting = true
-        // Authorization has to resolve *before* collection begins. This used to
-        // fire and forget, so on the first workout after install the builder
-        // started collecting while the permission sheet was still on screen,
-        // and the session recorded no heart rate at all. Nothing surfaced it:
-        // HealthKit answers an unauthorized read with an empty result.
-        requestAuthorization { [weak self] error in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.beginSession(activityType: activityType, authError: error)
-            }
+
+        // The session is created now, synchronously, and authorization is
+        // settled alongside it.
+        //
+        // Gating the session on the authorization callback broke starting a
+        // workout from the phone entirely. startWatchApp launches this app in
+        // the background to handle the configuration; a background app cannot
+        // show a permission prompt, so the callback may not arrive until the
+        // user raises their wrist — and watchOS expects a launch made for a
+        // workout to produce an HKWorkoutSession promptly, not eventually.
+        beginSession(activityType: activityType)
+
+        // Still worth asking, for the first workout after install: if the read
+        // is granted after collection has already begun, the data source that
+        // was built without it won't deliver, so rebuild it once we know.
+        requestAuthorization { [weak self] _ in
+            DispatchQueue.main.async { self?.rebuildDataSourceIfStarved() }
         }
     }
 
-    // Always called on the main queue, from start()'s authorization callback.
-    // The published values below are therefore assigned directly rather than
-    // hopped onto main again: that extra turn is a window where isStarting has
-    // been cleared but isActive isn't set yet, and the UI falls through to the
-    // template picker for a frame.
-    private func beginSession(activityType: HKWorkoutActivityType, authError: Error?) {
+    /// Give a live builder a fresh data source when it has yet to see a single
+    /// heart-rate sample. The source captures what it is allowed to read at the
+    /// moment it is created, so one built before the read was granted stays
+    /// silent for the whole workout; this is the same repair the recovery path
+    /// performs after a relaunch. A no-op once samples are arriving.
+    private func rebuildDataSourceIfStarved() {
+        guard isActive, !hasHeartRateSample,
+              let builder = builder, let session = session else { return }
+        builder.dataSource = HKLiveWorkoutDataSource(
+            healthStore: healthStore,
+            workoutConfiguration: session.workoutConfiguration
+        )
+        collectionStartedAt = Date() // restart the watchdog's grace period
+    }
+
+    // Called on the main queue, from start() — every caller of which already
+    // hops there. The published values below are assigned directly rather than
+    // dispatched onto main again, so isActive is true before start() returns:
+    // callers set DayStats.showWorkout in the same turn, and an extra hop would
+    // let the workout screen render its template picker for a frame first.
+    private func beginSession(activityType: HKWorkoutActivityType) {
         guard !isActive else {
             isStarting = false
             return
@@ -145,7 +163,7 @@ final class WorkoutManager: NSObject, ObservableObject {
             // Previously silently swallowed, leaving the watch stuck on the idle
             // screen with no indication anything went wrong. Surface it instead.
             isStarting = false
-            startError = authError?.localizedDescription ?? error.localizedDescription
+            startError = error.localizedDescription
         }
     }
 

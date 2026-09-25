@@ -17,6 +17,12 @@ class WorkoutAppDelegate: NSObject, WKApplicationDelegate {
     // still running in HealthKit's daemon so the UI and HR streaming pick back up
     // instead of silently dropping the rest of the workout.
     func applicationDidFinishLaunching() {
+        // Ask up front, so a workout started from the phone finds permissions
+        // already settled. start() can't wait for this — a background launch
+        // can't show the prompt, and watchOS wants the session immediately —
+        // so the only way the first workout captures heart rate is if the
+        // question was already answered before it began.
+        WorkoutManager.shared.requestAuthorization()
         WorkoutManager.shared.recoverActiveSessionIfNeeded()
     }
 }

@@ -683,13 +683,6 @@ struct WorkoutView: View {
                     ScrollView { exercisesScreen.padding() }
                 }
                 .tabViewStyle(.page)
-            } else if workout.isStarting {
-                // A workout started from the phone arrives here before the
-                // HealthKit session is live. Without this it fell through to
-                // the template picker, so starting a workout on the phone
-                // flashed "pick a template" on the wrist on its way to the
-                // screen you actually wanted.
-                startingScreen
             } else if workout.didFinish {
                 ScrollView { summaryScreen.padding() }
             } else {
@@ -911,16 +904,6 @@ struct WorkoutView: View {
             .tint(stats.palette.accent)
             .padding(.top, 4)
         }
-    }
-
-    private var startingScreen: some View {
-        VStack(spacing: 10) {
-            ProgressView()
-            Text("Starting workout…")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var idleScreen: some View {
