@@ -110,11 +110,64 @@ export function liftForGround(hex: string, ground: string, minContrast = MIN_CON
   return rgbToHex(...hslToRgb(h, s, hi));
 }
 
+/**
+ * How far apart, as plain RGB distance, the stop button has to sit from the
+ * pause button beside it.
+ *
+ * Contrast against the background isn't the property that matters for a pair
+ * of adjacent controls — both clear 4.5:1 and still look the same. Wellness is
+ * the case that forced this: its danger lifts to #CC6969 and its accent to
+ * #C66F4D, which differ by 29, almost entirely in the blue channel. Two
+ * warm mid-tones, side by side, one of which ends the workout.
+ */
+const MIN_ACCENT_SEPARATION = 60;
+
+function rgbDistance(a: string, b: string): number {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  return Math.hypot((r1 - r2) * 255, (g1 - g2) * 255, (b1 - b2) * 255);
+}
+
+/**
+ * The pack's destructive color, made unmistakable next to its accent.
+ *
+ * Packs whose danger already reads as its own color are returned untouched
+ * (Executive sits 124 away, Modern 178). Only when the two would be confusable
+ * is the hue pulled to pure red and saturated — the direction a stop control
+ * should move in anyway — searching saturation then lightness for the first
+ * candidate that clears both the separation and the contrast floor.
+ */
+export function dangerForGround(hex: string, ground: string, accent: string): string {
+  const lifted = liftForGround(hex, ground);
+  if (rgbDistance(lifted, accent) >= MIN_ACCENT_SEPARATION) return lifted;
+
+  const [, , baseL] = rgbToHsl(...hexToRgb(lifted));
+  for (const s of [0.6, 0.68, 0.75, 0.82, 0.9]) {
+    for (const dl of [0, 0.04, -0.04, 0.08, -0.08]) {
+      const l = Math.max(0.2, Math.min(0.8, baseL + dl));
+      const candidate = liftForGround(rgbToHex(...hslToRgb(0, s, l)), ground);
+      if (rgbDistance(candidate, accent) >= MIN_ACCENT_SEPARATION) return candidate;
+    }
+  }
+  // Nothing cleared the bar — the lifted pack color still beats a color that
+  // fails the contrast floor.
+  return lifted;
+}
+
 /** Colors the watch renders with, mirrored from the active pack. */
 export interface WatchPalette {
   /** Background the watch paints, per pack. */
   ground: string;
   accent: string;
+  /**
+   * Destructive actions — the workout's stop button.
+   *
+   * It has to travel with the pack rather than leaning on SwiftUI's
+   * `role: .destructive`: the watch sets a tint on the whole view hierarchy so
+   * the controls watchOS draws for us follow the theme, and that tint wins
+   * over the role, which turned the stop button the same green as pause.
+   */
+  danger: string;
   protein: string;
   carbs: string;
   fat: string;
@@ -134,9 +187,11 @@ export interface WatchPalette {
 export function watchPalette(c: Theme, mode: ThemeMode): WatchPalette {
   const ground = WATCH_GROUND[mode] ?? '#000000';
   const lift = (hex: string) => liftForGround(hex, ground);
+  const accent = lift(c.primary);
   return {
     ground,
-    accent: lift(c.primary),
+    accent,
+    danger: dangerForGround(c.danger, ground, accent),
     protein: lift(c.macroProtein),
     carbs: lift(c.macroCarbs),
     fat: lift(c.macroFat),

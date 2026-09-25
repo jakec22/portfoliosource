@@ -165,6 +165,7 @@ export function setWatchPalette(p: WatchPalette): void {
   palette = {
     themeGround: p.ground,
     themeAccent: p.accent,
+    themeDanger: p.danger,
     themeProtein: p.protein,
     themeCarbs: p.carbs,
     themeFat: p.fat,

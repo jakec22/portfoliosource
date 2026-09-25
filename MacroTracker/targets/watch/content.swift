@@ -46,6 +46,10 @@ struct WatchPalette {
     // black where its neon accents already sit high. See watchPalette.ts.
     var ground: Color = Color(red: 0x22 / 255, green: 0x1F / 255, blue: 0x1B / 255) // #221F1B
     var accent: Color = .hmGreen
+    // Executive's danger, lifted for the ground. Explicit rather than relying
+    // on SwiftUI's `role: .destructive`: the view-level tint below wins over
+    // the role, which is what turned the stop button green.
+    var danger: Color = Color(red: 0xCA / 255, green: 0x6B / 255, blue: 0x5D / 255) // #CA6B5D
     var protein: Color = .macroProtein
     var carbs: Color = .macroCarbs
     var fat: Color = .macroFat
@@ -63,6 +67,7 @@ struct WatchPalette {
         return WatchPalette(
             ground: color("themeGround", current.ground),
             accent: color("themeAccent", current.accent),
+            danger: color("themeDanger", current.danger),
             protein: color("themeProtein", current.protein),
             carbs: color("themeCarbs", current.carbs),
             fat: color("themeFat", current.fat),
@@ -540,9 +545,12 @@ struct ContentView: View {
                     // competing circles on a 40mm screen; bars let the calorie
                     // ring stay the one focal point and give the numbers room.
                     VStack(spacing: 7) {
-                        MacroBar(label: "Protein", value: stats.protein, goal: stats.proteinGoal, color: stats.palette.protein)
-                        MacroBar(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal, color: stats.palette.carbs)
-                        MacroBar(label: "Fat", value: stats.fat, goal: stats.fatGoal, color: stats.palette.fat)
+                        MacroBar(label: "Protein", value: stats.protein, goal: stats.proteinGoal,
+                                 color: stats.palette.protein, over: stats.palette.danger)
+                        MacroBar(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal,
+                                 color: stats.palette.carbs, over: stats.palette.danger)
+                        MacroBar(label: "Fat", value: stats.fat, goal: stats.fatGoal,
+                                 color: stats.palette.fat, over: stats.palette.danger)
                     }
                     .padding(.top, 2)
 
@@ -608,11 +616,14 @@ struct MacroBar: View {
     let value: Int
     let goal: Int
     let color: Color
+    // The pack's own over-goal color. System .red belongs to no pack — it read
+    // as a stray on Modern, whose danger is a magenta.
+    let over: Color
 
     private var progress: Double {
         goal > 0 ? min(1, Double(value) / Double(goal)) : 0
     }
-    private var over: Bool { goal > 0 && value > goal }
+    private var isOver: Bool { goal > 0 && value > goal }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -622,7 +633,7 @@ struct MacroBar: View {
                 Spacer()
                 Text("\(value)")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(over ? .red : .primary)
+                    .foregroundColor(isOver ? over : .primary)
                 + Text(" / \(goal)g")
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
@@ -631,7 +642,7 @@ struct MacroBar: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(color.opacity(0.22))
                     Capsule()
-                        .fill(over ? Color.red : color)
+                        .fill(isOver ? over : color)
                         .frame(width: max(2, geo.size.width * progress))
                 }
             }
@@ -841,6 +852,10 @@ struct WorkoutView: View {
                 } label: {
                     Image(systemName: "stop.fill").frame(maxWidth: .infinity)
                 }
+                // The role alone isn't enough — the tint set on this view so
+                // system-drawn controls follow the pack overrides it, and stop
+                // came out the same green as pause.
+                .tint(stats.palette.danger)
             }
             .padding(.top, 4)
 
