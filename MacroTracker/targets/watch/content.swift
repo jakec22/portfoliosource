@@ -328,6 +328,23 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         exercises.reduce(0) { $0 + $1.sets.filter { !$0.completed }.count }
     }
 
+    // Ask the phone to re-send its context, because we're in a workout and
+    // have no exercises to show.
+    //
+    // The plan only arrives by application context, and a push can come to
+    // nothing — the phone's pairing flag is filled in asynchronously and starts
+    // false, our WCSession may not have activated yet, and only the newest
+    // context survives. Nothing on the phone would push again by itself: every
+    // push follows a change there, and a workout nobody is editing makes none.
+    // Rate-limited because the view this runs from can re-render freely.
+    private var lastPlanRequest = Date.distantPast
+    func requestPlanIfMissing() {
+        guard exercises.isEmpty, WorkoutManager.shared.isActive else { return }
+        guard Date().timeIntervalSince(lastPlanRequest) > 5 else { return }
+        lastPlanRequest = Date()
+        sendReliable(["type": "requestPlan"])
+    }
+
     // Start a workout from the wrist. Optimistically begin the on-wrist session
     // (so HR/calories start immediately) and ask the phone to create + log the
     // matching workout, which then streams the plan back. Pass nil for a blank
@@ -690,10 +707,16 @@ struct WorkoutView: View {
             }
         }
         .background(stats.palette.ground.ignoresSafeArea())
-        // Set again here, not inherited: this view is presented in a
-        // fullScreenCover, which starts its own hierarchy.
+        // Set again here, not inherited: WorkoutView is swapped in as its own
+        // root rather than nested inside the day screen's hierarchy.
         .tint(stats.palette.accent)
-        .onAppear { workout.requestAuthorization() }
+        .onAppear {
+            workout.requestAuthorization()
+            stats.requestPlanIfMissing()
+        }
+        // The plan usually lands before the session does; this covers the case
+        // where the push that carried it never arrived.
+        .onChange(of: workout.isActive) { _ in stats.requestPlanIfMissing() }
         .alert(
             "Couldn't Start Workout",
             isPresented: Binding(
@@ -717,7 +740,9 @@ struct WorkoutView: View {
                 .fontWeight(.semibold)
 
             if stats.exercises.isEmpty {
-                Text("No exercises in this workout.")
+                Text(workout.isActive
+                     ? "Waiting for the workout from your iPhone…"
+                     : "No exercises in this workout.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             } else {

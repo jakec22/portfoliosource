@@ -8,6 +8,7 @@ import {
   subscribeWatchSetEdit,
   subscribeWatchWorkoutFinish,
   subscribeWatchStartWorkout,
+  subscribeWatchPlanRequest,
   subscribeWatchHeartRate,
   addWorkoutHrSample,
   getWorkoutHrSamples,
@@ -48,6 +49,9 @@ export function useWatchWorkout(): void {
       addWorkoutHrSample({ bpm, timestamp });
     });
   }, [workoutId]);
+
+  // Re-send the context when the watch says it's in a workout with no plan.
+  useEffect(() => subscribeWatchPlanRequest(), []);
 
   // Apply set check-offs from the watch to the phone's active workout.
   useEffect(() => {

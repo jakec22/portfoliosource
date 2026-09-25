@@ -304,6 +304,30 @@ export function stopWatchRest(): void {
   } catch {}
 }
 
+/**
+ * Re-send the current context because the watch asked for it.
+ *
+ * The plan only ever reaches the watch by riding an application context push,
+ * and a push has plenty of ways to come to nothing: the pairing flag is filled
+ * in asynchronously and starts false, the watch's WCSession may not be
+ * activated yet, and updateApplicationContext keeps only the newest payload.
+ * Any of those leaves the watch in a workout with an empty exercise list and
+ * nothing that would ever fix it — every later push is triggered by a change
+ * on the phone, and a workout nobody is editing doesn't produce one. So the
+ * watch is allowed to ask.
+ */
+export function subscribeWatchPlanRequest(): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = watchEvents.on('message', (message: any) => {
+    if (message?.type === 'requestPlan') pushContext();
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
+}
+
 // Subscribe to set check-offs coming from the watch. Delivered via the watch's
 // sendMessage (the 'message' event — same proven path as HR streaming).
 export function subscribeWatchSetToggle(
