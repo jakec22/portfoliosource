@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,10 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
-  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { DailyGoals, ThemeMode, ReminderKey, ReminderTime } from '../types';
+import { ThemeMode, ReminderKey, ReminderTime } from '../types';
 import { displayDate } from '../utils/date';
 import { supabase } from '../services/supabase';
 import { signOut, deleteAccount } from '../services/auth';
@@ -54,97 +53,61 @@ const REMINDER_ROWS: { key: ReminderKey; label: string }[] = [
   { key: 'streak', label: 'Streak reminder' },
 ];
 
-type MacroKey = 'protein' | 'carbs' | 'fat';
-type MacroPct = Record<MacroKey, number>;
+// The five editable daily goals, in display order. A table rather than five
+// hand-written rows so the label, unit and theme token for each live in one
+// place.
+const GOAL_FIELDS = [
+  { field: 'calories', label: 'Calories', unit: 'kcal', tone: 'primary' },
+  { field: 'protein', label: 'Protein', unit: 'g', tone: 'macroProtein' },
+  { field: 'carbs', label: 'Carbs', unit: 'g', tone: 'macroCarbs' },
+  { field: 'fat', label: 'Fat', unit: 'g', tone: 'macroFat' },
+  { field: 'fiber', label: 'Fiber', unit: 'g', tone: 'macroFiber' },
+] as const;
 
-// Integer protein/carbs/fat percentages (by calories) derived from the goal
-// grams, always summing to 100.
-function pctFromGoals(g: DailyGoals): MacroPct {
-  const p = g.protein * 4;
-  const c = g.carbs * 4;
-  const f = g.fat * 9;
-  const total = p + c + f;
-  if (total <= 0) return { protein: 30, carbs: 40, fat: 30 };
-  const protein = Math.round((p / total) * 100);
-  const carbs = Math.round((c / total) * 100);
-  const fat = Math.max(0, 100 - protein - carbs);
-  return { protein, carbs, fat };
-}
+type GoalKey = (typeof GOAL_FIELDS)[number]['field'];
 
-// Set one macro to `value` and redistribute the remainder across the other two
-// in proportion to their previous split, so the three always total exactly 100.
-function rebalance(prev: MacroPct, macro: MacroKey, value: number): MacroPct {
-  const v = Math.max(0, Math.min(100, Math.round(value)));
-  const others = (['protein', 'carbs', 'fat'] as MacroKey[]).filter((k) => k !== macro);
-  const remaining = 100 - v;
-  const otherSum = prev[others[0]] + prev[others[1]];
-  const next: MacroPct = { ...prev, [macro]: v };
-  if (otherSum <= 0) {
-    next[others[0]] = Math.floor(remaining / 2);
-    next[others[1]] = remaining - next[others[0]];
-  } else {
-    next[others[0]] = Math.round((remaining * prev[others[0]]) / otherSum);
-    next[others[1]] = remaining - next[others[0]];
-  }
-  return next;
-}
-
-// A draggable percentage slider built on PanResponder (no native dependency).
-function MacroSlider({
-  value,
+// One editable daily-goal row.
+//
+// Declared here rather than inside CalculatorScreen. A component defined in a
+// render body is a new function identity on every render, so React sees a
+// different element type, unmounts the old subtree and mounts a fresh one —
+// which for a TextInput means it loses focus and the keyboard closes. Typing a
+// digit sets state, which re-renders, which replaced this component: the
+// keyboard shut after every single keystroke.
+const GoalField = React.memo(function GoalField({
+  field,
+  label,
+  unit,
   color,
+  value,
   onChange,
+  styles,
 }: {
-  value: number;
+  field: GoalKey;
+  label: string;
+  unit: string;
   color: string;
-  onChange: (v: number) => void;
+  value: string;
+  onChange: (field: GoalKey, value: string) => void;
+  styles: ReturnType<typeof makeStyles>;
 }) {
-  const c = useTheme();
-  const sliderStyles = useMemo(() => makeSliderStyles(c), [c]);
-  const viewRef = useRef<View>(null);
-  const widthRef = useRef(0);
-  const pageXRef = useRef(0);
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-
-  const responder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (_, gs) => emit(gs.x0),
-      onPanResponderMove: (_, gs) => emit(gs.moveX),
-    })
-  ).current;
-
-  function emit(pageX: number) {
-    const w = widthRef.current;
-    const ox = pageXRef.current;
-    if (w <= 0) return;
-    const x = Math.max(0, Math.min(w, pageX - ox));
-    onChangeRef.current(Math.round((x / w) * 100));
-  }
-
   return (
-    <View
-      ref={viewRef}
-      style={sliderStyles.touch}
-      onLayout={() => {
-        viewRef.current?.measure((_x, _y, w, _h, px) => {
-          widthRef.current = w;
-          pageXRef.current = px;
-        });
-      }}
-      {...responder.panHandlers}
-    >
-      <View style={sliderStyles.track}>
-        <View
-          style={[sliderStyles.fill, { width: `${value}%` as any, backgroundColor: color }]}
+    <View style={styles.goalRow}>
+      <View style={[styles.goalDot, { backgroundColor: color }]} />
+      <Text style={styles.goalLabel}>{label}</Text>
+      <View style={styles.goalInputWrap}>
+        <TextInput
+          style={styles.goalInput}
+          value={value}
+          onChangeText={(v) => onChange(field, v)}
+          keyboardType="number-pad"
+          selectTextOnFocus
         />
+        <Text style={styles.goalUnit}>{unit}</Text>
       </View>
-      <View style={[sliderStyles.thumb, { left: `${value}%` as any, borderColor: color }]} />
     </View>
   );
-}
+});
 
 export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const c = useTheme();
@@ -175,6 +138,12 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const [busy, setBusy] = useState(false);
 
   // --- Goals editing ---
+  // Stable across renders, so memoising GoalField is worth something: an
+  // inline arrow here would be a new prop every keystroke and defeat it.
+  const handleGoalChange = useCallback((field: GoalKey, value: string) => {
+    setForm((f) => ({ ...f, [field]: value }));
+  }, []);
+
   const [form, setForm] = useState({
     calories: String(goals.calories),
     protein: String(goals.protein),
@@ -182,8 +151,6 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
     fat: String(goals.fat),
     fiber: String(goals.fiber),
   });
-
-  const [macroPct, setMacroPct] = useState<MacroPct>(() => pctFromGoals(goals));
 
   useEffect(() => {
     setForm({
@@ -193,22 +160,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
       fat: String(goals.fat),
       fiber: String(goals.fiber),
     });
-    setMacroPct(pctFromGoals(goals));
   }, [goals]);
-
-  function handleMacroPct(macro: MacroKey, value: number) {
-    const next = rebalance(macroPct, macro, value);
-    setMacroPct(next);
-    const cal = parseInt(form.calories || '0');
-    if (cal > 0) {
-      setForm((f) => ({
-        ...f,
-        protein: String(Math.round((cal * next.protein) / 100 / 4)),
-        carbs: String(Math.round((cal * next.carbs) / 100 / 4)),
-        fat: String(Math.round((cal * next.fat) / 100 / 9)),
-      }));
-    }
-  }
 
   // --- Account ---
   const [email, setEmail] = useState<string | null>(null);
@@ -309,35 +261,6 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
     }
   }
 
-  function GoalField({
-    label,
-    field,
-    unit,
-    color,
-  }: {
-    label: string;
-    field: keyof typeof form;
-    unit: string;
-    color: string;
-  }) {
-    return (
-      <View style={styles.goalRow}>
-        <View style={[styles.goalDot, { backgroundColor: color }]} />
-        <Text style={styles.goalLabel}>{label}</Text>
-        <View style={styles.goalInputWrap}>
-          <TextInput
-            style={styles.goalInput}
-            value={form[field]}
-            onChangeText={(v) => setForm((f) => ({ ...f, [field]: v }))}
-            keyboardType="number-pad"
-            selectTextOnFocus
-          />
-          <Text style={styles.goalUnit}>{unit}</Text>
-        </View>
-      </View>
-    );
-  }
-
   const totalCalsFromMacros =
     parseInt(form.protein || '0') * 4 +
     parseInt(form.carbs || '0') * 4 +
@@ -430,11 +353,18 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         {/* Daily Goals (editable) */}
         <Text style={styles.sectionTitle}>Daily Goals</Text>
         <View style={styles.card}>
-          <GoalField label="Calories" field="calories" unit="kcal" color={c.primary} />
-          <GoalField label="Protein" field="protein" unit="g" color={c.macroProtein} />
-          <GoalField label="Carbs" field="carbs" unit="g" color={c.macroCarbs} />
-          <GoalField label="Fat" field="fat" unit="g" color={c.macroFat} />
-          <GoalField label="Fiber" field="fiber" unit="g" color={c.macroFiber} />
+          {GOAL_FIELDS.map(({ field, label, unit, tone }) => (
+            <GoalField
+              key={field}
+              field={field}
+              label={label}
+              unit={unit}
+              color={c[tone]}
+              value={form[field]}
+              onChange={handleGoalChange}
+              styles={styles}
+            />
+          ))}
 
           <View style={styles.calCalc}>
             <Text style={styles.calCalcLabel}>Calories from macros:</Text>
@@ -452,42 +382,6 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           <TouchableOpacity style={styles.saveBtn} onPress={handleSaveGoals}>
             <Text style={styles.saveBtnText}>Save Goals</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Macro distribution */}
-        <Text style={styles.sectionTitle}>Macro Distribution</Text>
-        <View style={styles.card}>
-          <Text style={styles.distHint}>
-            Drag to adjust your macro ratio — the three always total 100%. Grams
-            update from your calorie goal.
-          </Text>
-          {([
-            { key: 'protein', label: 'Protein', color: c.macroProtein },
-            { key: 'carbs', label: 'Carbs', color: c.macroCarbs },
-            { key: 'fat', label: 'Fat', color: c.macroFat },
-          ] as { key: MacroKey; label: string; color: string }[]).map(
-            ({ key, label, color }) => (
-              <View key={key} style={styles.sliderRow}>
-                <View style={styles.sliderHead}>
-                  <Text style={[styles.distLabel, { color }]}>{label}</Text>
-                  <Text style={styles.sliderReadout}>
-                    {macroPct[key]}% · {form[key] || '0'}g
-                  </Text>
-                </View>
-                <MacroSlider
-                  value={macroPct[key]}
-                  color={color}
-                  onChange={(v) => handleMacroPct(key, v)}
-                />
-              </View>
-            )
-          )}
-          <View style={styles.distTotalRow}>
-            <Text style={styles.distTotalLabel}>Total</Text>
-            <Text style={styles.distTotalValue}>
-              {macroPct.protein + macroPct.carbs + macroPct.fat}%
-            </Text>
-          </View>
         </View>
 
         {/* Workout Settings */}
@@ -769,19 +663,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     paddingVertical: 14, alignItems: 'center', marginTop: 20,
   },
   saveBtnText: { color: c.onPrimary, fontSize: 16, fontWeight: '700' },
-  // Macro distribution
-  distLabel: { fontSize: 14, fontWeight: '700' },
-  distHint: { fontSize: 12, color: c.textFaint, lineHeight: 17, marginBottom: 8 },
-  sliderRow: { paddingVertical: 6 },
-  sliderHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sliderReadout: { fontSize: 13, fontWeight: '600', color: c.textMuted },
-  distTotalRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    marginTop: 12, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: c.border,
-  },
-  distTotalLabel: { fontSize: 13, color: c.textMuted, fontWeight: '600' },
-  distTotalValue: { fontSize: 13, fontWeight: '800', color: c.primary },
   // Body weight log
   weightSectionHeader: {
     flexDirection: 'row',
@@ -895,24 +776,4 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   signOutText: { color: c.danger, fontSize: 16, fontWeight: '700' },
   deleteAccountBtn: { paddingVertical: 12, alignItems: 'center', marginTop: 4 },
   deleteAccountText: { color: c.textFaint, fontSize: 13, fontWeight: '500' },
-});
-
-const makeSliderStyles = (c: Theme) => StyleSheet.create({
-  touch: { height: 36, justifyContent: 'center', marginTop: 4 },
-  track: { height: 8, borderRadius: 4, backgroundColor: c.cardMuted, overflow: 'hidden' },
-  fill: { height: 8, borderRadius: 4 },
-  thumb: {
-    position: 'absolute',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    marginLeft: -11,
-    backgroundColor: c.card,
-    borderWidth: 3,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
 });
