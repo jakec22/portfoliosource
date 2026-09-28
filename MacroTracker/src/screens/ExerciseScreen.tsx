@@ -56,27 +56,34 @@ export function ExerciseScreen({ navigation }: Props) {
   const calendar = useMemo(() => trainingCalendar(history, CALENDAR_WEEKS), [history]);
   const hasTrained = consistency.totalSessions > 0;
 
-  // Ask for the workout type (so Apple Health categorizes it), then start. On
-  // Android there's no native action sheet, so just start with the default.
+  // Ask for the workout type, then start. The type is what Apple Health
+  // categorizes the session as; it's stored on Android too, so a workout
+  // logged there keeps its type if the account is later opened on an iPhone.
   function pickTypeThenStart(template?: WorkoutTemplate) {
-    if (Platform.OS !== 'ios') {
-      startWorkout(template, DEFAULT_WORKOUT_HK);
-      navigation.navigate('ActiveWorkout');
-      return;
-    }
     const labels = WORKOUT_TYPES.map((t) => t.label);
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        title: 'Workout type',
-        options: [...labels, 'Cancel'],
-        cancelButtonIndex: labels.length,
-      },
-      (index) => {
-        if (index < 0 || index >= WORKOUT_TYPES.length) return;
-        startWorkout(template, WORKOUT_TYPES[index].hk);
-        navigation.navigate('ActiveWorkout');
-      }
-    );
+    const apply = (index: number) => {
+      if (index < 0 || index >= WORKOUT_TYPES.length) return;
+      startWorkout(template, WORKOUT_TYPES[index].hk);
+      navigation.navigate('ActiveWorkout');
+    };
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: 'Workout type',
+          options: [...labels, 'Cancel'],
+          cancelButtonIndex: labels.length,
+        },
+        apply
+      );
+    } else {
+      // Android has no action sheet; an Alert with one button per type is what
+      // the set-type pickers already do. This used to skip the question and
+      // silently start a Strength session.
+      Alert.alert('Workout type', undefined, [
+        ...labels.map((label, i) => ({ text: label, onPress: () => apply(i) })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]);
+    }
   }
 
   function handleStartEmpty() {

@@ -1,15 +1,61 @@
 import { Platform, AppState } from 'react-native';
-import {
-  updateApplicationContext,
-  sendMessage,
-  transferUserInfo,
-  watchEvents,
-  getIsPaired,
-  getIsWatchAppInstalled,
-} from 'react-native-watch-connectivity';
-import { startWatchApp } from '@kingstinct/react-native-healthkit';
 import type { HeartRateSample } from '../types';
 import type { WatchPalette } from '../utils/watchPalette';
+
+/**
+ * WatchConnectivity, loaded on demand.
+ *
+ * Nothing here may be imported at the top of the file: this module is pulled in
+ * by the store at launch, and both react-native-watch-connectivity and
+ * HealthKit's startWatchApp bind to iOS-only native modules as they evaluate.
+ * On Android that happens before any Platform check can run, and takes the app
+ * down on startup — the whole app, not the watch features.
+ *
+ * The thin wrappers below keep every call site in this file reading exactly as
+ * it did when these were static imports.
+ */
+type WatchConnectivity = typeof import('react-native-watch-connectivity');
+
+let wcModule: WatchConnectivity | null | undefined;
+function wc(): WatchConnectivity | null {
+  if (wcModule !== undefined) return wcModule;
+  let loaded: WatchConnectivity | null = null;
+  if (Platform.OS === 'ios') {
+    try {
+      loaded = require('react-native-watch-connectivity');
+    } catch {
+      // Native module missing (Expo Go, or a build without the pod).
+    }
+  }
+  wcModule = loaded;
+  return loaded;
+}
+
+type WC = WatchConnectivity;
+const updateApplicationContext = (...a: Parameters<WC['updateApplicationContext']>) =>
+  wc()?.updateApplicationContext(...a);
+const sendMessage = (...a: Parameters<WC['sendMessage']>) => wc()?.sendMessage(...a);
+const transferUserInfo = (...a: Parameters<WC['transferUserInfo']>) =>
+  wc()?.transferUserInfo(...a);
+const getIsPaired = (): Promise<boolean> => wc()?.getIsPaired() ?? Promise.resolve(false);
+const getIsWatchAppInstalled = (): Promise<boolean> =>
+  wc()?.getIsWatchAppInstalled() ?? Promise.resolve(false);
+
+/** Subscribe to a WatchConnectivity event; a no-op unsubscribe off iOS. */
+function onWatchEvent(event: string, cb: (payload: any) => void): () => void {
+  const events = wc()?.watchEvents as any;
+  if (!events) return () => {};
+  return events.on(event, cb);
+}
+
+function startWatchApp(args: { activityType: number }): void {
+  if (Platform.OS !== 'ios') return;
+  try {
+    require('@kingstinct/react-native-healthkit').startWatchApp(args)?.catch?.(() => {});
+  } catch {
+    // No HealthKit on this build — the context + message paths still apply.
+  }
+}
 
 // Today's stats mirrored to the Apple Watch glance. Keys must match what the
 // watch's WCSession delegate reads (see targets/watch/content.swift).
@@ -116,12 +162,12 @@ function refreshWatchAvailability(): void {
 if (Platform.OS === 'ios') {
   refreshWatchAvailability();
   try {
-    watchEvents.on('paired', (paired: boolean) => {
+    onWatchEvent('paired', (paired: boolean) => {
       const was = watchPaired;
       watchPaired = !!paired;
       if (watchPaired && !was) pushContext();
     });
-    watchEvents.on('installed', (installed: boolean) => {
+    onWatchEvent('installed', (installed: boolean) => {
       watchAppInstalled = !!installed;
     });
   } catch {}
@@ -196,7 +242,7 @@ export function setWatchTemplates(templates: WatchTemplateSummary[]): void {
 // templateId is '' for a blank quick-start. Returns an unsubscribe function.
 export function subscribeWatchStartWorkout(cb: (templateId: string) => void): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = watchEvents.on('message', (message: any) => {
+  const unsubscribe = onWatchEvent('message', (message: any) => {
     if (message?.type === 'startTemplate') {
       cb(typeof message.templateId === 'string' ? message.templateId : '');
     }
@@ -228,11 +274,7 @@ export function startWatchWorkout(workoutId: string, activityType = 0): void {
   // Apple-supported way to open a watch app remotely). The watch handles the
   // delivered configuration in its app delegate. Falls back gracefully — the
   // context + message paths still drive the watch if it's already open.
-  if (watchAppInstalled) {
-    try {
-      startWatchApp({ activityType: (activityType || 50) as any })?.catch?.(() => {});
-    } catch {}
-  }
+  if (watchAppInstalled) startWatchApp({ activityType: activityType || 50 });
   try {
     sendMessage(
       { command: 'startWorkout', workoutId, workoutActivityType: activityType },
@@ -318,7 +360,7 @@ export function stopWatchRest(): void {
  */
 export function subscribeWatchPlanRequest(): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = watchEvents.on('message', (message: any) => {
+  const unsubscribe = onWatchEvent('message', (message: any) => {
     if (message?.type === 'requestPlan') pushContext();
   });
   return () => {
@@ -334,7 +376,7 @@ export function subscribeWatchSetToggle(
   cb: (exerciseId: string, setId: string, completed: boolean) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = watchEvents.on('message', (message: any) => {
+  const unsubscribe = onWatchEvent('message', (message: any) => {
     if (
       message?.type === 'toggleSet' &&
       typeof message.exerciseId === 'string' &&
@@ -362,7 +404,7 @@ export function subscribeWatchSetEdit(
   ) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = watchEvents.on('message', (message: any) => {
+  const unsubscribe = onWatchEvent('message', (message: any) => {
     if (
       message?.type === 'updateSet' &&
       typeof message.exerciseId === 'string' &&
@@ -390,7 +432,7 @@ export function subscribeWatchWorkoutFinish(
   cb: (completeAll: boolean) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = watchEvents.on('message', (message: any) => {
+  const unsubscribe = onWatchEvent('message', (message: any) => {
     if (message?.type === 'finishWorkout') cb(!!message.completeAll);
   });
   return () => {
@@ -426,7 +468,7 @@ export function subscribeWatchHeartRate(
   cb: (bpm: number, timestamp: number) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = watchEvents.on('message', (message: any) => {
+  const unsubscribe = onWatchEvent('message', (message: any) => {
     if (message?.type === 'heartRate' && typeof message.bpm === 'number') {
       const ts = typeof message.timestamp === 'number' ? message.timestamp : Date.now();
       cb(message.bpm, ts);

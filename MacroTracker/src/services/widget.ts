@@ -1,7 +1,19 @@
 import { Platform } from 'react-native';
-import { ExtensionStorage } from '@bacons/apple-targets';
 import { resolveTheme } from '../theme';
 import type { ThemeMode } from '../types';
+
+// Loaded on demand rather than imported at the top of the file. @bacons/apple-
+// targets is iOS-only, and this module is pulled in from useWidgetSync at
+// launch — a static import would evaluate its native binding on Android before
+// any Platform check could stop it, and take the app down on startup.
+function loadExtensionStorage(): typeof import('@bacons/apple-targets').ExtensionStorage | null {
+  if (Platform.OS !== 'ios') return null;
+  try {
+    return require('@bacons/apple-targets').ExtensionStorage;
+  } catch {
+    return null;
+  }
+}
 
 // Shared App Group container the home screen widget reads from. Must match
 // app.json's ios.entitlements and targets/widget/expo-target.config.js.
@@ -102,6 +114,8 @@ export function updateMacroWidget(
     dangerColor: c.danger,
   };
 
+  const ExtensionStorage = loadExtensionStorage();
+  if (!ExtensionStorage) return;
   try {
     new ExtensionStorage(APP_GROUP).set(STORAGE_KEY, payload);
     ExtensionStorage.reloadWidget();
