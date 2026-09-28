@@ -6,9 +6,20 @@ screens, store, sync and theme packs are the same files iOS runs.
 ## Building it
 
 ```sh
-npx expo prebuild --platform android --clean   # regenerate android/ from app.json
-eas build -p android --profile preview          # installable APK
-eas build -p android --profile production       # .aab for Play
+npm run build:android        # installable APK, for a device or emulator
+npm run build:android:prod   # .aab for Play
+```
+
+eas-cli is a devDependency rather than a global install, so it is pinned with
+everything else and `npm install` is the only setup step. Note that `npx eas`
+without it resolves an unrelated registry package that ships no executable and
+fails with "could not determine executable to run" — the package is `eas-cli`,
+and `eas` is the binary inside it.
+
+To regenerate the native project by hand:
+
+```sh
+npx expo prebuild --platform android --clean
 ```
 
 `android/` is gitignored. It is regenerated from `app.json` on every build
