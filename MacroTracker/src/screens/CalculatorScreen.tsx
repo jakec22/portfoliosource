@@ -66,6 +66,15 @@ const GOAL_FIELDS = [
 
 type GoalKey = (typeof GOAL_FIELDS)[number]['field'];
 
+// Protein / carbs / fat, as percentages of calories. Three common starting
+// points rather than a free slider — the previous version let you dial any
+// ratio, which mostly meant dialling past the one you wanted.
+const MACRO_SPLITS = [
+  { name: 'Balanced', protein: 30, carbs: 40, fat: 30 },
+  { name: 'High protein', protein: 40, carbs: 30, fat: 30 },
+  { name: 'Low carb', protein: 35, carbs: 25, fat: 40 },
+] as const;
+
 // One editable daily-goal row.
 //
 // Declared here rather than inside CalculatorScreen. A component defined in a
@@ -80,6 +89,7 @@ const GoalField = React.memo(function GoalField({
   unit,
   color,
   value,
+  pct,
   onChange,
   styles,
 }: {
@@ -88,6 +98,8 @@ const GoalField = React.memo(function GoalField({
   unit: string;
   color: string;
   value: string;
+  /** Share of the macro calories, for the three that have one. */
+  pct: number | null;
   onChange: (field: GoalKey, value: string) => void;
   styles: ReturnType<typeof makeStyles>;
 }) {
@@ -95,6 +107,7 @@ const GoalField = React.memo(function GoalField({
     <View style={styles.goalRow}>
       <View style={[styles.goalDot, { backgroundColor: color }]} />
       <Text style={styles.goalLabel}>{label}</Text>
+      <Text style={styles.goalPct}>{pct == null ? '' : `${pct}%`}</Text>
       <View style={styles.goalInputWrap}>
         <TextInput
           style={styles.goalInput}
@@ -261,10 +274,44 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
     }
   }
 
-  const totalCalsFromMacros =
-    parseInt(form.protein || '0') * 4 +
-    parseInt(form.carbs || '0') * 4 +
-    parseInt(form.fat || '0') * 9;
+  const macroCals = {
+    protein: parseInt(form.protein || '0') * 4,
+    carbs: parseInt(form.carbs || '0') * 4,
+    fat: parseInt(form.fat || '0') * 9,
+  };
+  const totalCalsFromMacros = macroCals.protein + macroCals.carbs + macroCals.fat;
+
+  // Each macro's share of the macro calories, not of the calorie goal — so the
+  // three always read as a split totalling 100 even while the grams are being
+  // edited. Whether that adds up to the calorie target is the separate
+  // question the reconciliation row below answers.
+  const macroPct: Partial<Record<GoalKey, number>> =
+    totalCalsFromMacros > 0
+      ? {
+          protein: Math.round((macroCals.protein / totalCalsFromMacros) * 100),
+          carbs: Math.round((macroCals.carbs / totalCalsFromMacros) * 100),
+          fat: Math.round((macroCals.fat / totalCalsFromMacros) * 100),
+        }
+      : {};
+
+  // Fill the three macro fields from a named split and the current calorie
+  // goal. One-way, and only on a tap: the old version of this was a pair of
+  // draggable sliders that were a second editable copy of the same numbers,
+  // fought the ScrollView for the gesture, and silently rebalanced the two
+  // macros you weren't touching.
+  function applySplit(p: number, cb: number, f: number) {
+    const cal = parseInt(form.calories || '0');
+    if (cal <= 0) {
+      Alert.alert('Set a calorie goal first', 'The split is calculated from it.');
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      protein: String(Math.round((cal * p) / 100 / 4)),
+      carbs: String(Math.round((cal * cb) / 100 / 4)),
+      fat: String(Math.round((cal * f) / 100 / 9)),
+    }));
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -361,10 +408,30 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
               unit={unit}
               color={c[tone]}
               value={form[field]}
+              pct={macroPct[field] ?? null}
               onChange={handleGoalChange}
               styles={styles}
             />
           ))}
+
+          <Text style={styles.splitHint}>
+            Set a split and the grams fill in from your calorie goal.
+          </Text>
+          <View style={styles.splitRow}>
+            {MACRO_SPLITS.map(({ name, protein, carbs, fat }) => (
+              <TouchableOpacity
+                key={name}
+                style={styles.splitChip}
+                onPress={() => applySplit(protein, carbs, fat)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.splitChipName}>{name}</Text>
+                <Text style={styles.splitChipRatio}>
+                  {protein}/{carbs}/{fat}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <View style={styles.calCalc}>
             <Text style={styles.calCalcLabel}>Calories from macros:</Text>
@@ -649,7 +716,26 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     fontSize: 16, fontWeight: '600', color: c.text,
     backgroundColor: c.input,
   },
+  // Fixed width and right-aligned so the gram fields stay in a column whether
+  // or not a row has a percentage.
+  goalPct: {
+    width: 40, textAlign: 'right', marginRight: 10,
+    fontSize: 13, fontWeight: '600', color: c.textFaint,
+    fontVariant: ['tabular-nums'],
+  },
   goalUnit: { fontSize: 13, color: c.textFaint, width: 32 },
+  splitRow: { flexDirection: 'row', gap: 8, marginTop: 16 },
+  splitChip: {
+    flex: 1, alignItems: 'center',
+    backgroundColor: c.cardMuted, borderRadius: 10,
+    paddingVertical: 9, paddingHorizontal: 4,
+  },
+  splitChipName: { fontSize: 11.5, fontWeight: '700', color: c.text },
+  splitChipRatio: {
+    fontSize: 10, color: c.textFaint, marginTop: 2,
+    fontVariant: ['tabular-nums'],
+  },
+  splitHint: { fontSize: 12, color: c.textFaint, marginTop: 14 },
   calCalc: {
     flexDirection: 'row', justifyContent: 'space-between',
     marginTop: 16, paddingTop: 16,
