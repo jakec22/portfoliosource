@@ -12,14 +12,16 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow HolyMacro to use the camera to scan food barcodes."
+          "cameraPermission": "Allow HolyMacro to use the camera to scan food barcodes.",
+          "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
           "photosPermission": "Allow HolyMacro to access your photos to analyze meals.",
-          "cameraPermission": "Allow HolyMacro to use the camera to photograph meals."
+          "cameraPermission": "Allow HolyMacro to use the camera to photograph meals.",
+          "microphonePermission": false
         }
       ],
       [
@@ -31,7 +33,8 @@
         }
       ],
       "expo-apple-authentication",
-      "@bacons/apple-targets"
+      "@bacons/apple-targets",
+      "react-native-health-connect"
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -65,7 +68,11 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "web": {

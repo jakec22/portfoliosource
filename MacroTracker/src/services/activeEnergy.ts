@@ -1,21 +1,35 @@
 import { Platform } from 'react-native';
 
 /**
- * Reads today's (or any date's) Active Energy Burned from HealthKit — the
- * "calories burned" total Apple Health accumulates from the iPhone's motion
- * sensors and, when the user wears one, an Apple Watch. Mirrors the guarded
- * lazy-load pattern in `heartRate.ts`: the native module is required lazily
- * and every call degrades to "no data" (null) rather than throwing, so this
- * is safe to call from Expo Go or a build without the native module.
+ * Active Energy Burned — the "calories burned" figure the phone's health store
+ * accumulates from motion sensors and any wearable feeding it. HealthKit on
+ * iOS, Health Connect's ActiveCaloriesBurned on Android.
  *
- * No new native config is needed beyond what heart-rate already set up —
- * HealthKit authorization is granted per read-type at runtime via
- * `requestAuthorization`, reusing the same NSHealthShareUsageDescription
- * already declared in app.json.
+ * Mirrors the guarded lazy-load pattern in `heartRate.ts`: native modules are
+ * required on demand and every call degrades to "no data" (null) rather than
+ * throwing, so this is safe from Expo Go or a build without them. null means
+ * "hide this", never "zero" — a day with no wearable and a day of rest must
+ * not look the same.
+ *
+ * Permissions ride along with heart rate on both platforms: HealthKit grants
+ * per read-type at runtime under the usage string already in app.json, and
+ * Health Connect's ActiveCaloriesBurned read is requested here against the
+ * permission app.json declares.
  */
 const ACTIVE_ENERGY_ID = 'HKQuantityTypeIdentifierActiveEnergyBurned' as const;
 
+function loadHealthConnect(): typeof import('react-native-health-connect') | null {
+  if (Platform.OS !== 'android') return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('react-native-health-connect');
+  } catch {
+    return null;
+  }
+}
+
 function loadHealthKit(): typeof import('@kingstinct/react-native-healthkit') | null {
+  if (Platform.OS !== 'ios') return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require('@kingstinct/react-native-healthkit');
@@ -24,12 +38,13 @@ function loadHealthKit(): typeof import('@kingstinct/react-native-healthkit') | 
   }
 }
 
-/** Whether HealthKit is present in this build/device at all. */
+/** Whether a health store is present in this build/device at all. */
 export function activeEnergyAvailable(): boolean {
+  if (Platform.OS === 'android') return loadHealthConnect() != null;
   const hk = loadHealthKit();
   if (!hk) return false;
   try {
-    return Platform.OS === 'ios' && hk.isHealthDataAvailable();
+    return hk.isHealthDataAvailable();
   } catch {
     return false;
   }
@@ -37,6 +52,24 @@ export function activeEnergyAvailable(): boolean {
 
 /** Ask for read permission. Resolves true if granted. */
 export async function requestActiveEnergyPermission(): Promise<boolean> {
+  const hc = loadHealthConnect();
+  if (hc) {
+    try {
+      if ((await hc.getSdkStatus()) !== hc.SdkAvailabilityStatus.SDK_AVAILABLE) return false;
+      if (!(await hc.initialize())) return false;
+      const granted = await hc.requestPermission([
+        { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
+      ]);
+      return granted.some(
+        (p) =>
+          'recordType' in p &&
+          p.recordType === 'ActiveCaloriesBurned' &&
+          p.accessType === 'read'
+      );
+    } catch {
+      return false;
+    }
+  }
   const hk = loadHealthKit();
   if (!hk) return false;
   try {
@@ -47,14 +80,33 @@ export async function requestActiveEnergyPermission(): Promise<boolean> {
 }
 
 /**
- * Cumulative Active Energy Burned (kcal) between two instants, or null if
- * HealthKit is unavailable, permission wasn't granted, or the read failed —
- * the caller should treat null as "hide this", not "zero".
+ * Cumulative Active Energy Burned (kcal) between two instants, or null if the
+ * health store is unavailable, permission wasn't granted, or the read found
+ * nothing — the caller treats null as "hide this", not "zero".
  */
 export async function queryActiveEnergyRange(
   startDate: Date,
   endDate: Date
 ): Promise<number | null> {
+  const hc = loadHealthConnect();
+  if (hc) {
+    try {
+      const res = await hc.aggregateRecord({
+        recordType: 'ActiveCaloriesBurned',
+        timeRangeFilter: {
+          operator: 'between',
+          startTime: startDate.toISOString(),
+          endTime: endDate.toISOString(),
+        },
+      });
+      const kcal = res.ACTIVE_CALORIES_TOTAL?.inKilocalories;
+      // Health Connect answers an empty window with 0 rather than nothing, so
+      // a zero here is indistinguishable from no data and is treated as such.
+      return typeof kcal === 'number' && kcal > 0 ? Math.round(kcal) : null;
+    } catch {
+      return null;
+    }
+  }
   const hk = loadHealthKit();
   if (!hk) return null;
   try {

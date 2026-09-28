@@ -7,34 +7,33 @@ import type { HeartRateSample } from '../types';
  * ─────────────────────────────────────────────────────────────────────────
  * HOW THIS WORKS
  * ─────────────────────────────────────────────────────────────────────────
- * Apple Watch writes heart-rate samples into the iPhone's HealthKit store and
- * this app reads them via @kingstinct/react-native-healthkit — no watchOS app
- * required (see the Tier-1 design notes).
+ * The app never talks to a watch directly. A wearable writes heart rate into
+ * the phone's health store and this reads it back out — HealthKit on iOS (fed
+ * by Apple Watch), Health Connect on Android (fed by Wear OS, Galaxy Watch,
+ * Fitbit, Whoop, or the phone's own sensors, whichever the user already has).
  *
- * The UI is wired against the `HeartRateMonitor` interface below, so the data
- * source is swappable. Three sources are provided:
+ * Everything upstream is wired against the `HeartRateMonitor` interface below
+ * and never learns which store it got. Three sources:
  *
- *   'healthkit' — real Apple Watch data via HealthKit. DEFAULT. Requires the
- *                 native module + a rebuilt dev client / EAS build (does NOT
- *                 work in Expo Go — there it degrades gracefully to no data).
- *                 Setup is already in place:
- *                   • @kingstinct/react-native-healthkit + react-native-nitro-modules
- *                     are installed.
- *                   • app.json has the config plugin (HealthKit entitlement +
- *                     NSHealthShareUsageDescription).
- *                   • Run `npx expo prebuild --clean` then build (e.g. EAS) to
- *                     produce an installable build with the native module.
+ *   'platform'  — the real one. DEFAULT. HealthKit on iOS, Health Connect on
+ *                 Android, nothing anywhere else. Needs the native modules, so
+ *                 it produces no data in Expo Go; it degrades rather than
+ *                 throwing. iOS carries the HealthKit config plugin and its
+ *                 usage strings; Android carries react-native-health-connect's
+ *                 plugin and the READ_HEART_RATE permission. Both are in
+ *                 app.json — run `npx expo prebuild --clean` and rebuild after
+ *                 changing either.
  *
- *   'simulated' — generates a realistic wandering BPM with no native deps.
- *                 Handy in Expo Go or the simulator to preview the live bar,
- *                 pulsing heart, and end-of-workout graph.
+ *   'simulated' — a realistic wandering BPM with no native deps. Handy in
+ *                 Expo Go or a simulator to preview the live readout and the
+ *                 end-of-workout zone graph.
  *
- *   'off'       — no heart rate. The HR bar/graph simply don't render.
+ *   'off'       — no heart rate. The HR readout and graph don't render.
  *
  * Switch sources with the single constant below.
  */
-export type HeartRateSource = 'simulated' | 'healthkit' | 'off';
-export const HR_SOURCE: HeartRateSource = 'healthkit';
+export type HeartRateSource = 'simulated' | 'platform' | 'off';
+export const HR_SOURCE: HeartRateSource = 'platform';
 
 // HealthKit identifiers/units (string constants — see the library's typings).
 const HR_IDENTIFIER = 'HKQuantityTypeIdentifierHeartRate' as const;
@@ -213,6 +212,125 @@ function healthKitMonitor(): HeartRateMonitor {
   };
 }
 
+// ── Health Connect source (Android) ────────────────────────────────────────
+// The Android counterpart to HealthKit. Health Connect is the aggregator every
+// Wear OS / Galaxy Watch / Fitbit app writes into, so this picks up whatever
+// the user already wears without HolyMacro talking to any of them directly.
+//
+// Two shape differences from HealthKit worth knowing:
+//   * There is no live subscription, so the readout polls. HealthKit's
+//     subscribeToChanges has no equivalent here.
+//   * Heart rate arrives as *records* that each hold many samples, rather than
+//     one sample per row, so every read flattens before it can be used.
+function healthConnectMonitor(): HeartRateMonitor {
+  let hc: typeof import('react-native-health-connect') | null = null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    hc = require('react-native-health-connect');
+  } catch (e) {
+    if (__DEV__) {
+      console.warn(
+        '[heartRate] react-native-health-connect failed to load — HR will ' +
+          'show no data. Rebuild the dev client. Details:',
+        e
+      );
+    }
+    return offMonitor();
+  }
+  if (!hc) return offMonitor();
+  const HC = hc;
+
+  let poll: ReturnType<typeof setInterval> | null = null;
+  let lastTs = 0;
+  let initialized = false;
+
+  // initialize() has to succeed before any read, and it fails on devices where
+  // Health Connect isn't installed or is too old to use.
+  async function ready(): Promise<boolean> {
+    if (initialized) return true;
+    try {
+      const status = await HC.getSdkStatus();
+      if (status !== HC.SdkAvailabilityStatus.SDK_AVAILABLE) {
+        if (__DEV__) console.log(`[heartRate] Health Connect sdkStatus=${status}`);
+        return false;
+      }
+      initialized = await HC.initialize();
+      return initialized;
+    } catch {
+      return false;
+    }
+  }
+
+  function between(startMs: number, endMs: number) {
+    return {
+      operator: 'between' as const,
+      startTime: new Date(startMs).toISOString(),
+      endTime: new Date(endMs).toISOString(),
+    };
+  }
+
+  /** Every bpm reading in the window, oldest first. */
+  async function readRange(startMs: number, endMs: number): Promise<HeartRateSample[]> {
+    if (!(await ready())) return [];
+    try {
+      const { records } = await HC.readRecords('HeartRate', {
+        timeRangeFilter: between(startMs, endMs),
+        ascendingOrder: true,
+      });
+      const out: HeartRateSample[] = [];
+      for (const record of records) {
+        for (const s of record.samples) {
+          out.push({ timestamp: +new Date(s.time), bpm: Math.round(s.beatsPerMinute) });
+        }
+      }
+      // Records can overlap when two sources write, so sorting the flattened
+      // samples matters even though the records themselves came back ordered.
+      return out.sort((a, b) => a.timestamp - b.timestamp);
+    } catch {
+      return [];
+    }
+  }
+
+  return {
+    available: Platform.OS === 'android',
+    async requestPermissions() {
+      if (!(await ready())) return false;
+      try {
+        const granted = await HC.requestPermission([
+          { accessType: 'read', recordType: 'HeartRate' },
+        ]);
+        return granted.some(
+          (p) => 'recordType' in p && p.recordType === 'HeartRate' && p.accessType === 'read'
+        );
+      } catch {
+        return false;
+      }
+    },
+    start(onSample) {
+      this.stop();
+      lastTs = 0;
+      // Look back a little so the readout has something the moment a workout
+      // opens, rather than staying blank until the next write lands.
+      const tick = async () => {
+        const samples = await readRange(Date.now() - 60_000, Date.now());
+        const latest = samples[samples.length - 1];
+        if (!latest || latest.timestamp === lastTs) return;
+        lastTs = latest.timestamp;
+        onSample(latest);
+      };
+      void tick();
+      poll = setInterval(() => void tick(), 5000);
+    },
+    stop() {
+      if (poll) clearInterval(poll);
+      poll = null;
+    },
+    query(startMs, endMs) {
+      return readRange(startMs, endMs);
+    },
+  };
+}
+
 // ── Off source ─────────────────────────────────────────────────────────────
 function offMonitor(): HeartRateMonitor {
   return {
@@ -237,8 +355,16 @@ export function getHeartRateMonitor(): HeartRateMonitor {
     case 'simulated':
       instance = simulatedMonitor();
       break;
-    case 'healthkit':
-      instance = healthKitMonitor();
+    case 'platform':
+      // One constant, two native stores: HealthKit on iOS, Health Connect on
+      // Android. Both satisfy the same interface, so nothing above this line
+      // knows which one it got.
+      instance =
+        Platform.OS === 'ios'
+          ? healthKitMonitor()
+          : Platform.OS === 'android'
+            ? healthConnectMonitor()
+            : offMonitor();
       break;
     default:
       instance = offMonitor();
