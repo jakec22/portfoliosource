@@ -290,7 +290,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                 ))}
               </View>
 
-              <Text style={[styles.fieldLabel, { marginTop: 24 }]}>Age</Text>
+              <Text style={[styles.fieldLabel, { marginTop: space.xl }]}>Age</Text>
               <View style={styles.inputRow}>
                 <TextInput
                   style={[styles.input, { width: 110 }]}
@@ -326,7 +326,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                 ))}
               </View>
 
-              <Text style={[styles.fieldLabel, { marginTop: 8 }]}>Weight</Text>
+              <Text style={[styles.fieldLabel, { marginTop: space.sm }]}>Weight</Text>
               {units === 'imperial' ? (
                 <View style={styles.inputRow}>
                   <TextInput
@@ -355,7 +355,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                 </View>
               )}
 
-              <Text style={[styles.fieldLabel, { marginTop: 24 }]}>Height</Text>
+              <Text style={[styles.fieldLabel, { marginTop: space.xl }]}>Height</Text>
               {units === 'imperial' ? (
                 <View style={styles.inputRow}>
                   <TextInput
@@ -369,7 +369,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                   />
                   <Text style={styles.inputUnit}>ft</Text>
                   <TextInput
-                    style={[styles.input, { width: 80, marginLeft: 12 }]}
+                    style={[styles.input, { width: 80, marginLeft: space.md }]}
                     placeholder="10"
                     placeholderTextColor={c.textFaint}
                     value={heightIn}

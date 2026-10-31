@@ -210,7 +210,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
             placeholderTextColor={c.textFaint}
           />
 
-          <Text style={[styles.label, { marginTop: 20 }]}>Workout Type</Text>
+          <Text style={[styles.label, { marginTop: space.lg }]}>Workout Type</Text>
           <TouchableOpacity
             style={styles.typeSelect}
             onPress={pickActivityType}
@@ -220,7 +220,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
             <Icon name="down" size="sm" color={c.textFaint} />
           </TouchableOpacity>
 
-          <Text style={[styles.label, { marginTop: 20 }]}>Exercises</Text>
+          <Text style={[styles.label, { marginTop: space.lg }]}>Exercises</Text>
           {exercises.map((e, idx) => (
             <View key={e.id} style={styles.exCard}>
               <View style={styles.exTop}>

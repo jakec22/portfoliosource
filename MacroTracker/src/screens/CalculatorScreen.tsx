@@ -397,7 +397,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
               ))}
             </View>
           )}
-          <Text style={[styles.settingHint, { marginTop: 12 }]}>
+          <Text style={[styles.settingHint, { marginTop: space.md }]}>
             Log as often or as little as you like — defaults to today's date.
           </Text>
         </View>
@@ -460,7 +460,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         <Text style={styles.sectionTitle}>Workout Settings</Text>
         <View style={styles.card}>
           <View style={styles.waterToggleRow}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
+            <View style={{ flex: 1, paddingRight: space.md }}>
               <Text style={styles.waterToggleLabel}>Auto-start rest timer</Text>
               <Text style={styles.settingHint}>
                 Starts the rest countdown automatically when you check off a set.
@@ -474,7 +474,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             />
           </View>
 
-          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }]}>
+          <View style={[styles.hydrationRow, { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
               onPress={() => setDefaultRestSeconds(defaultRestSeconds - 15)}
@@ -492,7 +492,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
               <Text style={styles.hydrationBtnText}>+</Text>
             </TouchableOpacity>
           </View>
-          <Text style={[styles.settingHint, { marginTop: 8 }]}>
+          <Text style={[styles.settingHint, { marginTop: space.sm }]}>
             Used for the rest countdown during a workout. Adjust in 15-second steps
             (you can still tap +30s or Skip mid-workout).
           </Text>
@@ -502,7 +502,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         <Text style={styles.sectionTitle}>Reminders</Text>
         <View style={styles.card}>
           <View style={styles.waterToggleRow}>
-            <View style={{ flex: 1, paddingRight: 12 }}>
+            <View style={{ flex: 1, paddingRight: space.md }}>
               <Text style={styles.waterToggleLabel}>Daily Reminders</Text>
               <Text style={styles.settingHint}>
                 Gentle nudges to log your meals and keep your streak alive.
@@ -521,8 +521,8 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
               <View
                 key={key}
                 style={{
-                  marginTop: 12,
-                  paddingTop: 12,
+                  marginTop: space.md,
+                  paddingTop: space.md,
                   borderTopWidth: 1,
                   borderTopColor: c.border,
                 }}
@@ -538,7 +538,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                 </View>
 
                 {notificationPrefs[key] && (
-                  <View style={[styles.hydrationRow, { marginTop: 12 }]}>
+                  <View style={[styles.hydrationRow, { marginTop: space.md }]}>
                     <TouchableOpacity
                       style={styles.hydrationBtn}
                       onPress={() => adjustReminderTime(key, -15)}
@@ -575,7 +575,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
               thumbColor={showWaterTracker ? c.primary : c.textFaint}
             />
           </View>
-          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }]}>
+          <View style={[styles.hydrationRow, { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
               onPress={() => setWaterGoal(waterGoal - waterIncrement)}
@@ -594,7 +594,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.hydrationRow, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border }]}>
+          <View style={[styles.hydrationRow, { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
               onPress={() => setWaterIncrement(waterIncrement - 1)}
@@ -618,7 +618,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         <Text style={styles.sectionTitle}>Appearance</Text>
         <View style={styles.card}>
           <Text style={styles.waterToggleLabel}>Theme</Text>
-          <Text style={[styles.settingHint, { marginBottom: 12 }]}>
+          <Text style={[styles.settingHint, { marginBottom: space.md }]}>
             Pick a look — each is a complete visual style, not just a color.
           </Text>
           {THEME_PACKS.map((p) => {

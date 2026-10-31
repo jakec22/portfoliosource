@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../theme/useTheme';
-import { radius, space } from '../theme/tokens';
+import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 import { Icon } from './Icon';
 
 type ScanMode = 'barcode' | 'label';
@@ -30,6 +31,7 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
   // (standard for a camera viewfinder), but the accent — button + scan frame
   // — follows the pack's primary color.
   const c = useTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [permission, requestPermission] = useCameraPermissions();
   // Prevents the camera from firing dozens of callbacks for one barcode.
   const [locked, setLocked] = useState(false);
@@ -165,7 +167,11 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
   );
 }
 
-const styles = StyleSheet.create({
+// The chrome here stays fixed dark whichever pack is active — it sits over a
+// live camera feed, and a cream surface would wash the viewfinder out. The
+// type still comes off the ramp, so the pack's voice carries through.
+const makeStyles = (c: Theme) =>
+  StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   center: {
     flex: 1,
@@ -174,16 +180,16 @@ const styles = StyleSheet.create({
     padding: space.xxl,
     backgroundColor: '#111827',
   },
-  permTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: space.sm },
-  permText: { color: '#9CA3AF', fontSize: 14, textAlign: 'center', marginBottom: space.xl },
+  permTitle: { ...type.heading(c), color: '#fff', marginBottom: space.sm },
+  permText: { ...type.body(c), color: '#9CA3AF', textAlign: 'center', marginBottom: space.xl },
   permBtn: {
     paddingHorizontal: space.xl,
     paddingVertical: space.lg,
     borderRadius: radius.control,
   },
-  permBtnText: { fontSize: 16, fontWeight: '700' },
+  permBtnText: { ...type.bodyStrong(c) },
   cancelLink: { marginTop: space.lg },
-  cancelLinkText: { color: '#9CA3AF', fontSize: 14 },
+  cancelLinkText: { ...type.body(c), color: '#9CA3AF' },
   overlay: {
     position: 'absolute',
     top: 0,
@@ -208,10 +214,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   hint: {
+    ...type.body(c),
+    fontFamily: c.fontBodySemi,
     color: '#fff',
-    fontSize: 14,
     marginTop: space.lg,
-    fontWeight: '600',
     textAlign: 'center',
     paddingHorizontal: space.xxl,
     textShadowColor: 'rgba(0,0,0,0.6)',
@@ -231,7 +237,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     borderRadius: radius.control,
   },
-  modeBtnText: { color: '#D1D5DB', fontSize: 13, fontWeight: '700' },
+  modeBtnText: { ...type.captionStrong(c), fontFamily: c.fontBodyBold, color: '#D1D5DB' },
   modeBtnTextActive: { color: '#fff' },
   shutterWrap: {
     position: 'absolute',
@@ -264,5 +270,5 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     borderRadius: radius.card,
   },
-  closeBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-});
+  closeBtnText: { ...type.body(c), fontFamily: c.fontBodySemi, color: '#fff' },
+  });
