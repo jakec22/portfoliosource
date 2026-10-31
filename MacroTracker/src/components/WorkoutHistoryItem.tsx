@@ -5,6 +5,7 @@ import { WorkoutSession } from '../types';
 import { displayDate } from '../utils/date';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   session: WorkoutSession;
@@ -57,25 +58,25 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: c.card,
-    borderRadius: 12,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: c.border,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 10,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+    marginBottom: space.sm,
   },
   main: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '600', color: c.text },
-  meta: { fontSize: 12, color: c.textFaint, marginTop: 3 },
-  chevron: { fontSize: 22, color: c.textFaint, fontWeight: '300', marginLeft: 6 },
+  name: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.text },
+  meta: { ...type.caption(c), color: c.textFaint, marginTop: space.xxs },
+  chevron: { ...type.heading(c), color: c.textFaint, marginLeft: space.xs },
   swipeDelete: {
     backgroundColor: c.danger,
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
-    borderRadius: 12,
-    marginBottom: 10,
-    marginLeft: 8,
+    borderRadius: radius.control,
+    marginBottom: space.sm,
+    marginLeft: space.sm,
   },
-  swipeDeleteText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  swipeDeleteText: { ...type.bodyStrong(c), color: '#fff' },
 });

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { space, type } from '../theme/tokens';
 
 interface Props {
   consumed: number;
@@ -98,31 +99,27 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'center',
   },
   consumedValue: {
-    fontSize: 32,
-    fontFamily: c.fontDisplay,
+    ...type.title(c),
     color: c.text,
-    lineHeight: 36,
   },
   consumedLabel: {
-    fontSize: 12,
+    ...type.caption(c),
     fontFamily: c.fontBody,
     color: c.textFaint,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   divider: {
     width: 40,
     height: 1,
     backgroundColor: c.border,
-    marginVertical: 6,
+    marginVertical: space.xs,
   },
   remainingValue: {
-    fontSize: 20,
-    fontFamily: c.fontDisplay,
+    ...type.heading(c),
     color: c.primary,
-    lineHeight: 24,
   },
   remainingLabel: {
-    fontSize: 11,
+    ...type.micro(c),
     fontFamily: c.fontBody,
     color: c.textFaint,
   },
@@ -132,29 +129,29 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   stats: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
-    gap: 12,
+    marginTop: space.lg,
+    gap: space.md,
   },
   stat: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 16,
+    ...type.bodyStrong(c),
     fontFamily: c.fontDisplay,
     color: c.text,
   },
   statLabel: {
-    fontSize: 11,
+    ...type.micro(c),
     fontFamily: c.fontBody,
     color: c.textFaint,
   },
   minus: {
-    fontSize: 18,
+    ...type.subhead(c),
     fontFamily: c.fontBody,
     color: c.textFaint,
   },
   equals: {
-    fontSize: 18,
+    ...type.subhead(c),
     fontFamily: c.fontBody,
     color: c.textFaint,
   },

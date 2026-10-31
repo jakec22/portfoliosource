@@ -4,6 +4,7 @@ import Svg, { Circle, Ellipse, Rect, G } from 'react-native-svg';
 import type { SplitSlice } from '../utils/trainingSplit';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   slices: SplitSlice[];
@@ -160,44 +161,42 @@ export function BodyHeatMap({ slices, days }: Props) {
 
 const makeStyles = (c: Theme) =>
   StyleSheet.create({
-    figures: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+    figures: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs },
     figureWrap: { width: 72, alignItems: 'center' },
     figureLabel: {
-      fontSize: 10.5,
-      color: c.textFaint,
-      marginTop: 2,
+      ...type.micro(c),
       fontFamily: c.fontBody,
+      color: c.textFaint,
+      marginTop: space.xxs,
     },
 
-    rankList: { flex: 1, gap: 5, paddingTop: 4, paddingLeft: 4 },
-    rankRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    rankList: { flex: 1, gap: space.xs, paddingTop: space.xs, paddingLeft: space.xs },
+    rankRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
     swatch: {
       width: 10,
       height: 10,
-      borderRadius: 3,
+      borderRadius: radius.hairline,
       borderWidth: 1,
       borderColor: c.border,
     },
-    rankName: { flex: 1, fontSize: 12.5, color: c.text, fontFamily: c.fontBody },
+    rankName: { ...type.caption(c), fontFamily: c.fontBody, flex: 1, color: c.text },
     rankPct: {
-      fontSize: 12.5,
-      color: c.textMuted,
+      ...type.captionStrong(c),
       fontFamily: c.fontBodyBold,
+      color: c.textMuted,
       fontVariant: ['tabular-nums'],
     },
     untrained: {
-      fontSize: 11,
-      color: c.textFaint,
-      marginTop: 4,
-      lineHeight: 15,
+      ...type.micro(c),
       fontFamily: c.fontBody,
+      color: c.textFaint,
+      marginTop: space.xs,
     },
 
     caption: {
-      fontSize: 11,
-      color: c.textFaint,
-      marginTop: 10,
-      lineHeight: 15,
+      ...type.micro(c),
       fontFamily: c.fontBody,
+      color: c.textFaint,
+      marginTop: space.sm,
     },
   });

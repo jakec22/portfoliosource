@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { GoalsUpdateNotice } from '../types';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   notice: GoalsUpdateNotice;
@@ -77,44 +78,42 @@ const makeStyles = (c: Theme) =>
   StyleSheet.create({
     card: {
       backgroundColor: c.primarySoft,
-      borderRadius: 16,
+      borderRadius: radius.card,
       borderWidth: 1,
       borderColor: `${c.primary}55`,
-      padding: 16,
-      marginBottom: 16,
+      padding: space.lg,
+      marginBottom: space.lg,
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    title: { fontSize: 16, fontFamily: c.fontDisplay, color: c.primaryDark },
-    close: { fontSize: 22, color: c.primaryDark, lineHeight: 24 },
+    title: { ...type.bodyStrong(c), fontFamily: c.fontDisplay, color: c.primaryDark },
+    close: { ...type.heading(c), color: c.primaryDark },
 
     body: {
-      fontSize: 13,
-      lineHeight: 19,
-      color: c.text,
+      ...type.caption(c),
       fontFamily: c.fontBody,
-      marginTop: 4,
+      color: c.text,
+      marginTop: space.xs,
     },
 
-    rows: { marginTop: 12, gap: 6 },
+    rows: { marginTop: space.md, gap: space.xs },
     row: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-    rowLabel: { fontSize: 13, color: c.textMuted, fontFamily: c.fontBody },
+    rowLabel: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted },
     rowValue: {
-      fontSize: 14,
+      ...type.bodyStrong(c),
       color: c.text,
-      fontFamily: c.fontBodyBold,
       fontVariant: ['tabular-nums'],
     },
     rowDelta: { color: c.primaryDark, fontFamily: c.fontBody },
 
     turnOff: {
-      marginTop: 14,
-      paddingTop: 12,
+      marginTop: space.md,
+      paddingTop: space.md,
       borderTopWidth: 1,
       borderTopColor: `${c.primary}33`,
     },
-    turnOffText: { fontSize: 13, color: c.primaryDark, fontFamily: c.fontBodyBold },
+    turnOffText: { ...type.captionStrong(c), fontFamily: c.fontBodyBold, color: c.primaryDark },
   });

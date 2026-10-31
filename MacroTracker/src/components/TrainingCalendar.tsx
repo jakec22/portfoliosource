@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import type { TrainingCalendar as CalendarData } from '../utils/trainingSplit';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   calendar: CalendarData;
@@ -105,32 +106,32 @@ const makeStyles = (c: Theme) =>
     // Row rhythm is set by an explicit gap rather than space-between: the
     // label column and the cell column are different heights, so distributing
     // the difference would make the grid's spacing depend on the font metrics.
-    gridRow: { flexDirection: 'row', gap: 5 },
+    gridRow: { flexDirection: 'row', gap: space.xs },
     dayLabels: { gap: CELL_GAP },
     dayLabelCell: { height: CELL, justifyContent: 'center' },
-    dayLabel: { fontSize: 9, color: c.textFaint, fontFamily: c.fontBody, width: 9 },
+    dayLabel: { ...type.micro(c), fontFamily: c.fontBody, color: c.textFaint, width: 9 },
     dayLabelSpacer: { width: 14 },
 
     weeks: { flex: 1, flexDirection: 'row', justifyContent: 'space-between' },
     week: { gap: CELL_GAP },
-    cell: { width: CELL, height: CELL, borderRadius: 3 },
+    cell: { width: CELL, height: CELL, borderRadius: radius.hairline },
 
-    monthRow: { flexDirection: 'row', gap: 4, marginTop: 5 },
+    monthRow: { flexDirection: 'row', gap: space.xs, marginTop: space.xs },
     monthCell: { flex: 1, alignItems: 'flex-start' },
-    monthLabel: { fontSize: 9.5, color: c.textFaint, fontFamily: c.fontBody },
+    monthLabel: { ...type.micro(c), fontFamily: c.fontBody, color: c.textFaint },
 
     footer: {
-      marginTop: 12,
+      marginTop: space.md,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       flexWrap: 'wrap',
-      gap: 8,
+      gap: space.sm,
     },
-    summary: { fontSize: 12, color: c.textMuted, fontFamily: c.fontBody },
+    summary: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted },
     summaryValue: { color: c.text, fontFamily: c.fontBodyBold },
 
-    legend: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-    legendText: { fontSize: 10, color: c.textFaint, fontFamily: c.fontBody },
-    legendCell: { width: 10, height: 10, borderRadius: 2.5 },
+    legend: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
+    legendText: { ...type.micro(c), fontFamily: c.fontBody, color: c.textFaint },
+    legendCell: { width: 10, height: 10, borderRadius: radius.hairline },
   });

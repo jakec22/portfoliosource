@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../theme/useTheme';
+import { radius, space } from '../theme/tokens';
 
 type ScanMode = 'barcode' | 'label';
 
@@ -168,18 +169,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: space.xxl,
     backgroundColor: '#111827',
   },
-  permTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 8 },
-  permText: { color: '#9CA3AF', fontSize: 14, textAlign: 'center', marginBottom: 24 },
+  permTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: space.sm },
+  permText: { color: '#9CA3AF', fontSize: 14, textAlign: 'center', marginBottom: space.xl },
   permBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
+    borderRadius: radius.control,
   },
   permBtnText: { fontSize: 16, fontWeight: '700' },
-  cancelLink: { marginTop: 16 },
+  cancelLink: { marginTop: space.lg },
   cancelLinkText: { color: '#9CA3AF', fontSize: 14 },
   overlay: {
     position: 'absolute',
@@ -194,23 +195,23 @@ const styles = StyleSheet.create({
     width: 260,
     height: 160,
     borderWidth: 3,
-    borderRadius: 16,
+    borderRadius: radius.card,
     backgroundColor: 'transparent',
   },
   labelFrame: {
     width: 260,
     height: 340,
     borderWidth: 3,
-    borderRadius: 16,
+    borderRadius: radius.card,
     backgroundColor: 'transparent',
   },
   hint: {
     color: '#fff',
     fontSize: 14,
-    marginTop: 20,
+    marginTop: space.lg,
     fontWeight: '600',
     textAlign: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: space.xxl,
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowRadius: 4,
   },
@@ -220,13 +221,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
-    padding: 3,
+    borderRadius: radius.card,
+    padding: space.xs,
   },
   modeBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 17,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
   },
   modeBtnText: { color: '#D1D5DB', fontSize: 13, fontWeight: '700' },
   modeBtnTextActive: { color: '#fff' },
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
   shutterBtn: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: radius.pill,
     borderWidth: 4,
     alignItems: 'center',
     justifyContent: 'center',
@@ -247,16 +248,16 @@ const styles = StyleSheet.create({
   shutterInner: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: radius.pill,
   },
   closeBtn: {
     position: 'absolute',
     top: 60,
     right: 20,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderRadius: radius.card,
   },
   closeBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { updatePassword } from '../services/auth';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   onDone: () => void;
@@ -107,41 +108,40 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: space.xxl,
   },
-  logo: { fontSize: 48, textAlign: 'center' },
+  logo: { ...type.hero(c), textAlign: 'center' },
   title: {
-    fontSize: 26,
-    fontWeight: '800',
+    ...type.title(c),
     color: c.text,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: space.sm,
   },
   subtitle: {
-    fontSize: 14,
+    ...type.body(c),
     color: c.textMuted,
     textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 28,
+    marginTop: space.xs,
+    marginBottom: space.xl,
   },
   input: {
+    ...type.body(c),
     backgroundColor: c.card,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
+    borderRadius: radius.control,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
     color: c.text,
     borderWidth: 1,
     borderColor: c.border,
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   btn: {
     backgroundColor: c.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: radius.control,
+    paddingVertical: space.lg,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: space.xs,
   },
-  btnText: { color: c.onPrimary, fontSize: 16, fontWeight: '700' },
+  btnText: { ...type.bodyStrong(c), color: c.onPrimary },
   btnDisabled: { opacity: 0.6 },
 });

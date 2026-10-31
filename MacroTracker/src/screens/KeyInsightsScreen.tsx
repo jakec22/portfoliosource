@@ -16,6 +16,7 @@ import {
 import { progressHighlights } from '../utils/exerciseHistory';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   navigation: any;
@@ -308,81 +309,80 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
     backgroundColor: c.card,
   },
-  back: { fontSize: 15, color: c.primary, fontFamily: c.fontBodyBold, width: 64 },
+  back: { ...type.bodyStrong(c), color: c.primary, width: 64 },
   backSpacer: { width: 64 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontFamily: c.fontDisplay, color: c.text },
-  content: { padding: 16, paddingBottom: 40 },
+  headerTitle: { ...type.subhead(c), fontFamily: c.fontDisplay, flex: 1, textAlign: 'center', color: c.text },
+  content: { padding: space.lg, paddingBottom: space.xxxl },
 
   sectionTitle: {
-    fontSize: 20,
-    fontFamily: c.fontDisplay,
+    ...type.heading(c),
     color: c.text,
-    marginTop: 14,
-    marginBottom: 10,
+    marginTop: space.md,
+    marginBottom: space.sm,
   },
   card: {
     backgroundColor: c.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: radius.card,
+    padding: space.lg,
+    marginBottom: space.lg,
     shadowColor: c.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
   },
-  caption: { fontSize: 11, color: c.textFaint, marginTop: 8, lineHeight: 16, fontFamily: c.fontBody },
+  caption: { ...type.micro(c), fontFamily: c.fontBody, color: c.textFaint, marginTop: space.sm },
 
   // "This Week" hero. Deliberately not a card: it sits directly on the page
   // with a rule beneath it so it outranks the chart cards below instead of
   // being one more equal-weight box in the stack.
   insightCard: {
-    paddingTop: 2,
-    paddingBottom: 18,
-    marginBottom: 18,
+    paddingTop: space.xxs,
+    paddingBottom: space.lg,
+    marginBottom: space.lg,
     borderBottomWidth: 1,
     borderBottomColor: c.borderStrong,
   },
-  insightEmpty: { fontSize: 13, color: c.textMuted, lineHeight: 19, fontFamily: c.fontBody },
-  insightStatRow: { flexDirection: 'row', gap: 12 },
+  insightEmpty: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted },
+  insightStatRow: { flexDirection: 'row', gap: space.md },
   insightStat: { flex: 1, alignItems: 'flex-start' },
-  insightStatValue: { fontSize: 26, fontFamily: c.fontDisplay, fontVariant: ['tabular-nums'] },
-  insightStatUnit: { fontSize: 11, color: c.textFaint, marginTop: -2, fontFamily: c.fontBody },
-  insightStatLabel: { fontSize: 12, color: c.textMuted, marginTop: 3, fontFamily: c.fontBody },
+  insightStatValue: { ...type.title(c), fontVariant: ['tabular-nums'] },
+  insightStatUnit: { ...type.micro(c), fontFamily: c.fontBody, color: c.textFaint, marginTop: -2 },
+  insightStatLabel: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted, marginTop: space.xxs },
   insightMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    marginTop: 14,
+    marginTop: space.md,
   },
-  insightMeta: { fontSize: 12, color: c.textMuted, fontFamily: c.fontBody },
+  insightMeta: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted },
   insightBest: {
-    fontSize: 13,
-    color: c.text,
+    ...type.captionStrong(c),
     fontFamily: c.fontBodyBold,
-    marginTop: 10,
-    paddingTop: 10,
+    color: c.text,
+    marginTop: space.sm,
+    paddingTop: space.md,
     borderTopWidth: 1,
     borderTopColor: c.border,
   },
-  highlightList: { marginTop: 12, gap: 8 },
-  highlightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  highlightIcon: { fontSize: 15, lineHeight: 20 },
-  highlightText: { flex: 1, fontSize: 13, color: c.textMuted, lineHeight: 19, fontFamily: c.fontBody },
+  highlightList: { marginTop: space.md, gap: space.sm },
+  highlightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  highlightIcon: { ...type.body(c) },
+  highlightText: { ...type.caption(c), fontFamily: c.fontBody, flex: 1, color: c.textMuted },
   highlightPositive: { color: c.primaryDark, fontFamily: c.fontBodyBold },
 
 
   // Weight / nutrition 2-up mini stats
-  miniStatRow: { flexDirection: 'row', gap: 12, marginBottom: 8 },
+  miniStatRow: { flexDirection: 'row', gap: space.md, marginBottom: space.sm },
   miniStat: { flex: 1 },
-  miniStatValue: { fontSize: 22, fontFamily: c.fontDisplay, fontVariant: ['tabular-nums'] },
-  miniStatLabel: { fontSize: 12, fontFamily: c.fontBody, color: c.textFaint, marginTop: 2 },
+  miniStatValue: { ...type.heading(c), fontVariant: ['tabular-nums'] },
+  miniStatLabel: { ...type.caption(c), fontFamily: c.fontBody, color: c.textFaint, marginTop: space.xxs },
 
 
 });

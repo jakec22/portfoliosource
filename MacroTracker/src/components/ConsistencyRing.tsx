@@ -4,6 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 import type { ConsistencyStats } from '../utils/trainingSplit';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { space, type } from '../theme/tokens';
 
 interface Props {
   stats: ConsistencyStats;
@@ -82,24 +83,22 @@ export function ConsistencyRing({ stats, target = 4 }: Props) {
 
 const makeStyles = (c: Theme) =>
   StyleSheet.create({
-    wrap: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+    wrap: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
     center: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
     count: {
-      fontSize: 28,
-      fontFamily: c.fontDisplay,
+      ...type.title(c),
       color: c.text,
-      lineHeight: 30,
     },
-    of: { fontSize: 11, fontFamily: c.fontBody, color: c.textFaint },
+    of: { ...type.micro(c), fontFamily: c.fontBody, color: c.textFaint },
 
-    side: { flex: 1, gap: 7 },
-    headline: { fontSize: 14, fontFamily: c.fontBodyBold, color: c.text },
-    metaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+    side: { flex: 1, gap: space.sm },
+    headline: { ...type.bodyStrong(c), color: c.text },
+    metaRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs },
     metaValue: {
-      fontSize: 16,
+      ...type.bodyStrong(c),
       fontFamily: c.fontDisplay,
       color: c.primary,
       fontVariant: ['tabular-nums'],
     },
-    metaLabel: { fontSize: 12.5, fontFamily: c.fontBody, color: c.textMuted },
+    metaLabel: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted },
   });

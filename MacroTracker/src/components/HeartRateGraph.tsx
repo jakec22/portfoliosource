@@ -14,6 +14,7 @@ import {
 } from '../utils/heartRateZones';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   samples: HeartRateSample[];
@@ -191,29 +192,28 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
 }
 
 const makeStyles = (c: Theme) => StyleSheet.create({
-  statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 8 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: space.sm },
   stat: { alignItems: 'center' },
   statValue: {
-    fontSize: 22,
-    fontFamily: c.fontDisplay,
+    ...type.heading(c),
     fontVariant: ['tabular-nums'],
   },
-  statLabel: { fontSize: 11, color: c.textMuted, marginTop: 2, fontFamily: c.fontBody },
+  statLabel: { ...type.micro(c), fontFamily: c.fontBody, color: c.textMuted, marginTop: space.xxs },
 
-  zoneBlock: { marginTop: 10, gap: 7 },
+  zoneBlock: { marginTop: space.sm, gap: space.sm },
   zoneBar: {
     flexDirection: 'row',
     height: 8,
-    borderRadius: 4,
+    borderRadius: radius.hairline,
     overflow: 'hidden',
     backgroundColor: c.cardMuted,
   },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendName: { fontSize: 12.5, fontFamily: c.fontBodyBold, color: c.text, width: 72 },
-  legendRange: { fontSize: 11.5, fontFamily: c.fontBody, color: c.textFaint, flex: 1 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  legendDot: { width: 8, height: 8, borderRadius: radius.pill },
+  legendName: { ...type.captionStrong(c), fontFamily: c.fontBodyBold, color: c.text, width: 72 },
+  legendRange: { ...type.caption(c), fontFamily: c.fontBody, color: c.textFaint, flex: 1 },
   legendTime: {
-    fontSize: 12.5,
+    ...type.captionStrong(c),
     fontFamily: c.fontBodyBold,
     color: c.textMuted,
     fontVariant: ['tabular-nums'],

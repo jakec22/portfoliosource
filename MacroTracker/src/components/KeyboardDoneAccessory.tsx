@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { space, type } from '../theme/tokens';
 
 export const DONE_ACCESSORY_ID = 'keyboard-done-accessory';
 
@@ -42,14 +43,13 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     backgroundColor: c.cardMuted,
     borderTopWidth: 1,
     borderTopColor: c.border,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
   },
   done: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...type.bodyStrong(c),
     color: c.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xxs,
   },
 });

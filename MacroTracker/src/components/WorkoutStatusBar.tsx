@@ -6,6 +6,7 @@ import { startWatchRest, stopWatchRest } from '../services/watch';
 import { colorForBpm, maxHeartRate } from '../utils/heartRateZones';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   bpm: number | null;
@@ -145,8 +146,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     backgroundColor: c.card,
     borderTopWidth: 1,
     borderTopColor: c.border,
@@ -154,27 +155,27 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   barRunning: { backgroundColor: c.primarySoft },
 
   // Heart rate (left)
-  hrSide: { flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 110 },
+  hrSide: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minWidth: 110 },
   hrText: { justifyContent: 'center' },
-  hrValue: { fontSize: 20, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  hrUnit: { fontSize: 12, fontWeight: '600', color: c.textFaint },
-  hrLabel: { fontSize: 10, color: c.textFaint, marginTop: 1 },
-  hrIdle: { fontSize: 18, fontWeight: '700', color: c.textFaint },
+  hrValue: { ...type.heading(c), fontVariant: ['tabular-nums'] },
+  hrUnit: { ...type.captionStrong(c), color: c.textFaint },
+  hrLabel: { ...type.micro(c), color: c.textFaint, marginTop: 1 },
+  hrIdle: { ...type.subhead(c), color: c.textFaint },
 
   // Rest (right)
-  restSide: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  countdown: { fontSize: 22, fontWeight: '800', color: c.primaryDark, fontVariant: ['tabular-nums'] },
-  addBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: c.primarySoft },
-  addText: { fontSize: 14, fontWeight: '700', color: c.primaryDark },
-  skipBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: c.primary },
-  skipText: { fontSize: 14, fontWeight: '700', color: c.onPrimary },
+  restSide: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  countdown: { ...type.heading(c), color: c.primaryDark, fontVariant: ['tabular-nums'] },
+  addBtn: { paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.control, backgroundColor: c.primarySoft },
+  addText: { ...type.bodyStrong(c), color: c.primaryDark },
+  skipBtn: { paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.control, backgroundColor: c.primary },
+  skipText: { ...type.bodyStrong(c), color: c.onPrimary },
   restBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 10,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
     backgroundColor: c.primarySoft,
     borderWidth: 1,
     borderColor: `${c.primary}66`,
   },
-  restBtnText: { fontSize: 14, fontWeight: '700', color: c.primaryDark },
+  restBtnText: { ...type.bodyStrong(c), color: c.primaryDark },
 });

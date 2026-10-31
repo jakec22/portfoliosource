@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EXERCISE_CATALOG } from '../utils/exerciseList';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   visible: boolean;
@@ -131,64 +132,61 @@ const makeStyles = (c: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 16,
+      paddingHorizontal: space.lg,
       // Extra top clearance, not just SafeAreaView's edges=['top']: inside a
       // bare <Modal> that alone wasn't reliably clearing the status bar,
       // leaving Cancel rendered underneath the clock and unclickable —
       // same class of issue BarcodeScanner works around with a fixed offset.
-      paddingTop: 54,
-      paddingBottom: 12,
+      paddingTop: space.xxxl,
+      paddingBottom: space.md,
       borderBottomWidth: 1,
       borderBottomColor: c.border,
       backgroundColor: c.card,
     },
-    cancel: { fontSize: 16, color: c.textMuted, width: 50 },
-    title: { fontSize: 16, fontWeight: '700', color: c.text },
+    cancel: { ...type.body(c), color: c.textMuted, width: 50 },
+    title: { ...type.bodyStrong(c), color: c.text },
 
-    searchWrap: { padding: 16, paddingBottom: 8 },
+    searchWrap: { padding: space.lg, paddingBottom: space.sm },
     searchInput: {
+      ...type.body(c),
       backgroundColor: c.input,
-      borderRadius: 12,
+      borderRadius: radius.control,
       borderWidth: 1,
       borderColor: c.border,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      fontSize: 15,
+      paddingHorizontal: space.lg,
+      paddingVertical: space.md,
       color: c.text,
     },
 
-    content: { paddingHorizontal: 16, paddingBottom: 40 },
+    content: { paddingHorizontal: space.lg, paddingBottom: space.xxxl },
 
     customRow: {
       backgroundColor: c.primarySoft,
-      borderRadius: 12,
+      borderRadius: radius.card,
       borderWidth: 1,
       borderColor: `${c.primary}66`,
-      paddingVertical: 14,
-      paddingHorizontal: 14,
-      marginBottom: 16,
+      paddingVertical: space.lg,
+      paddingHorizontal: space.lg,
+      marginBottom: space.lg,
     },
-    customRowText: { fontSize: 15, fontWeight: '700', color: c.primaryDark },
+    customRowText: { ...type.bodyStrong(c), color: c.primaryDark },
 
-    emptyText: { fontSize: 14, color: c.textMuted, textAlign: 'center', marginTop: 20 },
+    emptyText: { ...type.body(c), color: c.textMuted, textAlign: 'center', marginTop: space.lg },
 
-    group: { marginBottom: 18 },
+    group: { marginBottom: space.lg },
     groupTitle: {
-      fontSize: 12,
-      fontWeight: '700',
+      ...type.overline(c),
       color: c.textFaint,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: 8,
+      marginBottom: space.sm,
     },
     row: {
       backgroundColor: c.card,
-      borderRadius: 10,
+      borderRadius: radius.card,
       borderWidth: 1,
       borderColor: c.border,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      marginBottom: 8,
+      paddingVertical: space.md,
+      paddingHorizontal: space.lg,
+      marginBottom: space.sm,
     },
-    rowText: { fontSize: 15, color: c.text, fontWeight: '500' },
+    rowText: { ...type.body(c), color: c.text },
   });

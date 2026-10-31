@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Polyline, Line, Circle, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { space, type } from '../theme/tokens';
 
 interface Props {
   /** Y values, oldest → newest (left → right). */
@@ -121,6 +122,6 @@ export function ChartEmpty({ text }: { text: string }) {
 }
 
 const makeStyles = (c: Theme) => StyleSheet.create({
-  empty: { paddingVertical: 32, alignItems: 'center' },
-  emptyText: { fontSize: 13, color: c.textFaint },
+  empty: { paddingVertical: space.xxl, alignItems: 'center' },
+  emptyText: { ...type.caption(c), color: c.textFaint },
 });

@@ -5,6 +5,7 @@ import type { ProgressHighlight } from '../utils/exerciseHistory';
 import { formatDuration } from '../utils/duration';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, type } from '../theme/tokens';
 
 interface Props {
   highlights: ProgressHighlight[];
@@ -103,49 +104,48 @@ export function ProgressExplorer({ highlights, onOpen }: Props) {
 
 const makeStyles = (c: Theme) =>
   StyleSheet.create({
-    chips: { gap: 8, paddingBottom: 14, paddingRight: 4 },
+    chips: { gap: space.sm, paddingBottom: space.lg, paddingRight: space.xs },
     chip: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-      paddingVertical: 7,
-      paddingHorizontal: 12,
-      borderRadius: 100,
+      gap: space.xs,
+      paddingVertical: space.sm,
+      paddingHorizontal: space.md,
+      borderRadius: radius.pill,
       borderWidth: 1,
       borderColor: c.border,
       backgroundColor: c.cardMuted,
       maxWidth: 190,
     },
     chipActive: { backgroundColor: c.primary, borderColor: c.primary },
-    chipText: { fontSize: 13, color: c.textMuted, fontFamily: c.fontBody, flexShrink: 1 },
+    chipText: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted, flexShrink: 1 },
     chipTextActive: { color: c.onPrimary, fontFamily: c.fontBodyBold },
     // A dot rather than the word "PR" — the chip row stays scannable, and the
     // badge in the headline spells it out for whichever chip is selected.
-    prDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.primary },
+    prDot: { width: 6, height: 6, borderRadius: radius.pill, backgroundColor: c.primary },
     prDotActive: { backgroundColor: c.onPrimary },
 
     headline: {
       flexDirection: 'row',
       alignItems: 'flex-end',
       justifyContent: 'space-between',
-      gap: 12,
-      marginBottom: 2,
+      gap: space.md,
+      marginBottom: space.xxs,
     },
     headlineLeft: { flexShrink: 1 },
-    headlineRight: { alignItems: 'flex-end', gap: 4 },
-    metricLabel: { fontSize: 12, color: c.textMuted, fontFamily: c.fontBody },
+    headlineRight: { alignItems: 'flex-end', gap: space.xs },
+    metricLabel: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted },
     metricValue: {
-      fontSize: 26,
-      fontFamily: c.fontDisplay,
+      ...type.title(c),
       color: c.text,
       fontVariant: ['tabular-nums'],
     },
-    delta: { fontSize: 14, fontFamily: c.fontBodyBold, fontVariant: ['tabular-nums'] },
+    delta: { ...type.bodyStrong(c), fontVariant: ['tabular-nums'] },
     prBadge: {
       backgroundColor: c.primarySoft,
-      borderRadius: 100,
-      paddingVertical: 3,
-      paddingHorizontal: 9,
+      borderRadius: radius.pill,
+      paddingVertical: space.xs,
+      paddingHorizontal: space.sm,
     },
-    prBadgeText: { fontSize: 11, color: c.primaryDark, fontFamily: c.fontBodyBold },
+    prBadgeText: { ...type.micro(c), fontFamily: c.fontBodyBold, color: c.primaryDark },
   });
