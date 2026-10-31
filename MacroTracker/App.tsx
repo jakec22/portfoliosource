@@ -16,7 +16,12 @@ import {
   Manrope_600SemiBold,
   Manrope_700Bold,
 } from '@expo-google-fonts/manrope';
-import { SpaceGrotesk_500Medium, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
 import {
   BricolageGrotesque_600SemiBold,
   BricolageGrotesque_700Bold,
@@ -24,6 +29,7 @@ import {
 import {
   NunitoSans_400Regular,
   NunitoSans_500Medium,
+  NunitoSans_600SemiBold,
   NunitoSans_700Bold,
 } from '@expo-google-fonts/nunito-sans';
 import { useTheme } from './src/theme/useTheme';
@@ -215,12 +221,15 @@ export default function App() {
     Manrope_500Medium,
     Manrope_600SemiBold,
     Manrope_700Bold,
+    SpaceGrotesk_400Regular,
     SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
     BricolageGrotesque_600SemiBold,
     BricolageGrotesque_700Bold,
     NunitoSans_400Regular,
     NunitoSans_500Medium,
+    NunitoSans_600SemiBold,
     NunitoSans_700Bold,
   });
 

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
+import { radius, space, tabular, type } from '../theme/tokens';
 
 interface Props {
   current: number;
@@ -54,36 +55,35 @@ export function MacroBar({ current, goal, label, color, unit = 'g' }: Props) {
 
 const makeStyles = (c: Theme) =>
   StyleSheet.create({
-    row: { gap: 7 },
+    row: { gap: space.sm },
     header: {
       flexDirection: 'row',
       alignItems: 'baseline',
       justifyContent: 'space-between',
-      gap: 12,
+      gap: space.md,
     },
     label: {
-      fontSize: 14,
-      fontFamily: c.fontBodyBold,
+      ...type.captionStrong(c),
       color: c.text,
     },
     readout: {
       // Keeps the numerals from shifting as values change width.
-      fontVariant: ['tabular-nums'],
+      ...tabular,
     },
     current: {
-      fontSize: 15,
+      ...type.body(c),
       fontFamily: c.fontDisplay,
       color: c.text,
     },
     goal: {
-      fontSize: 12,
+      ...type.caption(c),
       fontFamily: c.fontDisplay,
       color: c.textFaint,
     },
     over: { color: c.danger },
     track: {
       height: 6,
-      borderRadius: 3,
+      borderRadius: radius.hairline,
       // borderStrong, not cardMuted: at 6px tall the unfilled remainder has to
       // stay readable against the card, and cardMuted sits only ~1.1:1 from it
       // on the Modern pack's dark card — you'd see what you'd eaten but not
@@ -93,6 +93,6 @@ const makeStyles = (c: Theme) =>
     },
     fill: {
       height: '100%',
-      borderRadius: 3,
+      borderRadius: radius.hairline,
     },
   });

@@ -9,10 +9,16 @@
 // Font families reference the constant names exported by the
 // @expo-google-fonts/* packages loaded in App.tsx (see the font map there) —
 // those constants double as the RN `fontFamily` string once registered via
-// expo-font. `fontDisplay` carries headlines and hero numerals; `fontBody` /
-// `fontBodyBold` carry labels and supporting copy. Applying them is what makes
-// the packs read as different products rather than one layout recolored, so
-// screens should reach for them rather than falling back to the system face.
+// expo-font. `fontDisplay` carries headlines and hero numerals; the
+// `fontBody*` ladder carries labels and supporting copy.
+//
+// This module owns color and font *families* only. The sizes, line heights and
+// tracking those families are set at live in ./tokens.ts, along with the
+// spacing and radius scales — a pack changes personality, not proportion.
+// Reach for `type.*(c)` from there rather than writing a bare `fontSize`:
+// spreading one of those helpers is what actually applies the pack's font, and
+// it is the reason the packs read as different products instead of one layout
+// recolored.
 
 export type { ThemeMode } from '../types';
 import type { ThemeMode } from '../types';
@@ -74,8 +80,15 @@ export interface Theme {
   // fontWeight:'700' renders at the family's own weight, not bold. So weight is
   // selected by picking the family, and styles that set one of these should not
   // also set fontWeight.
+  // The ladder runs regular → body → semi → bold. Four steps rather than two,
+  // because a ramp with one weight for copy and one for everything emphatic
+  // collapses subheads, strong body and section labels into a single rank.
+  // Where a pack has no distinct semibold loaded, it doubles its bold; see the
+  // per-pack notes.
   fontDisplay: string; // headlines and hero numerals
+  fontBodyRegular: string; // long-form copy, muted captions
   fontBody: string; // body/labels at normal weight
+  fontBodySemi: string; // subheads, section labels, emphasis inside copy
   fontBodyBold: string; // body/labels at bold weight
 
   // Raw gray ramp (escape hatch for 1:1 hex replacements)
@@ -135,8 +148,12 @@ export const editorialTheme: Theme = {
   shadow: '#000000',
   overlay: 'rgba(0,0,0,0.5)',
 
+  // The only pack with a full four-step ladder: Manrope ships 400/500/600/700
+  // and all four are loaded.
   fontDisplay: 'DMSerifDisplay_400Regular',
+  fontBodyRegular: 'Manrope_400Regular',
   fontBody: 'Manrope_500Medium',
+  fontBodySemi: 'Manrope_600SemiBold',
   fontBodyBold: 'Manrope_700Bold',
 
   gray900: '#221F1B',
@@ -194,8 +211,16 @@ export const sportTechTheme: Theme = {
   shadow: '#000000',
   overlay: 'rgba(0,0,0,0.65)',
 
+  // Space Grotesk has no lighter face loaded than 400, which suits this pack:
+  // the sport-tech voice wants density, not air. The open question here is the
+  // display face — it is the same Space Grotesk Bold the body ladder tops out
+  // at, so this pack separates on color and size but not on voice. A distinct
+  // display face is what would make it read as a third product rather than a
+  // dark recolor.
   fontDisplay: 'SpaceGrotesk_700Bold',
+  fontBodyRegular: 'SpaceGrotesk_400Regular',
   fontBody: 'SpaceGrotesk_500Medium',
+  fontBodySemi: 'SpaceGrotesk_600SemiBold',
   fontBodyBold: 'SpaceGrotesk_700Bold',
 
   gray900: '#F5F7FA',
@@ -252,8 +277,13 @@ export const warmWellnessTheme: Theme = {
   shadow: '#7A4B2E',
   overlay: 'rgba(59,46,36,0.5)',
 
+  // Bricolage's 600 is loaded too, but stays on the display face rather than
+  // being borrowed for body: mixing the two grotesques inside a paragraph
+  // reads as a bug rather than as emphasis.
   fontDisplay: 'BricolageGrotesque_700Bold',
+  fontBodyRegular: 'NunitoSans_400Regular',
   fontBody: 'NunitoSans_500Medium',
+  fontBodySemi: 'NunitoSans_600SemiBold',
   fontBodyBold: 'NunitoSans_700Bold',
 
   gray900: '#3B2E24',
