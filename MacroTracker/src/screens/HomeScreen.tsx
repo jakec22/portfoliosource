@@ -193,15 +193,12 @@ export function HomeScreen({ navigation }: Props) {
           />
         )}
 
-        {/* Calorie Summary */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Calories</Text>
+        {/* Calories and macros are one question, so they are one card. Split
+            across two equal cards they read as two peers, and the screen's
+            primary answer had the same weight as everything under it. */}
+        <View style={[styles.card, styles.todayCard]}>
           <CalorieSummary consumed={totals.calories} goal={goals.calories} />
-        </View>
-
-        {/* Macros */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Macros</Text>
+          <View style={styles.todayDivider} />
           <View style={styles.macroList}>
             <MacroBar
               current={totals.protein}
@@ -513,6 +510,14 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
+  },
+  // The one card that answers "where am I today", so it carries more room
+  // than the supporting cards below it.
+  todayCard: { paddingVertical: space.xl },
+  todayDivider: {
+    height: 1,
+    backgroundColor: c.border,
+    marginVertical: space.lg,
   },
   cardTitle: {
     ...type.bodyStrong(c),

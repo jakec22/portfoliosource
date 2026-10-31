@@ -416,6 +416,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                           <View style={styles.amountControl}>
                             <TouchableOpacity
                               style={styles.stepBtn}
+                              hitSlop={5}
                               onPress={() => adjustAmount(it.id, -1)}
                             >
                               <Text style={styles.stepBtnText}>−</Text>
@@ -429,6 +430,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                             />
                             <TouchableOpacity
                               style={styles.stepBtn}
+                              hitSlop={5}
                               onPress={() => adjustAmount(it.id, 1)}
                             >
                               <Text style={styles.stepBtnText}>+</Text>

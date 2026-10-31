@@ -674,7 +674,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   : `Amount in ${unit}`}
               </Text>
               <View style={styles.servingsControl}>
-                <TouchableOpacity style={styles.servingsBtn} onPress={() => adjustAmount(-1)}>
+                <TouchableOpacity style={styles.servingsBtn} hitSlop={4} onPress={() => adjustAmount(-1)}>
                   <Text style={styles.servingsBtnText}>−</Text>
                 </TouchableOpacity>
                 <TextInput
@@ -685,7 +685,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   inputAccessoryViewID={DONE_ACCESSORY_ID}
                   selectTextOnFocus
                 />
-                <TouchableOpacity style={styles.servingsBtn} onPress={() => adjustAmount(1)}>
+                <TouchableOpacity style={styles.servingsBtn} hitSlop={4} onPress={() => adjustAmount(1)}>
                   <Text style={styles.servingsBtnText}>+</Text>
                 </TouchableOpacity>
               </View>

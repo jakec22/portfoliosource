@@ -477,6 +477,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           <View style={[styles.hydrationRow, { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
+              hitSlop={2}
               onPress={() => setDefaultRestSeconds(defaultRestSeconds - 15)}
             >
               <Text style={styles.hydrationBtnText}>−</Text>
@@ -487,6 +488,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             </View>
             <TouchableOpacity
               style={styles.hydrationBtn}
+              hitSlop={2}
               onPress={() => setDefaultRestSeconds(defaultRestSeconds + 15)}
             >
               <Text style={styles.hydrationBtnText}>+</Text>
@@ -541,6 +543,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                   <View style={[styles.hydrationRow, { marginTop: space.md }]}>
                     <TouchableOpacity
                       style={styles.hydrationBtn}
+                      hitSlop={2}
                       onPress={() => adjustReminderTime(key, -15)}
                     >
                       <Text style={styles.hydrationBtnText}>−</Text>
@@ -553,6 +556,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                     </View>
                     <TouchableOpacity
                       style={styles.hydrationBtn}
+                      hitSlop={2}
                       onPress={() => adjustReminderTime(key, 15)}
                     >
                       <Text style={styles.hydrationBtnText}>+</Text>
@@ -578,6 +582,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           <View style={[styles.hydrationRow, { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
+              hitSlop={2}
               onPress={() => setWaterGoal(waterGoal - waterIncrement)}
             >
               <Text style={styles.hydrationBtnText}>−</Text>
@@ -588,6 +593,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             </View>
             <TouchableOpacity
               style={styles.hydrationBtn}
+              hitSlop={2}
               onPress={() => setWaterGoal(waterGoal + waterIncrement)}
             >
               <Text style={styles.hydrationBtnText}>+</Text>
@@ -597,6 +603,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           <View style={[styles.hydrationRow, { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.border }]}>
             <TouchableOpacity
               style={styles.hydrationBtn}
+              hitSlop={2}
               onPress={() => setWaterIncrement(waterIncrement - 1)}
             >
               <Text style={styles.hydrationBtnText}>−</Text>
@@ -607,6 +614,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             </View>
             <TouchableOpacity
               style={styles.hydrationBtn}
+              hitSlop={2}
               onPress={() => setWaterIncrement(waterIncrement + 1)}
             >
               <Text style={styles.hydrationBtnText}>+</Text>

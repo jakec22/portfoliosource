@@ -77,6 +77,8 @@ export function BuildMealScreen({ route, navigation }: Props) {
 
   const [description, setDescription] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  // Shown under the description box, where the text that caused it is.
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Food[]>([]);
@@ -123,14 +125,15 @@ export function BuildMealScreen({ route, navigation }: Props) {
   async function handleGenerate() {
     const text = description.trim();
     if (text.length < 3) {
-      Alert.alert('Describe your meal', 'Type what you want to eat and roughly how much.');
+      setAiError('Type what you ate and roughly how much.');
       return;
     }
+    setAiError(null);
     setAiLoading(true);
     try {
       const analyzed = await analyzeMealText(text);
       if (analyzed.length === 0) {
-        Alert.alert('Nothing found', 'Try describing the foods and portions more specifically.');
+        setAiError('No foods recognised. Name the foods and their portions.');
         return;
       }
       const now = Date.now();
@@ -363,10 +366,11 @@ export function BuildMealScreen({ route, navigation }: Props) {
                 }
                 placeholderTextColor={c.textFaint}
                 value={description}
-                onChangeText={setDescription}
+                onChangeText={(v) => { setDescription(v); setAiError(null); }}
                 multiline
                 textAlignVertical="top"
               />
+              {aiError ? <Text style={styles.aiError}>{aiError}</Text> : null}
               <TouchableOpacity
                 style={[
                   styles.aiBtn,
@@ -475,6 +479,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
                             <View style={styles.amountControl}>
                               <TouchableOpacity
                                 style={styles.stepBtn}
+                                hitSlop={5}
                                 onPress={() => adjustAmount(it.id, -1)}
                               >
                                 <Text style={styles.stepBtnText}>−</Text>
@@ -493,6 +498,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
                               />
                               <TouchableOpacity
                                 style={styles.stepBtn}
+                                hitSlop={5}
                                 onPress={() => adjustAmount(it.id, 1)}
                               >
                                 <Text style={styles.stepBtnText}>+</Text>
@@ -678,6 +684,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   aiLabel: {
     ...type.captionStrong(c),
     color: c.gray700,
+  },
+  aiError: {
+    ...type.caption(c),
+    color: c.danger,
+    marginTop: space.xs,
   },
   aiInput: {
     ...type.body(c),

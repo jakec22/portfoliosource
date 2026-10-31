@@ -31,21 +31,27 @@ export function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  // One message under the form. Sign-in failures belong beside the fields the
+  // user has to correct, not behind a dialog they must dismiss first.
+  const [formError, setFormError] = useState<string | null>(null);
 
   const isSignup = mode === 'signup';
 
   async function handleEmailAuth() {
     if (!email.trim() || !password) {
-      Alert.alert('Missing info', 'Enter your email and password.');
+      setFormError(
+        !email.trim() ? 'Enter your email address.' : 'Enter your password.'
+      );
       return;
     }
+    setFormError(null);
     setBusy(true);
     try {
       const { error } = isSignup
         ? await signUpWithEmail(email, password)
         : await signInWithEmail(email, password);
       if (error) {
-        Alert.alert('Sign-in failed', error.message);
+        setFormError(error.message);
       } else if (isSignup) {
         Alert.alert(
           'Check your email',
@@ -81,7 +87,7 @@ export function AuthScreen() {
     try {
       await signInWithGoogle();
     } catch (e: any) {
-      Alert.alert('Google sign-in failed', e?.message ?? 'Please try again.');
+      setFormError(e?.message ?? 'Google sign-in failed. Please try again.');
     } finally {
       setBusy(false);
     }
@@ -123,7 +129,7 @@ export function AuthScreen() {
             autoCorrect={false}
             keyboardType="email-address"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(v) => { setEmail(v); setFormError(null); }}
             editable={!busy}
           />
           <TextInput
@@ -132,9 +138,11 @@ export function AuthScreen() {
             placeholderTextColor={c.textFaint}
             secureTextEntry
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(v) => { setPassword(v); setFormError(null); }}
             editable={!busy}
           />
+
+          {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
           {!isSignup && (
             <TouchableOpacity
@@ -232,6 +240,12 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     textAlign: 'center',
     marginTop: space.xs,
     marginBottom: space.xl,
+  },
+  formError: {
+    ...type.caption(c),
+    color: c.danger,
+    marginTop: space.xs,
+    marginBottom: space.xs,
   },
   input: {
     ...type.body(c),

@@ -4,6 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { space, type } from '../theme/tokens';
+import { CountUp } from './CountUp';
 
 interface Props {
   consumed: number;
@@ -49,14 +50,16 @@ export function CalorieSummary({ consumed, goal, size = 160 }: Props) {
           />
         </Svg>
         <View style={[styles.center, { width: size, height: size }]}>
-          <Text style={[styles.consumedValue, over && styles.overValue]}>
-            {Math.round(consumed)}
-          </Text>
+          <CountUp
+            value={Math.round(consumed)}
+            style={[styles.consumedValue, over && styles.overValue]}
+          />
           <Text style={styles.consumedLabel}>consumed</Text>
           <View style={styles.divider} />
-          <Text style={[styles.remainingValue, over && styles.overValue]}>
-            {Math.abs(Math.round(remaining))}
-          </Text>
+          <CountUp
+            value={Math.abs(Math.round(remaining))}
+            style={[styles.remainingValue, over && styles.overValue]}
+          />
           <Text style={styles.remainingLabel}>
             {over ? 'over' : 'remaining'}
           </Text>
