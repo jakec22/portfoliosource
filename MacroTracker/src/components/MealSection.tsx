@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   TextInput,
   Platform,
   Modal,
@@ -21,6 +20,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { FoodEntry, MealType, ServingUnit } from '../types';
 import { useStore, sumMacros } from '../store/useStore';
+import { useSnackbar } from '../store/useSnackbar';
 import { availableUnits, defaultAmount, formatAmount, toMultiplier } from '../utils/serving';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
@@ -88,20 +88,18 @@ export function MealSection({ meal, date, onAddFood }: Props) {
   const updateEntry = useStore((s) => s.updateEntry);
 
   const totals = useMemo(() => sumMacros(entries), [entries]);
+  const addEntry = useStore((s) => s.addEntry);
+  const showSnackbar = useSnackbar((s) => s.show);
 
+  // Removes straight away and offers the way back, rather than asking first.
+  // The swipe is already a deliberate gesture, so a confirmation on top of it
+  // taxes every intended delete to guard the rare accidental one.
   function handleDelete(entry: FoodEntry) {
-    Alert.alert(
-      'Remove Food',
-      `Remove ${entry.food.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => removeEntry(date, entry.id),
-        },
-      ]
-    );
+    removeEntry(date, entry.id);
+    showSnackbar(`Removed ${entry.food.name}`, {
+      label: 'Undo',
+      onPress: () => addEntry(entry),
+    });
   }
 
   function openEdit(entry: FoodEntry) {
@@ -136,20 +134,28 @@ export function MealSection({ meal, date, onAddFood }: Props) {
     setEditing({ ...editing, amount: String(next) });
   }
 
+  // Derived, not stored: the message shows under the field as the user types
+  // instead of interrupting them with a modal after they commit. Null means
+  // the amount is good.
+  const amountError = useMemo(() => {
+    if (!editing) return null;
+    const parsed = parseFloat(editing.amount);
+    if (!editing.amount.trim()) return 'Enter an amount.';
+    if (!Number.isFinite(parsed) || parsed <= 0) return 'Amount must be more than 0.';
+    if (toMultiplier(editing.entry.food, parsed, editing.unit) <= 0) {
+      return `That is not a usable amount in ${editing.unit}.`;
+    }
+    return null;
+  }, [editing]);
+
   function handleSave() {
-    if (!editing) return;
+    if (!editing || amountError) return;
     const { entry, unit, amount } = editing;
-    const parsed = parseFloat(amount);
-    if (!parsed || parsed <= 0) {
-      Alert.alert('Invalid amount', 'Please enter a valid amount.');
-      return;
-    }
-    const servings = toMultiplier(entry.food, parsed, unit);
-    if (servings <= 0) {
-      Alert.alert('Invalid amount', 'Please enter a valid amount.');
-      return;
-    }
-    updateEntry(date, entry.id, { servings, amount: parsed, unit });
+    updateEntry(date, entry.id, {
+      servings: toMultiplier(entry.food, parseFloat(amount), unit),
+      amount: parseFloat(amount),
+      unit,
+    });
     setEditing(null);
   }
 
@@ -261,8 +267,10 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                 <Text style={styles.editTitle} numberOfLines={1}>
                   {editing.entry.food.name}
                 </Text>
-                <TouchableOpacity onPress={handleSave}>
-                  <Text style={styles.editSave}>Save</Text>
+                <TouchableOpacity onPress={handleSave} disabled={!!amountError}>
+                  <Text style={[styles.editSave, amountError && styles.editSaveDisabled]}>
+                    Save
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -330,7 +338,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                     <Text style={styles.servingsBtnText}>−</Text>
                   </TouchableOpacity>
                   <TextInput
-                    style={styles.servingsInput}
+                    style={[styles.servingsInput, amountError && styles.servingsInputError]}
                     value={editing.amount}
                     onChangeText={(v) => setEditing({ ...editing, amount: v })}
                     keyboardType="decimal-pad"
@@ -343,6 +351,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                   </TouchableOpacity>
                 </View>
               </View>
+              {amountError ? <Text style={styles.fieldError}>{amountError}</Text> : null}
               {amountFocused && (
                 <TouchableOpacity
                   style={styles.inlineDoneBtn}
@@ -356,9 +365,9 @@ export function MealSection({ meal, date, onAddFood }: Props) {
               <TouchableOpacity
                 style={styles.deleteBtn}
                 onPress={() => {
+                  const entry = editing.entry;
                   setEditing(null);
-                  // Small delay so the modal finishes closing before the Alert.
-                  setTimeout(() => handleDelete(editing.entry), 300);
+                  handleDelete(entry);
                 }}
               >
                 <Text style={styles.deleteBtnText}>Remove from log</Text>
@@ -510,6 +519,14 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'center',
   },
   servingsBtnText: { ...type.heading(c), color: c.gray700 },
+  editSaveDisabled: { color: c.textFaint },
+  servingsInputError: { borderColor: c.danger },
+  fieldError: {
+    ...type.caption(c),
+    color: c.danger,
+    marginTop: space.xs,
+    textAlign: 'center',
+  },
   servingsInput: {
     ...type.body(c),
     fontFamily: c.fontBodySemi,

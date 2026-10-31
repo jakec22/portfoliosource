@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
+import { useSnackbar } from '../store/useSnackbar';
 import { getPastDays, displayDate } from '../utils/date';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
 import { WorkoutSession } from '../types';
@@ -30,6 +31,8 @@ export function HistoryScreen({ navigation }: Props) {
   const goals = useStore((s) => s.goals);
   const workoutHistory = useStore((s) => s.workoutHistory);
   const deleteWorkout = useStore((s) => s.deleteWorkout);
+  const restoreWorkout = useStore((s) => s.restoreWorkout);
+  const showSnackbar = useSnackbar((s) => s.show);
   const [visibleDays, setVisibleDays] = useState(PAGE);
   const days = getPastDays(visibleDays);
 
@@ -175,7 +178,13 @@ export function HistoryScreen({ navigation }: Props) {
                           viewOnly: true,
                         })
                       }
-                      onDelete={() => deleteWorkout(w.id)}
+                      onDelete={() => {
+                        deleteWorkout(w.id);
+                        showSnackbar('Workout deleted', {
+                          label: 'Undo',
+                          onPress: () => restoreWorkout(w),
+                        });
+                      }}
                     />
                   ))}
                 </View>

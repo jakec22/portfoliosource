@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Food, MealType, SavedMeal, ServingUnit } from '../types';
 import { useStore } from '../store/useStore';
+import { useSnackbar } from '../store/useSnackbar';
 import { searchFoods } from '../data/foods';
 import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
 import { analyzeLabelPhoto } from '../services/mealPhoto';
@@ -83,6 +84,8 @@ export function LogFoodScreen({ route, navigation }: Props) {
   const toggleFavoriteFood = useStore((s) => s.toggleFavoriteFood);
   const saveMealToStore = useStore((s) => s.saveMeal);
   const deleteSavedMeal = useStore((s) => s.deleteSavedMeal);
+  const restoreSavedMeal = useStore((s) => s.restoreSavedMeal);
+  const showSnackbar = useSnackbar((s) => s.show);
   const copyMealFromDate = useStore((s) => s.copyMealFromDate);
   const logs = useStore((s) => s.logs);
 
@@ -445,7 +448,13 @@ export function LogFoodScreen({ route, navigation }: Props) {
                             </Text>
                           </View>
                           <TouchableOpacity
-                            onPress={() => deleteSavedMeal(sm.id)}
+                            onPress={() => {
+                              deleteSavedMeal(sm.id);
+                              showSnackbar(`Deleted ${sm.name}`, {
+                                label: 'Undo',
+                                onPress: () => restoreSavedMeal(sm),
+                              });
+                            }}
                             hitSlop={{ top: 8, bottom: 8, left: 12, right: 8 }}
                           >
                             <Icon name="close" size="sm" color={c.textFaint} />

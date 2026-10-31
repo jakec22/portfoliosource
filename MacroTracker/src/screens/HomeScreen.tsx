@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
+import { useSnackbar } from '../store/useSnackbar';
 import { todayString, displayDate, formatDate } from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
 import { MacroBar } from '../components/MacroBar';
@@ -43,6 +44,8 @@ export function HomeScreen({ navigation }: Props) {
   const dateEntries = useStore((s) => s.logs[selectedDate]);
   const workoutHistory = useStore((s) => s.workoutHistory);
   const deleteWorkout = useStore((s) => s.deleteWorkout);
+  const restoreWorkout = useStore((s) => s.restoreWorkout);
+  const showSnackbar = useSnackbar((s) => s.show);
   const waterIntake = useStore((s) => s.waterIntake);
   const goalsUpdateNotice = useStore((s) => s.goalsUpdateNotice);
   const dismissGoalsUpdateNotice = useStore((s) => s.dismissGoalsUpdateNotice);
@@ -430,7 +433,13 @@ export function HomeScreen({ navigation }: Props) {
                     viewOnly: true,
                   })
                 }
-                onDelete={() => deleteWorkout(w.id)}
+                onDelete={() => {
+                        deleteWorkout(w.id);
+                        showSnackbar('Workout deleted', {
+                          label: 'Undo',
+                          onPress: () => restoreWorkout(w),
+                        });
+                      }}
               />
             ))}
           </View>

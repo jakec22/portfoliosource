@@ -227,6 +227,7 @@ export interface AppState {
   deleteCustomFood: (id: string) => void;
   saveMeal: (meal: SavedMeal) => void;
   deleteSavedMeal: (id: string) => void;
+  restoreSavedMeal: (meal: SavedMeal) => void;
   copyMealFromDate: (fromDate: string, toDate: string, meal: MealType) => number;
   updateEntry: (date: string, entryId: string, patch: { servings: number; amount?: number; unit?: ServingUnit }) => void;
   addWater: (date: string, oz: number) => void;
@@ -248,12 +249,14 @@ export interface AppState {
   // Workout templates
   saveTemplate: (template: WorkoutTemplate) => void;
   deleteTemplate: (id: string) => void;
+  restoreTemplate: (tpl: WorkoutTemplate) => void;
   // Active workout lifecycle
   startWorkout: (template?: WorkoutTemplate, activityType?: number) => void;
   cancelWorkout: () => void;
   finishWorkout: () => void;
   attachWorkoutHeartRate: (id: string, samples: HeartRateSample[]) => void;
   deleteWorkout: (id: string) => void;
+  restoreWorkout: (w: WorkoutSession) => void;
   addWorkoutExercise: (name: string) => void;
   removeWorkoutExercise: (exerciseId: string) => void;
   addWorkoutSet: (exerciseId: string) => void;

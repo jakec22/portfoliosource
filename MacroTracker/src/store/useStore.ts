@@ -351,6 +351,11 @@ export const useStore = create<AppState>()(
         syncSettings();
       },
 
+      restoreSavedMeal: (meal) => {
+        set((state) => ({ savedMeals: [meal, ...state.savedMeals] }));
+        syncSettings();
+      },
+
       copyMealFromDate: (fromDate: string, toDate: string, meal: MealType): number => {
         const fromEntries = (get().logs[fromDate] ?? []).filter((e) => e.meal === meal);
         if (fromEntries.length === 0) return 0;
@@ -389,6 +394,11 @@ export const useStore = create<AppState>()(
         set((state) => ({
           workoutTemplates: state.workoutTemplates.filter((t) => t.id !== id),
         }));
+        syncSettings();
+      },
+
+      restoreTemplate: (tpl) => {
+        set((state) => ({ workoutTemplates: [tpl, ...state.workoutTemplates] }));
         syncSettings();
       },
 
@@ -439,6 +449,18 @@ export const useStore = create<AppState>()(
           workoutHistory: state.workoutHistory.filter((w) => w.id !== id),
         }));
         void deleteWorkoutRemote(id);
+      },
+
+      // Puts back a workout the user has just deleted, so the delete can be
+      // offered without a confirmation. Re-sorted rather than unshifted: the
+      // undone workout belongs where its date puts it, not at the top.
+      restoreWorkout: (w) => {
+        set((state) => ({
+          workoutHistory: [w, ...state.workoutHistory]
+            .sort((a, b) => (a.date === b.date ? b.startedAt - a.startedAt : a.date < b.date ? 1 : -1))
+            .slice(0, 100),
+        }));
+        void pushWorkout(w);
       },
 
       attachWorkoutHeartRate: (id, samples) => {

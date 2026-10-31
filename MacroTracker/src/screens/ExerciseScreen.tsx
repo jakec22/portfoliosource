@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
+import { useSnackbar } from '../store/useSnackbar';
 import { WorkoutTemplate } from '../types';
 import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
@@ -45,6 +46,8 @@ export function ExerciseScreen({ navigation }: Props) {
   const history = useStore((s) => s.workoutHistory);
   const startWorkout = useStore((s) => s.startWorkout);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
+  const restoreTemplate = useStore((s) => s.restoreTemplate);
+  const showSnackbar = useSnackbar((s) => s.show);
   const saveTemplate = useStore((s) => s.saveTemplate);
 
   // One merged progress list — PR'd lifts first, then biggest improvers.
@@ -111,10 +114,8 @@ export function ExerciseScreen({ navigation }: Props) {
   }
 
   function handleDeleteTemplate(t: WorkoutTemplate) {
-    Alert.alert('Delete template', `Delete "${t.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteTemplate(t.id) },
-    ]);
+    deleteTemplate(t.id);
+    showSnackbar(`Deleted ${t.name}`, { label: 'Undo', onPress: () => restoreTemplate(t) });
   }
 
   function handleShareTemplate(t: WorkoutTemplate) {
