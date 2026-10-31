@@ -26,6 +26,7 @@ import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/Keyboard
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -336,7 +337,10 @@ export function LogFoodScreen({ route, navigation }: Props) {
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backText}>‹ Back</Text>
+            <View style={styles.backRow}>
+              <Icon name="back" size="sm" color={c.primary} />
+              <Text style={styles.backText}>Back</Text>
+            </View>
           </TouchableOpacity>
           <Text style={styles.title}>Add to {MEAL_LABELS[meal]}</Text>
           <View style={styles.backBtn} />
@@ -344,7 +348,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
 
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Icon name="search" size="sm" color={c.textFaint} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search foods..."
@@ -368,14 +372,14 @@ export function LogFoodScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate('MealPhoto', { meal, date })}
             activeOpacity={0.8}
           >
-            <Text style={styles.scanBtnIcon}>✨</Text>
+            <Icon name="aiEstimate" size="md" color={c.onPrimary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.mealBtn}
             onPress={() => navigation.navigate('BuildMeal', { meal, date })}
             activeOpacity={0.8}
           >
-            <Text style={styles.scanBtnIcon}>🍽️</Text>
+            <Icon name="meal" size="md" color={c.onPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -444,7 +448,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
                             onPress={() => deleteSavedMeal(sm.id)}
                             hitSlop={{ top: 8, bottom: 8, left: 12, right: 8 }}
                           >
-                            <Text style={styles.savedMealDelete}>✕</Text>
+                            <Icon name="close" size="sm" color={c.textFaint} />
                           </TouchableOpacity>
                         </TouchableOpacity>
                       );
@@ -459,7 +463,8 @@ export function LogFoodScreen({ route, navigation }: Props) {
                     onPress={handleCopyYesterday}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.shortcutBtnText}>📋  Copy yesterday</Text>
+                    <Icon name="templates" size="sm" color={c.gray700} />
+                    <Text style={styles.shortcutBtnText}>Copy yesterday</Text>
                   </TouchableOpacity>
                   {mealEntries.length > 0 && (
                     <TouchableOpacity
@@ -467,7 +472,8 @@ export function LogFoodScreen({ route, navigation }: Props) {
                       onPress={handleSaveMeal}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.shortcutBtnText}>💾  Save this meal</Text>
+                      <Icon name="save" size="sm" color={c.gray700} />
+                      <Text style={styles.shortcutBtnText}>Save this meal</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -543,9 +549,11 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   onPress={() => toggleFavoriteFood(item)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
                 >
-                  <Text style={[styles.starBtnText, isFav && styles.starBtnActive]}>
-                    {isFav ? '★' : '☆'}
-                  </Text>
+                  <Icon
+                    name={isFav ? 'favorite' : 'favoriteOff'}
+                    size="md"
+                    color={isFav ? c.warning : c.textFaint}
+                  />
                 </TouchableOpacity>
                 <View style={styles.foodItemRight}>
                   <Text style={styles.foodCals}>
@@ -723,6 +731,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     padding: space.xs,
     width: 60,
   },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   backText: {
     ...type.body(c),
     fontFamily: c.fontBodySemi,
@@ -743,6 +752,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: space.sm,
     paddingHorizontal: space.lg,
     backgroundColor: c.card,
     borderRadius: radius.card,
@@ -791,9 +801,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  scanBtnIcon: {
-      ...type.heading(c),
-  },
   scanOverlay: {
     position: 'absolute',
     top: 0,
@@ -815,10 +822,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     fontFamily: c.fontBodySemi,
     marginTop: space.md,
     color: c.gray700,
-  },
-  searchIcon: {
-    ...type.body(c),
-    marginRight: space.sm,
   },
   searchInput: {
     ...type.body(c),
@@ -882,6 +885,9 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   shortcutBtn: {
     flex: 1,
+    flexDirection: 'row',
+    gap: space.sm,
+    justifyContent: 'center',
     backgroundColor: c.cardMuted,
     borderRadius: radius.control,
     paddingVertical: space.md,
@@ -915,23 +921,10 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     color: c.textFaint,
     marginTop: space.xxs,
   },
-  savedMealDelete: {
-    ...type.body(c),
-    fontFamily: c.fontBodySemi,
-    color: c.textFaint,
-    paddingLeft: space.md,
-  },
   starBtn: {
     paddingHorizontal: space.sm,
     justifyContent: 'center',
     alignSelf: 'center',
-  },
-  starBtnText: {
-    ...type.heading(c),
-    color: c.textFaint,
-  },
-  starBtnActive: {
-    color: c.warning,
   },
   unitRow: {
     flexDirection: 'row',

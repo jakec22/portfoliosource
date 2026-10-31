@@ -15,6 +15,7 @@ import { updatePassword } from '../services/auth';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 interface Props {
   onDone: () => void;
@@ -56,7 +57,7 @@ export function ResetPasswordScreen({ onDone }: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.content}>
-          <Text style={styles.logo}>🔑</Text>
+          <Icon name="key" size="hero" color={c.primary} style={styles.logo} />
           <Text style={styles.title}>Set new password</Text>
           <Text style={styles.subtitle}>
             Choose a password you haven't used before.

@@ -17,6 +17,7 @@ import { progressHighlights } from '../utils/exerciseHistory';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 interface Props {
   navigation: any;
@@ -76,7 +77,10 @@ export function KeyInsightsScreen({ navigation }: Props) {
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.back}>‹ Back</Text>
+          <View style={styles.backRow}>
+              <Icon name="back" size="sm" color={c.primary} />
+              <Text style={styles.back}>Back</Text>
+            </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Key Insights</Text>
         <View style={styles.backSpacer} />
@@ -119,7 +123,11 @@ export function KeyInsightsScreen({ navigation }: Props) {
                   Logged {insights.loggedDays}/7 days
                 </Text>
                 {insights.streak > 0 && (
-                  <Text style={styles.insightMeta}>· 🔥 {insights.streak}-day streak</Text>
+                  <View style={styles.insightStreak}>
+                    <Text style={styles.insightMeta}>· </Text>
+                    <Icon name="streak" size="xs" color={c.warning} />
+                    <Text style={styles.insightMeta}> {insights.streak}-day streak</Text>
+                  </View>
                 )}
                 {insights.weightChange != null && (
                   <Text style={styles.insightMeta}>
@@ -315,6 +323,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderBottomColor: c.border,
     backgroundColor: c.card,
   },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   back: { ...type.bodyStrong(c), color: c.primary, width: 64 },
   backSpacer: { width: 64 },
   headerTitle: { ...type.subhead(c), fontFamily: c.fontDisplay, flex: 1, textAlign: 'center', color: c.text },
@@ -361,6 +370,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     alignItems: 'center',
     marginTop: space.md,
   },
+  insightStreak: { flexDirection: 'row', alignItems: 'center' },
   insightMeta: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted },
   insightBest: {
     ...type.captionStrong(c),

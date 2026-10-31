@@ -25,6 +25,7 @@ import { availableUnits, defaultAmount, formatAmount, toMultiplier } from '../ut
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from './Icon';
 
 const ACTION_WIDTH = 72;
 
@@ -47,7 +48,7 @@ function RightDeleteAction({
         onPress={onDelete}
         activeOpacity={0.7}
       >
-        <Text style={styles.deleteActionText}>✕</Text>
+        <Icon name="close" size="md" color={c.onPrimary} />
       </TouchableOpacity>
     </Reanimated.View>
   );
@@ -180,7 +181,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
         </View>
         <View style={styles.headerRight}>
           <Text style={styles.mealCals}>{Math.round(totals.calories)} kcal</Text>
-          <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+          <Icon name={expanded ? 'up' : 'down'} size="sm" color={c.textFaint} />
         </View>
       </TouchableOpacity>
 
@@ -219,7 +220,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
                       {'  '}F:{Math.round(entry.food.macros.fat * entry.servings)}g
                     </Text>
                   </View>
-                  <Text style={styles.editChevron}>›</Text>
+                  <Icon name="forward" size="md" color={c.textFaint} />
                 </TouchableOpacity>
               </ReanimatedSwipeable>
             ))
@@ -418,7 +419,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   entryMacros: { alignItems: 'flex-end', marginRight: space.xs },
   entryCals: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.text },
   entryMacroDetail: { ...type.micro(c), color: c.textFaint, marginTop: space.xxs },
-  editChevron: { ...type.heading(c), color: c.textFaint },
   deleteAction: {
     width: ACTION_WIDTH,
     justifyContent: 'center',
@@ -431,7 +431,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteActionText: { ...type.heading(c), color: '#fff' },
   addButton: { paddingVertical: space.md, alignItems: 'center' },
   addButtonText: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.primary },
 

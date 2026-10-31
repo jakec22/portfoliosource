@@ -29,6 +29,7 @@ import {
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 interface Props {
   navigation: any;
@@ -165,7 +166,7 @@ export function HomeScreen({ navigation }: Props) {
         {/* Date Navigation */}
         <View style={styles.dateNav}>
           <TouchableOpacity onPress={() => goDay(-1)} style={styles.navBtn}>
-            <Text style={styles.navArrow}>‹</Text>
+            <Icon name="back" size="lg" color={c.gray700} />
           </TouchableOpacity>
           <Text style={styles.dateLabel}>{displayDate(selectedDate)}</Text>
           <TouchableOpacity
@@ -173,7 +174,7 @@ export function HomeScreen({ navigation }: Props) {
             style={[styles.navBtn, isToday && styles.navBtnDisabled]}
             disabled={isToday}
           >
-            <Text style={[styles.navArrow, isToday && styles.navArrowDisabled]}>›</Text>
+            <Icon name="forward" size="lg" color={isToday ? c.textFaint : c.gray700} />
           </TouchableOpacity>
         </View>
 
@@ -231,7 +232,10 @@ export function HomeScreen({ navigation }: Props) {
             HealthKit rather than showing a misleading zero. */}
         {activeEnergy != null && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>🔥 Active Energy</Text>
+            <View style={styles.cardTitleRow}>
+              <Icon name="streak" size="sm" color={c.gray700} />
+              <Text style={styles.cardTitleInline}>Active Energy</Text>
+            </View>
             <View style={styles.energyRow}>
               <Text style={styles.energyValue}>{activeEnergy}</Text>
               <Text style={styles.energyUnit}>kcal burned</Text>
@@ -247,8 +251,9 @@ export function HomeScreen({ navigation }: Props) {
               <Text style={styles.cardTitle}>Today's Summary</Text>
               {currentStreak > 0 && (
                 <View style={styles.streakBadge}>
+                  <Icon name="streak" size="xs" color={c.warning} />
                   <Text style={styles.streakBadgeText}>
-                    🔥 {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+                    {currentStreak} day{currentStreak !== 1 ? 's' : ''}
                   </Text>
                 </View>
               )}
@@ -259,13 +264,18 @@ export function HomeScreen({ navigation }: Props) {
               <Text style={styles.summaryCalNum}>{Math.round(totals.calories)}</Text>
               <Text style={styles.summaryCalSep}> / {goals.calories} kcal</Text>
               <View style={{ flex: 1 }} />
-              <Text style={calPct >= 90 ? styles.summaryHit : styles.summaryMiss}>
-                {calPct >= 100
-                  ? '🎯 Goal hit!'
-                  : calPct >= 80
-                  ? '💪 Almost there'
-                  : `${calPct}%`}
-              </Text>
+              <View style={styles.summaryStatus}>
+                {calPct >= 80 && (
+                  <Icon
+                    name={calPct >= 100 ? 'goal' : 'protein'}
+                    size="xs"
+                    color={calPct >= 90 ? c.primary : c.textFaint}
+                  />
+                )}
+                <Text style={calPct >= 90 ? styles.summaryHit : styles.summaryMiss}>
+                  {calPct >= 100 ? 'Goal hit!' : calPct >= 80 ? 'Almost there' : `${calPct}%`}
+                </Text>
+              </View>
             </View>
             <View style={styles.summaryBarTrack}>
               <View style={[styles.summaryBarFill, { width: `${calPct}%` as any }]} />
@@ -289,9 +299,12 @@ export function HomeScreen({ navigation }: Props) {
             {/* Workout status & best streak note */}
             <View style={styles.summaryFooter}>
               {dayWorkouts.length > 0 ? (
-                <Text style={styles.summaryWorkout}>
-                  💪 {dayWorkouts.length} workout{dayWorkouts.length !== 1 ? 's' : ''} logged
-                </Text>
+                <View style={styles.summaryStatus}>
+                  <Icon name="workout" size="xs" color={c.gray700} />
+                  <Text style={styles.summaryWorkout}>
+                    {dayWorkouts.length} workout{dayWorkouts.length !== 1 ? 's' : ''} logged
+                  </Text>
+                </View>
               ) : (
                 <Text style={styles.summaryNoWorkout}>No workout logged yet</Text>
               )}
@@ -306,7 +319,10 @@ export function HomeScreen({ navigation }: Props) {
         {showWaterTracker && (
           <View style={styles.card}>
             <View style={styles.waterHeader}>
-              <Text style={styles.cardTitle}>💧 Water</Text>
+              <View style={styles.cardTitleRow}>
+                <Icon name="water" size="sm" color={c.gray700} />
+                <Text style={styles.cardTitleInline}>Water</Text>
+              </View>
               <Text style={styles.waterAmount}>
                 {Math.round(water)} / {waterGoal} fl oz
               </Text>
@@ -327,7 +343,7 @@ export function HomeScreen({ navigation }: Props) {
                   style={[styles.waterDot, i < filledBubbles && styles.waterDotFilled]}
                   activeOpacity={0.6}
                 >
-                  <Text style={styles.waterDotText}>💧</Text>
+                  <Icon name="water" size="xs" color={i < filledBubbles ? c.info : c.textFaint} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -343,17 +359,17 @@ export function HomeScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('KeyInsights')}
           activeOpacity={0.7}
         >
-          <Text style={styles.trendsIcon}>📈</Text>
+          <Icon name="insights" size="lg" color={c.primary} />
           <View style={{ flex: 1 }}>
             <Text style={styles.trendsTitle}>Key Insights</Text>
             <Text style={styles.trendsSub}>Weight, nutrition, consistency & workout volume</Text>
           </View>
-          <Text style={styles.trendsArrow}>›</Text>
+          <Icon name="forward" size="md" color={c.textFaint} />
         </TouchableOpacity>
 
         {/* AI Meal Logger */}
         <TouchableOpacity style={styles.snapBtn} onPress={handleSnapMeal} activeOpacity={0.85}>
-          <Text style={styles.snapIcon}>✨</Text>
+          <Icon name="aiEstimate" size="lg" color={c.onPrimary} />
           <View>
             <Text style={styles.snapTitle}>AI Meal Logger</Text>
             <Text style={styles.snapSub}>Snap a photo or describe your meal in words</Text>
@@ -472,13 +488,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   navBtnDisabled: {
     opacity: 0.3,
   },
-  navArrow: {
-    ...type.title(c),
-    color: c.gray700,
-  },
-  navArrowDisabled: {
-    color: c.textFaint,
-  },
   dateLabel: {
     ...type.heading(c),
     color: c.text,
@@ -500,6 +509,23 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     ...type.bodyStrong(c),
     color: c.gray700,
     marginBottom: space.lg,
+  },
+  // A title with an icon beside it: the row owns the bottom margin so the
+  // icon and the words share one baseline band.
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginBottom: space.lg,
+  },
+  cardTitleInline: {
+    ...type.bodyStrong(c),
+    color: c.gray700,
+  },
+  summaryStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
   },
   macroList: {
     gap: space.md,
@@ -550,9 +576,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     opacity: 1,
     backgroundColor: c.infoSoft,
   },
-  waterDotText: {
-      ...type.subhead(c),
-  },
   waterGoal: {
     ...type.caption(c),
     color: c.textFaint,
@@ -571,9 +594,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
-  },
-  snapIcon: {
-      ...type.title(c),
   },
   snapTitle: {
     ...type.bodyStrong(c),
@@ -598,10 +618,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  trendsIcon: { ...type.title(c) },
   trendsTitle: { ...type.bodyStrong(c), color: c.text },
   trendsSub: { ...type.caption(c), color: c.textFaint, marginTop: space.xxs },
-  trendsArrow: { ...type.title(c), color: c.textFaint },
   mealsHeader: {
     marginBottom: space.sm,
   },

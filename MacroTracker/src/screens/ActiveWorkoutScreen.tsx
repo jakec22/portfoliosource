@@ -29,6 +29,7 @@ import { subscribeWatchHeartRate, getWorkoutHrSamples } from '../services/watch'
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 type ActiveStyles = ReturnType<typeof makeStyles>;
 
@@ -301,21 +302,20 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                     disabled={exIdx === 0}
                     style={styles.reorderBtn}
                   >
-                    <Text style={[styles.reorderText, exIdx === 0 && styles.reorderDisabled]}>↑</Text>
+                    <Icon name="arrowUp" size="sm" color={exIdx === 0 ? c.textFaint : c.gray700} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => reorderWorkoutExercise(ex.id, 'down')}
                     disabled={exIdx === workout.exercises.length - 1}
                     style={styles.reorderBtn}
                   >
-                    <Text
-                      style={[
-                        styles.reorderText,
-                        exIdx === workout.exercises.length - 1 && styles.reorderDisabled,
-                      ]}
-                    >
-                      ↓
-                    </Text>
+                    <Icon
+                      name="arrowDown"
+                      size="sm"
+                      color={
+                        exIdx === workout.exercises.length - 1 ? c.textFaint : c.gray700
+                      }
+                    />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => removeWorkoutExercise(ex.id)}>
                     <Text style={styles.exRemove}>Remove</Text>
@@ -450,7 +450,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       activeOpacity={0.7}
                     >
                       <View style={[styles.checkbox, set.completed && styles.checkboxOn]}>
-                        {set.completed && <Text style={styles.checkmark}>✓</Text>}
+                        {set.completed && <Icon name="check" size="xs" color={c.onPrimary} />}
                       </View>
                     </TouchableOpacity>
                   </View>
@@ -552,8 +552,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reorderText: { ...type.bodyStrong(c), color: c.textMuted },
-  reorderDisabled: { color: c.textFaint },
   exRemove: { ...type.captionStrong(c), color: c.danger },
 
   lastTime: { ...type.caption(c), color: c.textMuted, marginTop: -2, marginBottom: space.sm },
@@ -623,7 +621,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxOn: { backgroundColor: c.primary, borderColor: c.primary },
-  checkmark: { ...type.heading(c), color: c.onPrimary },
   swipeDeleteAction: {
     backgroundColor: c.danger,
     justifyContent: 'center',

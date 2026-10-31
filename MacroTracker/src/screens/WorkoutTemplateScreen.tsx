@@ -22,6 +22,7 @@ import { ExercisePickerModal } from '../components/ExercisePickerModal';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 type TemplateStyles = ReturnType<typeof makeStyles>;
 
@@ -216,7 +217,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
             activeOpacity={0.7}
           >
             <Text style={styles.typeSelectText}>{activityLabel}</Text>
-            <Text style={styles.typeSelectChevron}>▾</Text>
+            <Icon name="down" size="sm" color={c.textFaint} />
           </TouchableOpacity>
 
           <Text style={[styles.label, { marginTop: 20 }]}>Exercises</Text>
@@ -234,7 +235,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                   <Text style={styles.exListBtnText}>List</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => removeExercise(e.id)} style={styles.exRemove}>
-                  <Text style={styles.exRemoveText}>✕</Text>
+                  <Icon name="close" size="sm" color={c.danger} />
                 </TouchableOpacity>
               </View>
 
@@ -400,7 +401,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderColor: c.border,
   },
   typeSelectText: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.text },
-  typeSelectChevron: { ...type.body(c), color: c.textFaint },
   exCard: {
     backgroundColor: c.card,
     borderRadius: radius.card,
@@ -434,7 +434,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  exRemoveText: { ...type.captionStrong(c), color: c.danger },
 
   setRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: space.xs, paddingHorizontal: space.xxs },
   headText: { ...type.micro(c), fontFamily: c.fontBodySemi, color: c.textFaint },

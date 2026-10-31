@@ -26,6 +26,7 @@ import { BodyHeatMap } from '../components/BodyHeatMap';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 interface Props {
   navigation: any;
@@ -195,13 +196,13 @@ export function ExerciseScreen({ navigation }: Props) {
               <Text style={styles.resumeTitle}>Workout in progress</Text>
               <Text style={styles.resumeSub}>{activeWorkout.name} · tap to resume</Text>
             </View>
-            <Text style={styles.resumeArrow}>›</Text>
+            <Icon name="forward" size="md" color={c.primary} />
           </TouchableOpacity>
         )}
 
         {/* Start a Workout */}
         <TouchableOpacity style={styles.startBtn} onPress={handleStartEmpty} activeOpacity={0.85}>
-          <Text style={styles.startBtnIcon}>🏋️</Text>
+          <Icon name="workout" size="lg" color={c.onPrimary} />
           <View>
             <Text style={styles.startBtnTitle}>
               {activeWorkout ? 'Resume Workout' : 'Start a Workout'}
@@ -277,7 +278,10 @@ export function ExerciseScreen({ navigation }: Props) {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Training</Text>
               <TouchableOpacity onPress={() => navigation.navigate('KeyInsights')}>
-                <Text style={styles.seeAll}>See all ›</Text>
+                <View style={styles.seeAllRow}>
+              <Text style={styles.seeAll}>See all</Text>
+              <Icon name="forward" size="xs" color={c.primary} />
+            </View>
               </TouchableOpacity>
             </View>
 
@@ -346,7 +350,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   resumeTitle: { ...type.bodyStrong(c), color: c.primaryDark },
   resumeSub: { ...type.caption(c), color: c.textMuted, marginTop: space.xxs },
-  resumeArrow: { ...type.title(c), color: c.primary },
 
   startBtn: {
     flexDirection: 'row',
@@ -362,7 +365,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  startBtnIcon: { ...type.title(c) },
   startBtnTitle: { ...type.subhead(c), fontFamily: c.fontBodyBold, color: c.onPrimary },
   startBtnSub: { ...type.caption(c), fontFamily: c.fontBody, color: `${c.onPrimary}CC`, marginTop: space.xxs, maxWidth: 240 },
 
@@ -374,6 +376,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginTop: space.xs,
   },
   sectionTitle: { ...type.heading(c), color: c.text },
+  seeAllRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   seeAll: { ...type.bodyStrong(c), color: c.primary },
   chartCard: {
     backgroundColor: c.card,

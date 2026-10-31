@@ -21,6 +21,7 @@ import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -241,7 +242,10 @@ export function MealPhotoScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>‹ Back</Text>
+          <View style={styles.backRow}>
+              <Icon name="back" size="sm" color={c.primary} />
+              <Text style={styles.backText}>Back</Text>
+            </View>
         </TouchableOpacity>
         <Text style={styles.title}>Photo → {MEAL_LABELS[meal]}</Text>
         <View style={{ width: 60 }} />
@@ -257,7 +261,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
 
           {!imageUri && !analyzed && (
             <View style={styles.intro}>
-              <Text style={styles.introEmoji}>✨</Text>
+              <Icon name="aiEstimate" size="hero" color={c.primary} style={styles.introEmoji} />
               <Text style={styles.introTitle}>Analyze a meal</Text>
               <Text style={styles.introText}>
                 Snap or pick a photo of your plate, or describe what you ate, and AI
@@ -275,7 +279,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                   onPress={() => pick('camera')}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.pickBtnIcon}>📷</Text>
+                  <Icon name="camera" size="lg" color={c.onPrimary} style={styles.pickBtnIcon} />
                   <Text style={styles.pickBtnText}>Take Photo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -283,7 +287,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                   onPress={() => pick('library')}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.pickBtnIcon}>🖼️</Text>
+                  <Icon name="gallery" size="lg" color={c.onPrimary} style={styles.pickBtnIcon} />
                   <Text style={styles.pickBtnText}>Choose Photo</Text>
                 </TouchableOpacity>
               </View>
@@ -314,7 +318,8 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                   disabled={description.trim().length < 3}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.describeBtnText}>✨ Calculate macros</Text>
+                  <Icon name="aiEstimate" size="sm" color={c.onPrimary} />
+                  <Text style={styles.describeBtnText}>Calculate macros</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -370,7 +375,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                           {it.amount}
                           {it.unit === 'serving' ? '×' : ` ${it.unit}`}
                         </Text>
-                        <Text style={styles.chevron}>{isExpanded ? '↑' : '↓'}</Text>
+                        <Icon name={isExpanded ? 'up' : 'down'} size="sm" color={c.textFaint} />
                       </View>
                     </TouchableOpacity>
 
@@ -508,6 +513,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderBottomColor: c.border,
   },
   backBtn: { padding: space.xs, width: 60 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   backText: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.primary },
   title: { ...type.subhead(c), color: c.text },
   content: { padding: space.lg, paddingBottom: space.xxl },
@@ -557,6 +563,9 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: space.md,
   },
   describeBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: space.sm,
     backgroundColor: c.primary,
     borderRadius: radius.control,
     paddingVertical: space.md,

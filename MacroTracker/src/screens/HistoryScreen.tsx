@@ -14,6 +14,7 @@ import { WorkoutSession } from '../types';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 interface Props {
   navigation: any;
@@ -74,12 +75,12 @@ export function HistoryScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('KeyInsights')}
           activeOpacity={0.7}
         >
-          <Text style={styles.trendsIcon}>📈</Text>
+          <Icon name="insights" size="lg" color={c.primary} />
           <View style={{ flex: 1 }}>
             <Text style={styles.trendsTitle}>Key Insights</Text>
             <Text style={styles.trendsSub}>Weight, nutrition, consistency & workout volume</Text>
           </View>
-          <Text style={styles.trendsArrow}>›</Text>
+          <Icon name="forward" size="md" color={c.textFaint} />
         </TouchableOpacity>
 
         <Text style={styles.subtitle}>Past {visibleDays} days</Text>
@@ -350,8 +351,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  trendsIcon: { ...type.title(c) },
   trendsTitle: { ...type.bodyStrong(c), color: c.text },
   trendsSub: { ...type.caption(c), color: c.textFaint, marginTop: space.xxs },
-  trendsArrow: { ...type.title(c), color: c.textFaint },
 });

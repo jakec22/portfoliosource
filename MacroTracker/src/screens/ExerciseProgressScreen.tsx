@@ -13,6 +13,7 @@ import { ProgressLineChart, ChartEmpty } from '../components/ProgressLineChart';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 interface Props {
   route: { params: { name: string } };
@@ -62,7 +63,10 @@ export function ExerciseProgressScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={styles.back}>‹ Back</Text>
+          <View style={styles.backRow}>
+              <Icon name="back" size="sm" color={c.primary} />
+              <Text style={styles.back}>Back</Text>
+            </View>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {name}
@@ -115,10 +119,17 @@ export function ExerciseProgressScreen({ route, navigation }: Props) {
                 <ProgressLineChart values={values} labels={labels} color={active.color} />
               )}
               {values.length >= 2 && (
-                <Text style={[styles.delta, { color: delta >= 0 ? c.primaryDark : c.danger }]}>
-                  {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toLocaleString()} {active.unit} since{' '}
-                  {shortDate(series[0].date)}
-                </Text>
+                <View style={styles.deltaRow}>
+                  <Icon
+                    name={delta >= 0 ? 'up' : 'down'}
+                    size="xs"
+                    color={delta >= 0 ? c.primaryDark : c.danger}
+                  />
+                  <Text style={[styles.delta, { color: delta >= 0 ? c.primaryDark : c.danger }]}>
+                    {Math.abs(delta).toLocaleString()} {active.unit} since{' '}
+                    {shortDate(series[0].date)}
+                  </Text>
+                </View>
               )}
             </View>
 
@@ -168,6 +179,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderBottomColor: c.border,
     backgroundColor: c.card,
   },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   back: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.primary, width: 64 },
   backSpacer: { width: 64 },
   headerTitle: { ...type.subhead(c), flex: 1, textAlign: 'center', color: c.text },
@@ -223,7 +235,14 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  delta: { ...type.captionStrong(c), textAlign: 'center', marginTop: space.sm, fontVariant: ['tabular-nums'] },
+  deltaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.xxs,
+    marginTop: space.sm,
+  },
+  delta: { ...type.captionStrong(c), fontVariant: ['tabular-nums'] },
 
   sectionTitle: { ...type.subhead(c), color: c.text, marginTop: space.lg, marginBottom: space.sm },
   logRow: {

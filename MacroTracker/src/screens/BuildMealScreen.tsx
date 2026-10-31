@@ -23,6 +23,7 @@ import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/Keyboard
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 const MEAL_LABELS: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -271,7 +272,10 @@ export function BuildMealScreen({ route, navigation }: Props) {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.sideBtn}>
-            <Text style={styles.backText}>‹ Back</Text>
+            <View style={styles.backRow}>
+              <Icon name="back" size="sm" color={c.primary} />
+              <Text style={styles.backText}>Back</Text>
+            </View>
           </TouchableOpacity>
           <Text style={styles.title}>Build a Meal</Text>
           <View style={styles.sideBtn} />
@@ -280,7 +284,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
         {/* Search bar — always visible */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Icon name="search" size="sm" color={c.textFaint} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search to add a specific food…"
@@ -347,7 +351,10 @@ export function BuildMealScreen({ route, navigation }: Props) {
           >
             {/* AI description box */}
             <View style={styles.aiBox}>
-              <Text style={styles.aiLabel}>✨  Generate with AI</Text>
+              <View style={styles.aiLabelRow}>
+                <Icon name="aiEstimate" size="sm" color={c.primary} />
+                <Text style={styles.aiLabel}>Generate with AI</Text>
+              </View>
               <TextInput
                 style={styles.aiInput}
                 placeholder={
@@ -383,7 +390,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
             {/* Empty state */}
             {items.length === 0 && (
               <View style={styles.emptyMeal}>
-                <Text style={styles.emptyMealIcon}>🍽️</Text>
+                <Icon name="meal" size="hero" color={c.textFaint} style={styles.emptyMealIcon} />
                 <Text style={styles.emptyMealText}>
                   Describe your meal above to auto-generate a breakdown, or search for foods to build it manually.
                 </Text>
@@ -432,7 +439,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
                             {it.amount}
                             {it.unit === 'serving' ? '×' : ` ${it.unit}`}
                           </Text>
-                          <Text style={styles.chevron}>{isExpanded ? '↑' : '↓'}</Text>
+                          <Icon name={isExpanded ? 'up' : 'down'} size="sm" color={c.textFaint} />
                         </View>
                       </TouchableOpacity>
 
@@ -588,6 +595,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderBottomColor: c.border,
   },
   sideBtn: { width: 64 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   backText: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.primary },
   title: { ...type.subhead(c), color: c.text },
 
@@ -600,6 +608,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: space.sm,
     paddingHorizontal: space.lg,
     backgroundColor: c.card,
     borderRadius: radius.card,
@@ -610,7 +619,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  searchIcon: { ...type.body(c), marginRight: space.sm },
   searchInput: { ...type.body(c), flex: 1, color: c.text },
 
   // Search results
@@ -661,10 +669,15 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  aiLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginBottom: space.sm,
+  },
   aiLabel: {
     ...type.captionStrong(c),
     color: c.gray700,
-    marginBottom: space.sm,
   },
   aiInput: {
     ...type.body(c),
@@ -686,7 +699,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     paddingVertical: space.xxl,
     paddingHorizontal: space.xl,
   },
-  emptyMealIcon: { ...type.hero(c), marginBottom: space.md },
+  emptyMealIcon: { marginBottom: space.md },
   emptyMealText: {
     ...type.body(c),
     color: c.textFaint,

@@ -6,6 +6,7 @@ import { displayDate } from '../utils/date';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from './Icon';
 
 interface Props {
   session: WorkoutSession;
@@ -47,7 +48,7 @@ export function WorkoutHistoryItem({ session, onPress, onDelete, showDate = true
             {exCount} exercise{exCount === 1 ? '' : 's'} · {doneSets}/{totalSets} sets
           </Text>
         </TouchableOpacity>
-        <Text style={styles.chevron}>›</Text>
+        <Icon name="forward" size="md" color={c.textFaint} style={styles.chevron} />
       </View>
     </ReanimatedSwipeable>
   );

@@ -17,6 +17,7 @@ import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/Keyboard
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 interface Props {
   navigation: any;
@@ -74,7 +75,10 @@ export function CreateCustomFoodScreen({ navigation }: Props) {
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.sideBtn}>
-            <Text style={styles.backText}>‹ Back</Text>
+            <View style={styles.backRow}>
+              <Icon name="back" size="sm" color={c.primary} />
+              <Text style={styles.backText}>Back</Text>
+            </View>
           </TouchableOpacity>
           <Text style={styles.title}>Create Food</Text>
           <TouchableOpacity onPress={handleSave} style={styles.sideBtn}>
@@ -218,6 +222,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderBottomColor: c.border,
   },
   sideBtn: { width: 64 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   backText: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.primary },
   saveText: {
     ...type.bodyStrong(c),

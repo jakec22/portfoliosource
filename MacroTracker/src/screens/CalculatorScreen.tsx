@@ -20,6 +20,7 @@ import { useTheme } from '../theme/useTheme';
 import { editorialTheme, sportTechTheme, warmWellnessTheme } from '../theme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 const THEME_PACKS: { key: ThemeMode; name: string; blurb: string; theme: Theme }[] = [
   { key: 'editorial', name: 'Executive', blurb: 'Warm neutrals, serif numerals — the app’s original, refined look.', theme: editorialTheme },
@@ -327,7 +328,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             onPress={() => navigation.navigate('GoalWizard')}
             activeOpacity={0.85}
           >
-            <Text style={styles.wizardIcon}>🎯</Text>
+            <Icon name="goal" size="lg" color={c.scheme === 'dark' ? c.primary : c.primaryDark} />
             <View style={{ flex: 1 }}>
               <Text style={styles.wizardTitle}>
                 {profile ? 'Update my plan' : 'Set up my goals'}
@@ -338,7 +339,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                   : 'Answer a few questions to calculate your calories & macros'}
               </Text>
             </View>
-            <Text style={styles.wizardArrow}>›</Text>
+            <Icon name="forward" size="md" color={c.primary} />
           </TouchableOpacity>
         )}
 
@@ -347,7 +348,10 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           <Text style={styles.sectionTitle}>Body Weight</Text>
           {navigation && (
             <TouchableOpacity onPress={() => navigation.navigate('KeyInsights')}>
-              <Text style={styles.trendsLink}>View trends ›</Text>
+              <View style={styles.trendsLinkRow}>
+              <Text style={styles.trendsLink}>View trends</Text>
+              <Icon name="forward" size="xs" color={c.primary} />
+            </View>
             </TouchableOpacity>
           )}
         </View>
@@ -387,7 +391,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                     onPress={() => deleteBodyWeightEntry(e.loggedAt)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Text style={styles.weightRowDelete}>✕</Text>
+                    <Icon name="close" size="sm" color={c.textFaint} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -636,7 +640,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                   <Text style={styles.themeName}>{p.name}</Text>
                   <Text style={styles.themeBlurb}>{p.blurb}</Text>
                 </View>
-                {active && <Text style={styles.themeCheck}>✓</Text>}
+                {active && <Icon name="check" size="sm" color={c.primary} />}
               </TouchableOpacity>
             );
           })}
@@ -698,10 +702,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: space.xl,
     gap: space.md,
   },
-  wizardIcon: { ...type.title(c) },
   wizardTitle: { ...type.bodyStrong(c), color: c.scheme === 'dark' ? c.primary : c.primaryDark },
   wizardSub: { ...type.caption(c), color: c.scheme === 'dark' ? c.textMuted : c.primaryDark, marginTop: space.xxs },
-  wizardArrow: { ...type.title(c), color: c.primary },
   // Goals editing
   goalRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -760,6 +762,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  trendsLinkRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
   trendsLink: { ...type.captionStrong(c), color: c.primary, marginBottom: space.sm },
   weightTopRow: {
     flexDirection: 'row',
@@ -805,7 +808,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   weightRowDate: { ...type.body(c), flex: 1, color: c.gray700 },
   weightRowValue: { ...type.bodyStrong(c), color: c.text, marginRight: space.lg },
-  weightRowDelete: { ...type.bodyStrong(c), color: c.textFaint },
   // Hydration
   waterToggleRow: {
     flexDirection: 'row',
@@ -855,7 +857,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   themeSwatchDot: { width: 12, height: 12, borderRadius: radius.pill },
   themeName: { ...type.bodyStrong(c), color: c.text },
   themeBlurb: { ...type.caption(c), color: c.textMuted, marginTop: space.xxs },
-  themeCheck: { ...type.subhead(c), color: c.primary },
   // Account
   accountRow: { marginBottom: space.lg },
   accountLabel: { ...type.caption(c), color: c.textFaint, marginBottom: space.xxs },

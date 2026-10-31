@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { TextStyle } from 'react-native';
+import { Icon } from './Icon';
+import { useTheme } from '../theme/useTheme';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -14,12 +15,17 @@ interface Props {
   /** Current BPM — drives the pulse speed. Null/0 falls back to a calm 60bpm. */
   bpm: number | null;
   size?: number;
+  /** Defaults to the pack's danger hue — the emoji this replaced was red, and
+   *  heart rate is the one place in the app where red means "working", not
+   *  "wrong". */
+  color?: string;
 }
 
-// A ❤️ that beats in time with the heart rate: a quick squeeze up then a
+// A heart that beats in time with the heart rate: a quick squeeze up then a
 // slower relax down, once per beat. The interval is derived from BPM so a
 // higher heart rate visibly pulses faster.
-export function AnimatedHeart({ bpm, size = 22 }: Props) {
+export function AnimatedHeart({ bpm, size = 22, color }: Props) {
+  const c = useTheme();
   const scale = useSharedValue(1);
 
   useEffect(() => {
@@ -41,7 +47,9 @@ export function AnimatedHeart({ bpm, size = 22 }: Props) {
     transform: [{ scale: scale.value }],
   }));
 
-  const textStyle: TextStyle = { fontSize: size };
-
-  return <Animated.Text style={[textStyle, animatedStyle]}>❤️</Animated.Text>;
+  return (
+    <Animated.View style={animatedStyle}>
+      <Icon name="heart" size={size} color={color ?? c.danger} />
+    </Animated.View>
+  );
 }

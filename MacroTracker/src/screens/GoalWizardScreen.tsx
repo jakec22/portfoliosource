@@ -30,6 +30,7 @@ import {
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
+import { Icon } from '../components/Icon';
 
 interface Props {
   navigation: any;
@@ -220,7 +221,7 @@ export function GoalWizardScreen({ navigation }: Props) {
       {/* Header: progress + close */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.close}>✕</Text>
+          <Icon name="close" size="md" color={c.textFaint} />
         </TouchableOpacity>
         <Text style={styles.stepCount}>
           Step {stepIdx + 1} of {steps.length}
@@ -283,7 +284,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                     onPress={() => setSex(s)}
                   >
                     <Text style={[styles.segBtnText, sex === s && styles.segBtnTextActive]}>
-                      {s === 'male' ? '♂ Male' : '♀ Female'}
+                      {s === 'male' ? 'Male' : 'Female'}
                     </Text>
                   </TouchableOpacity>
                 ))}

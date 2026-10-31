@@ -11,6 +11,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../theme/useTheme';
 import { radius, space } from '../theme/tokens';
+import { Icon } from './Icon';
 
 type ScanMode = 'barcode' | 'label';
 
@@ -154,7 +155,8 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
             )}
 
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeBtnText}>✕ Close</Text>
+              <Icon name="close" size="sm" color="#fff" />
+              <Text style={styles.closeBtnText}>Close</Text>
             </TouchableOpacity>
           </>
         )}
@@ -251,6 +253,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   closeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
     position: 'absolute',
     top: 60,
     right: 20,
