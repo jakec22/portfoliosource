@@ -1,4 +1,5 @@
 import { DailyGoals } from '../types';
+import type { IconName } from '../components/Icon';
 
 // Shared TDEE + macro-target math used by both the guided Goal Wizard and the
 // inline calculator on the Goals screen. Keeping it in one place means the two
@@ -40,7 +41,9 @@ const CALORIE_FLOOR = 1200;
 export interface GoalMeta {
   type: GoalType;
   label: string;
-  emoji: string;
+  // A concept from the icon set, not a glyph — these were emoji, which the
+  // theme packs could not tint.
+  icon: IconName;
   blurb: string;
 }
 
@@ -48,9 +51,9 @@ export interface GoalMeta {
 // (chosen in GoalWizardScreen via useTheme()), not a fixed hex, so it
 // follows whichever pack is active instead of hardcoding one palette.
 export const GOAL_META: Record<GoalType, GoalMeta> = {
-  lose: { type: 'lose', label: 'Lose Weight', emoji: '📉', blurb: 'Eat below maintenance to drop fat' },
-  maintain: { type: 'maintain', label: 'Maintain', emoji: '⚖️', blurb: 'Hold your current weight' },
-  gain: { type: 'gain', label: 'Gain Muscle', emoji: '📈', blurb: 'Eat above maintenance for a lean bulk' },
+  lose: { type: 'lose', label: 'Lose Weight', icon: 'trendDown', blurb: 'Eat below maintenance to drop fat' },
+  maintain: { type: 'maintain', label: 'Maintain', icon: 'balance', blurb: 'Hold your current weight' },
+  gain: { type: 'gain', label: 'Gain Muscle', icon: 'trends', blurb: 'Eat above maintenance for a lean bulk' },
 };
 
 // Pace options (lb/week) offered per goal. Maintain has none.

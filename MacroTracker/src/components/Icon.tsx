@@ -39,6 +39,8 @@ const GLYPH = {
   // Progress
   goal: 'target',
   trends: 'trending-up',
+  trendDown: 'trending-down',
+  balance: 'scale-balance',
   insights: 'chart-line',
   calendar: 'calendar-blank-outline',
 

@@ -148,7 +148,12 @@ export function KeyInsightsScreen({ navigation }: Props) {
                 <View style={styles.highlightList}>
                   {insights.highlights.map((h, i) => (
                     <View key={i} style={styles.highlightRow}>
-                      <Text style={styles.highlightIcon}>{h.icon}</Text>
+                      <Icon
+                        name={h.icon}
+                        size="sm"
+                        color={h.tone === 'positive' ? c.primary : c.warning}
+                        style={styles.highlightIcon}
+                      />
                       <Text
                         style={[
                           styles.highlightText,
@@ -383,7 +388,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   highlightList: { marginTop: space.md, gap: space.sm },
   highlightRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
-  highlightIcon: { ...type.body(c) },
+  highlightIcon: { marginTop: 1 },
   highlightText: { ...type.caption(c), fontFamily: c.fontBody, flex: 1, color: c.textMuted },
   highlightPositive: { color: c.primaryDark, fontFamily: c.fontBodyBold },
 

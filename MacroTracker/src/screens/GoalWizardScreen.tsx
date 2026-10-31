@@ -207,7 +207,7 @@ export function GoalWizardScreen({ navigation }: Props) {
     applyGoalPlan(plan.goals, wLbs);
 
     Alert.alert(
-      'Goals set! 🎯',
+      'Goals set',
       `Your ${GOAL_META[goalType].label.toLowerCase()} plan is ready — ${plan.goals.calories} kcal/day.`,
       [{ text: 'Done', onPress: () => navigation.goBack() }]
     );
@@ -256,7 +256,7 @@ export function GoalWizardScreen({ navigation }: Props) {
                     onPress={() => handleSelectGoal(g)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.bigCardEmoji}>{m.emoji}</Text>
+                    <Icon name={m.icon} size="lg" color={active ? gc : c.textMuted} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.bigCardLabel, active && { color: gc }]}>{m.label}</Text>
                       <Text style={styles.bigCardBlurb}>{m.blurb}</Text>
@@ -469,7 +469,12 @@ export function GoalWizardScreen({ navigation }: Props) {
               <View style={[styles.reviewCard, { borderTopColor: goalColor(c, goalType) }]}>
                 <View style={styles.reviewHead}>
                   <View>
-                    <Text style={styles.reviewEmoji}>{GOAL_META[goalType].emoji}</Text>
+                    <Icon
+                      name={GOAL_META[goalType].icon}
+                      size="lg"
+                      color={goalColor(c, goalType)}
+                      style={styles.reviewIcon}
+                    />
                     <Text style={[styles.reviewGoal, { color: goalColor(c, goalType) }]}>
                       {GOAL_META[goalType].label}
                     </Text>
@@ -573,7 +578,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: space.md,
     gap: space.md,
   },
-  bigCardEmoji: { ...type.title(c) },
+
   bigCardLabel: { ...type.subhead(c), color: c.text },
   bigCardBlurb: { ...type.caption(c), color: c.textFaint, marginTop: space.xxs },
   // Radio
@@ -661,7 +666,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  reviewEmoji: { ...type.title(c), marginBottom: space.xs },
+  reviewIcon: { marginBottom: space.xs },
   reviewGoal: { ...type.heading(c) },
   reviewCals: { ...type.hero(c) },
   reviewCalsUnit: { ...type.caption(c), color: c.textFaint },

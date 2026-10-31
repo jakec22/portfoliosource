@@ -1,5 +1,6 @@
 import type { BodyWeightEntry, DailyGoals, FoodEntry, WorkoutSession } from '../types';
 import { formatDate, parseDate, todayString } from './date';
+import type { IconName } from '../components/Icon';
 
 /**
  * Pure aggregations for the analytics dashboard: body-weight trend, calorie /
@@ -98,7 +99,9 @@ export function nutritionAdherence(
 
 export interface InsightHighlight {
   tone: 'positive' | 'suggest';
-  icon: string;
+  // A concept from the icon set, not a glyph. These used to be emoji, which
+  // could not be tinted to the active pack and rendered differently per OS.
+  icon: IconName;
   text: string;
 }
 
@@ -199,15 +202,15 @@ export function weeklyInsights(
   const nudges: InsightHighlight[] = [];
 
   if (streak >= 3) {
-    wins.push({ tone: 'positive', icon: '🔥', text: `${streak}-day logging streak — keep it going.` });
+    wins.push({ tone: 'positive', icon: 'streak', text: `${streak}-day logging streak — keep it going.` });
   }
   if (workouts >= 3) {
-    wins.push({ tone: 'positive', icon: '💪', text: `${workouts} workouts this week — strong consistency.` });
+    wins.push({ tone: 'positive', icon: 'workout', text: `${workouts} workouts this week — strong consistency.` });
   }
   if (loggedDays >= 2 && daysOnTarget >= Math.ceil(loggedDays * 0.6)) {
     wins.push({
       tone: 'positive',
-      icon: '🎯',
+      icon: 'goal',
       text: `On your calorie goal ${daysOnTarget} of ${loggedDays} logged days.`,
     });
   }
@@ -216,7 +219,7 @@ export function weeklyInsights(
     const short = Math.round(goals.protein - avgProtein);
     nudges.push({
       tone: 'suggest',
-      icon: '🥚',
+      icon: 'protein',
       text: `Protein ran ~${short}g/day under your ${goals.protein}g goal — a scoop of whey or Greek yogurt closes it.`,
     });
   }
@@ -224,24 +227,24 @@ export function weeklyInsights(
     const over = Math.round(avgCalories - goals.calories);
     nudges.push({
       tone: 'suggest',
-      icon: '📈',
+      icon: 'trends',
       text: `Averaging ${avgCalories} kcal/day — about ${over} over your goal.`,
     });
   } else if (loggedDays >= 3 && caloriePctOfGoal > 0 && caloriePctOfGoal < 85) {
     const under = Math.round(goals.calories - avgCalories);
     nudges.push({
       tone: 'suggest',
-      icon: '📉',
+      icon: 'trendDown',
       text: `Averaging ${avgCalories} kcal/day — about ${under} under your goal. Make sure you're fueling enough.`,
     });
   }
   if (workouts === 0) {
-    nudges.push({ tone: 'suggest', icon: '🏋️', text: 'No workouts logged this week — even one session counts.' });
+    nudges.push({ tone: 'suggest', icon: 'workout', text: 'No workouts logged this week — even one session counts.' });
   }
   if (loggedDays > 0 && loggedDays < 4) {
     nudges.push({
       tone: 'suggest',
-      icon: '📝',
+      icon: 'calendar',
       text: `Only ${loggedDays} ${loggedDays === 1 ? 'day' : 'days'} logged — consistency is what makes the trends meaningful.`,
     });
   }

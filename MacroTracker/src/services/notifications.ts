@@ -6,22 +6,22 @@ import type { ReminderPrefs, ReminderKey, ReminderTime } from '../types';
 // prefs (editable in settings); these defaults are only a fallback.
 const COPY: Record<ReminderKey, { title: string; body: string; fallback: ReminderTime }> = {
   breakfast: {
-    title: 'Good morning 🍳',
+    title: 'Good morning',
     body: 'Log your breakfast to start the day on track.',
     fallback: { hour: 9, minute: 0 },
   },
   lunch: {
-    title: 'Lunchtime 🥗',
+    title: 'Lunchtime',
     body: "Don't forget to log your lunch.",
     fallback: { hour: 13, minute: 0 },
   },
   dinner: {
-    title: 'Dinner time 🍽️',
+    title: 'Dinner time',
     body: 'Tap to log your dinner before you forget.',
     fallback: { hour: 19, minute: 0 },
   },
   streak: {
-    title: 'Keep your streak alive 🔥',
+    title: 'Keep your streak alive',
     body: 'Log today before the day ends to keep your streak going.',
     fallback: { hour: 20, minute: 30 },
   },

@@ -69,7 +69,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   main: { flex: 1 },
   name: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.text },
   meta: { ...type.caption(c), color: c.textFaint, marginTop: space.xxs },
-  chevron: { ...type.heading(c), color: c.textFaint, marginLeft: space.xs },
+  chevron: { marginLeft: space.xs },
   swipeDelete: {
     backgroundColor: c.danger,
     justifyContent: 'center',

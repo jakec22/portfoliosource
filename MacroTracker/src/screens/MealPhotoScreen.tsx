@@ -261,7 +261,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
 
           {!imageUri && !analyzed && (
             <View style={styles.intro}>
-              <Icon name="aiEstimate" size="hero" color={c.primary} style={styles.introEmoji} />
+              <Icon name="aiEstimate" size="hero" color={c.primary} style={styles.introIcon} />
               <Text style={styles.introTitle}>Analyze a meal</Text>
               <Text style={styles.introText}>
                 Snap or pick a photo of your plate, or describe what you ate, and AI
@@ -279,7 +279,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                   onPress={() => pick('camera')}
                   activeOpacity={0.85}
                 >
-                  <Icon name="camera" size="lg" color={c.onPrimary} style={styles.pickBtnIcon} />
+                  <Icon name="camera" size="lg" color={c.gray700} style={styles.pickBtnIcon} />
                   <Text style={styles.pickBtnText}>Take Photo</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -287,7 +287,7 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                   onPress={() => pick('library')}
                   activeOpacity={0.85}
                 >
-                  <Icon name="gallery" size="lg" color={c.onPrimary} style={styles.pickBtnIcon} />
+                  <Icon name="gallery" size="lg" color={c.gray700} style={styles.pickBtnIcon} />
                   <Text style={styles.pickBtnText}>Choose Photo</Text>
                 </TouchableOpacity>
               </View>
@@ -525,7 +525,9 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     backgroundColor: c.cardMuted,
   },
   intro: { alignItems: 'center', paddingVertical: space.xl },
-  introEmoji: { ...type.hero(c), marginBottom: space.md },
+  // Layout only. A style with fontFamily or fontSize on it would override the
+  // icon font and the size prop, and the glyph would not draw at all.
+  introIcon: { marginBottom: space.md },
   introTitle: { ...type.subhead(c), color: c.text, marginBottom: space.sm },
   introText: {
     ...type.body(c),
@@ -543,7 +545,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderWidth: 1.5,
     borderColor: c.border,
   },
-  pickBtnIcon: { ...type.title(c), marginBottom: space.xs },
+  pickBtnIcon: { marginBottom: space.xs },
   pickBtnText: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.gray700 },
 
   orRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginVertical: space.lg },

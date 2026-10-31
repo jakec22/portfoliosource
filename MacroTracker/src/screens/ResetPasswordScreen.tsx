@@ -111,7 +111,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: space.xxl,
   },
-  logo: { ...type.hero(c), textAlign: 'center' },
+  logo: { alignSelf: 'center' },
   title: {
     ...type.title(c),
     color: c.text,

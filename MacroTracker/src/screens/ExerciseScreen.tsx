@@ -123,7 +123,7 @@ export function ExerciseScreen({ navigation }: Props) {
       failure: ' (Failure)',
       dropset: ' (Drop set)',
     };
-    const lines: string[] = [`🏋️ ${t.name}`, ''];
+    const lines: string[] = [t.name, ''];
     for (const ex of t.exercises) {
       lines.push(ex.name || 'Exercise');
       ex.sets.forEach((s, i) => {
