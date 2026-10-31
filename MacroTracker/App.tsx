@@ -10,6 +10,7 @@ import { View, ActivityIndicator, StatusBar, Alert } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useFonts } from 'expo-font';
 import { DMSerifDisplay_400Regular } from '@expo-google-fonts/dm-serif-display';
+import { ArchivoBlack_400Regular } from '@expo-google-fonts/archivo-black';
 import {
   Manrope_400Regular,
   Manrope_500Medium,
@@ -218,6 +219,7 @@ export default function App() {
   // total) so switching packs never needs a reload or shows a font swap.
   const [fontsLoaded] = useFonts({
     DMSerifDisplay_400Regular,
+    ArchivoBlack_400Regular,
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,

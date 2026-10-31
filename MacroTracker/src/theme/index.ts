@@ -212,12 +212,15 @@ export const sportTechTheme: Theme = {
   overlay: 'rgba(0,0,0,0.65)',
 
   // Space Grotesk has no lighter face loaded than 400, which suits this pack:
-  // the sport-tech voice wants density, not air. The open question here is the
-  // display face — it is the same Space Grotesk Bold the body ladder tops out
-  // at, so this pack separates on color and size but not on voice. A distinct
-  // display face is what would make it read as a third product rather than a
-  // dark recolor.
-  fontDisplay: 'SpaceGrotesk_700Bold',
+  // the sport-tech voice wants density, not air.
+  //
+  // The display face is Archivo Black, not Space Grotesk Bold. It used to be
+  // the latter, which is also where the body ladder tops out — so a heading
+  // and the bold text under it were the same face at two sizes, and this pack
+  // separated from the others on color alone. Archivo Black is wide, flat-
+  // sided and heavy where Space Grotesk is narrow and quirky, so the two read
+  // as a pairing. It carries only a 400, which is all a display slot needs.
+  fontDisplay: 'ArchivoBlack_400Regular',
   fontBodyRegular: 'SpaceGrotesk_400Regular',
   fontBody: 'SpaceGrotesk_500Medium',
   fontBodySemi: 'SpaceGrotesk_600SemiBold',
