@@ -42,28 +42,6 @@ export function HistoryScreen({ navigation }: Props) {
     return map;
   }, [workoutHistory]);
 
-  function MacroBar({
-    value,
-    goal,
-    color,
-  }: {
-    value: number;
-    goal: number;
-    color: string;
-  }) {
-    const pct = Math.min(value / goal, 1);
-    return (
-      <View style={barStyles.track}>
-        <View
-          style={[
-            barStyles.fill,
-            { width: `${pct * 100}%` as any, backgroundColor: color },
-          ]}
-        />
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -133,7 +111,8 @@ export function HistoryScreen({ navigation }: Props) {
                       <Text style={[styles.macroValue, { color: c.macroProtein }]}>
                         {Math.round(totals.protein)}g
                       </Text>
-                      <MacroBar
+                      <DayMacroBar
+                        styles={barStyles}
                         value={totals.protein}
                         goal={goals.protein}
                         color={c.macroProtein}
@@ -144,7 +123,8 @@ export function HistoryScreen({ navigation }: Props) {
                       <Text style={[styles.macroValue, { color: c.macroCarbs }]}>
                         {Math.round(totals.carbs)}g
                       </Text>
-                      <MacroBar
+                      <DayMacroBar
+                        styles={barStyles}
                         value={totals.carbs}
                         goal={goals.carbs}
                         color={c.macroCarbs}
@@ -155,7 +135,8 @@ export function HistoryScreen({ navigation }: Props) {
                       <Text style={[styles.macroValue, { color: c.macroFat }]}>
                         {Math.round(totals.fat)}g
                       </Text>
-                      <MacroBar
+                      <DayMacroBar
+                        styles={barStyles}
                         value={totals.fat}
                         goal={goals.fat}
                         color={c.macroFat}
@@ -166,7 +147,8 @@ export function HistoryScreen({ navigation }: Props) {
                       <Text style={[styles.macroValue, { color: c.macroFiber }]}>
                         {Math.round(totals.fiber ?? 0)}g
                       </Text>
-                      <MacroBar
+                      <DayMacroBar
+                        styles={barStyles}
                         value={totals.fiber ?? 0}
                         goal={goals.fiber}
                         color={c.macroFiber}
@@ -211,6 +193,31 @@ export function HistoryScreen({ navigation }: Props) {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// Hoisted, not defined inside HistoryScreen's body. A component declared in a
+// render body is a new function on every render, so React unmounts the old
+// subtree and mounts a fresh one instead of updating it — three bars per day
+// across a paginated list, rebuilt on every scroll.
+function DayMacroBar({
+  styles: barStyles,
+  value,
+  goal,
+  color,
+}: {
+  styles: ReturnType<typeof makeBarStyles>;
+  value: number;
+  goal: number;
+  color: string;
+}) {
+  const pct = goal > 0 ? Math.min(value / goal, 1) : 0;
+  return (
+    <View style={barStyles.track}>
+      <View
+        style={[barStyles.fill, { width: `${pct * 100}%` as any, backgroundColor: color }]}
+      />
+    </View>
   );
 }
 

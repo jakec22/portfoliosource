@@ -1,9 +1,15 @@
 import type { FoodEntry } from '../types';
+import { formatDate, parseDate, todayString } from './date';
 
+// Local calendar day throughout. Entries are keyed by the user's local day
+// (addEntry -> todayString), so deriving "today" from toISOString() here read
+// a UTC day and disagreed with its own data: east of UTC a breakfast logged at
+// 8am counted for no day at all, and west of UTC an evening with nothing
+// logged yet aged yesterday out of the streak.
 function dateOffset(dateStr: string, days: number): string {
-  const d = new Date(dateStr + 'T12:00:00');
+  const d = parseDate(dateStr);
   d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
+  return formatDate(d);
 }
 
 /**
@@ -25,7 +31,7 @@ export function computeStreak(
   if (datesWithEntries.length === 0) return { current: 0, best: 0 };
 
   // Current streak starts from today or yesterday.
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayString();
   const yesterday = dateOffset(today, -1);
   const newestLogged = datesWithEntries[0];
 

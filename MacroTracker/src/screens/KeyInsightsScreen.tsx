@@ -5,7 +5,7 @@ import { useStore } from '../store/useStore';
 import { ProgressLineChart, ChartEmpty } from '../components/ProgressLineChart';
 import { MiniBarChart } from '../components/MiniBarChart';
 import { ProgressExplorer } from '../components/ProgressExplorer';
-import { formatDuration } from '../utils/date';
+import { formatDuration, shortDate } from '../utils/date';
 import {
   weightTrend,
   nutritionAdherence,
@@ -28,11 +28,6 @@ const NUTRITION_DAYS = 14;
 const VOLUME_WEEKS = 8;
 
 // "Jun 5" from a YYYY-MM-DD string.
-function shortDate(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
 // "Wednesday" from a YYYY-MM-DD string (used for the best-day callout).
 function weekdayLabel(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);

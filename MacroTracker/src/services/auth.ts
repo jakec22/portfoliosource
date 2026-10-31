@@ -49,9 +49,6 @@ export async function deleteAccount(): Promise<{ error: Error | null }> {
 }
 
 /** True only on devices/OS versions that support Sign in with Apple (iOS 13+). */
-export function isAppleSignInAvailable(): Promise<boolean> {
-  return AppleAuthentication.isAvailableAsync();
-}
 
 /**
  * Native Sign in with Apple via Supabase. Apple returns an identity token that

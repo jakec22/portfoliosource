@@ -1,4 +1,4 @@
-// Pack-independent scales: type ramp, spacing, radii, elevation.
+// Pack-independent scales: type ramp, spacing, radii.
 //
 // The theme packs in ./index.ts own color and font *families*. This file owns
 // the measurements those families are set at, and the rhythm the layout is
@@ -173,8 +173,6 @@ export const type = {
   micro,
 } as const;
 
-export type TypeVariant = keyof typeof type;
-
 // ---------------------------------------------------------------------------
 // Numerals
 // ---------------------------------------------------------------------------
@@ -189,35 +187,4 @@ export const tabular = {
   fontVariant: ['tabular-nums' as const],
 };
 
-// ---------------------------------------------------------------------------
-// Elevation
-// ---------------------------------------------------------------------------
 
-// Shadows carry an offset and a soft blur; a zero-offset halo is decoration,
-// not depth. `shadowColor` comes from the pack, because a neutral black shadow
-// over the warm packs' cream grounds goes gray and dirty.
-export const elevation = {
-  card: (c: Theme) => ({
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: c.scheme === 'dark' ? 0.4 : 0.06,
-    shadowRadius: 3,
-    elevation: 2,
-  }),
-  sheet: (c: Theme) => ({
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: c.scheme === 'dark' ? 0.55 : 0.12,
-    shadowRadius: 16,
-    elevation: 12,
-  }),
-} as const;
-
-// ---------------------------------------------------------------------------
-// Touch targets
-// ---------------------------------------------------------------------------
-
-// Apple asks for 44pt, Android for 48dp. Controls may look smaller than this —
-// pass the difference to `hitSlop` so density survives without the target
-// shrinking with it.
-export const MIN_TOUCH = 44;

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { displayDate } from '../utils/date';
+import { displayDate, shortDate } from '../utils/date';
 import {
   exerciseSeries,
   exerciseBests,
@@ -31,11 +31,6 @@ function getMetrics(c: Theme): { key: Metric; label: string; unit: string; color
 }
 
 // Short axis date like "Jan 5" for chart endpoints.
-function shortDate(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
 function metricValue(p: ExerciseSessionPoint, metric: Metric): number {
   return p[metric];
 }

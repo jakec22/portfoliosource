@@ -63,10 +63,6 @@ export interface DailyGoals {
   fiber: number;
 }
 
-export interface DailyLog {
-  date: string;
-  entries: FoodEntry[];
-}
 
 // ----- Workouts / Exercise -----
 

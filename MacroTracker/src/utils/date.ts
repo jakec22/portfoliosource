@@ -33,6 +33,11 @@ export function getPastDays(n: number): string[] {
   return days;
 }
 
+// "Oct 30" from a YYYY-MM-DD string.
+export function shortDate(dateStr: string): string {
+  return parseDate(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Compact relative label for a past YYYY-MM-DD date: "today", "yesterday",
 // "3d ago", "2w ago", or a short month/day once it's further back.
 export function relativeDateLabel(dateStr: string): string {
