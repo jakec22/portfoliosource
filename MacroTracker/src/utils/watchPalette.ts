@@ -4,17 +4,13 @@ import type { ThemeMode } from '../types';
 /**
  * The surface each pack renders on.
  *
- * Not the pack's own background — the watch stays dark whatever the pack, for
- * OLED battery and because watchOS has no light mode to follow. Executive's
- * warm near-black reads as a considered surface rather than a void, and it
- * flatters Wellness better than Wellness's own ground does: that pack's
- * surface and accent tones share a hue family, so its own brown makes the
- * terracotta ring compete with its background. Modern keeps pure black, where
- * its neon accents already sit at 5-16:1.
+ * Both packs are dark, so this is now the same colour the phone paints: the
+ * watch no longer diverges from the app. Executive's warm near-black reads as
+ * a considered surface rather than a void; Modern keeps pure black, where its
+ * neon accents already sit at 5-16:1.
  */
 export const WATCH_GROUND: Record<ThemeMode, string> = {
   editorial: '#221F1B',
-  warmWellness: '#221F1B',
   sportTech: '#000000',
 };
 

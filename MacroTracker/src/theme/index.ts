@@ -103,68 +103,100 @@ export interface Theme {
   white: string; // surface-white → the pack's card color in a dark pack
 }
 
-// Executive: the app's original, official look — warm neutrals, one deep-green
-// accent, restrained muted hues for the macro rings, serif display numerals.
-// The default pack, and the one every other pack is judged against.
+// Executive: the app's original, official look, now dark — warm near-black
+// ground, one lifted green accent, restrained muted macro hues, serif display
+// numerals. The default pack, and the one every other pack is judged against.
+//
+// The ground is #221F1B, which is the colour the watch app already paints
+// behind this pack (see WATCH_GROUND in utils/watchPalette.ts). Deliberately
+// not pure black: that is Modern's ground, and a warm near-black reads as a
+// considered surface rather than a void. Phone and wrist now sit on the same
+// black.
+//
+// Every value below was derived against that ground and checked, rather than
+// inverted by eye. Two things a naive inversion gets wrong:
+//
+//   - The card has to move, not the ground. A card one step off #221F1B sits
+//     at 1.1:1 and disappears; #36332E is 1.30:1, about the step iOS uses for
+//     an elevated dark surface.
+//   - The accent needs more lift here than on the watch. The watch lifts the
+//     original #3F6B52 against the *ground*; on the phone it sits on *cards*,
+//     which are lighter, so the same value drops to 4.0:1. Hence #6AA885.
+//
+// The macro hues are held to 3:1, not 4.5:1, because they are bar fills rather
+// than text. Lifting all four to 4.5 put them at one luminance and they came
+// out muddy and near-identical; at 3:1 they keep the light pack's character.
 export const editorialTheme: Theme = {
-  scheme: 'light',
+  scheme: 'dark',
 
-  bg: '#F8F5F1',
-  card: '#FFFFFF',
-  cardMuted: '#F1ECE5',
-  input: '#F8F5F1',
+  bg: '#221F1B',
+  card: '#36332E',
+  cardMuted: '#2C2823',
+  input: '#2C2823',
 
-  text: '#221F1B',
-  textMuted: '#89807D',
-  textFaint: '#B5AB9E',
+  text: '#F2EDE4',
+  textMuted: '#A79D8F',
+  textFaint: '#7A7268',
 
-  border: '#E7E0D6',
-  borderStrong: '#D6CBBC',
+  border: '#45403A',
+  borderStrong: '#5A544B',
 
-  primary: '#3F6B52',
-  primaryDark: '#2F5340',
-  primarySoft: '#E7EFEA',
-  onPrimary: '#FFFFFF',
-  danger: '#B54A3B',
-  dangerSoft: '#F5E3DE',
-  warning: '#B98A3E',
-  warningSoft: '#F3E8D3',
-  info: '#5E7A8C',
-  infoSoft: '#E7EDF0',
-  accent: '#9C5B45',
-  accentSoft: '#F0E1D9',
+  primary: '#6AA885',
+  primaryDark: '#4E8365',
+  primarySoft: 'rgba(106,168,133,0.16)',
+  onPrimary: '#1A1714',
+  danger: '#EF796C',
+  dangerSoft: 'rgba(239,121,108,0.18)',
+  warning: '#C19347',
+  warningSoft: 'rgba(193,147,71,0.18)',
+  info: '#869EAE',
+  infoSoft: 'rgba(134,158,174,0.16)',
+  accent: '#C58E7B',
+  accentSoft: 'rgba(197,142,123,0.16)',
 
-  macroProtein: '#9C5B45',
-  macroCarbs: '#B98A3E',
-  macroFat: '#A46C74',
-  macroFiber: '#6E7B63',
+  // Two pairs needed separating after lifting, both found by checking every
+  // pair rather than the ones expected to collide. Protein and fat landed 54
+  // apart, and protein and carbs 58, against the 60 watchPalette enforces for
+  // colours read side by side; fat moved to #A66F7C and carbs to #BA8C3D.
+  //
+  // danger and accent were the harder one. Executive's red and its terracotta
+  // are near-neighbours in hue — only 52 apart even in the light pack — and
+  // lifting both onto a dark ground closed that to 23. They sit side by side
+  // as set-type badges on a workout (failure vs dropset), so that is not
+  // survivable. Rather than bend the accent into a grey, danger became a
+  // franker red: #D4877C was a washed salmon that read poorly as danger
+  // anyway, and #EF796C is both clearer and 78 from the accent.
+  macroProtein: '#B26950',
+  macroCarbs: '#BA8C3D',
+  macroFat: '#A66F7C',
+  macroFiber: '#738067',
 
-  hrZone1: '#4A6E85',
+  hrZone1: '#57819B',
   hrZone2: '#74965C',
   hrZone3: '#C9A227',
   hrZone4: '#C4703A',
-  hrZone5: '#A8342A',
+  hrZone5: '#D15248',
 
   shadow: '#000000',
-  overlay: 'rgba(0,0,0,0.5)',
+  overlay: 'rgba(0,0,0,0.65)',
 
-  // The only pack with a full four-step ladder: Manrope ships 400/500/600/700
-  // and all four are loaded.
   fontDisplay: 'DMSerifDisplay_400Regular',
   fontBodyRegular: 'Manrope_400Regular',
   fontBody: 'Manrope_500Medium',
   fontBodySemi: 'Manrope_600SemiBold',
   fontBodyBold: 'Manrope_700Bold',
 
-  gray900: '#221F1B',
-  gray700: '#4A443C',
-  gray500: '#89807D',
-  gray400: '#A79D8F',
-  gray300: '#D6CBBC',
-  gray200: '#E7E0D6',
-  gray100: '#F1ECE5',
-  gray50: '#F8F5F1',
-  white: '#FFFFFF',
+  // Inverted, as on every dark pack: gray900 is the strongest ink, which on a
+  // dark ground is the lightest value.
+  gray900: '#F2EDE4',
+  gray700: '#D6CFC2',
+  gray500: '#A79D8F',
+  gray400: '#8A8075',
+  gray300: '#5A544B',
+  gray200: '#45403A',
+  gray100: '#36332E',
+  gray50: '#2C2823',
+  white: '#36332E',
 };
 
 // B — Sport-Tech Energy: near-black, neon lime/cyan/pink, bold geometric
@@ -237,75 +269,10 @@ export const sportTechTheme: Theme = {
   white: '#171B23',
 };
 
-// C — Warm Wellness: cream, terracotta/sage/gold, soft rounded display type.
-export const warmWellnessTheme: Theme = {
-  scheme: 'light',
-
-  bg: '#FBF3EA',
-  card: '#FFFDF9',
-  cardMuted: '#F3E6D8',
-  input: '#FBF3EA',
-
-  text: '#3B2E24',
-  textMuted: '#8A7969',
-  textFaint: '#B6A896',
-
-  border: '#EEDFCC',
-  borderStrong: '#E0CBAE',
-
-  primary: '#C1633F',
-  primaryDark: '#A34F30',
-  primarySoft: '#F6E3D6',
-  onPrimary: '#FFFFFF',
-  danger: '#C24B4B',
-  dangerSoft: '#F6DEDE',
-  warning: '#D6A03E',
-  warningSoft: '#F7EAD2',
-  info: '#6E9285',
-  infoSoft: '#E4EEE9',
-  accent: '#7A9A6E',
-  accentSoft: '#E7EFE3',
-
-  macroProtein: '#C1633F',
-  macroCarbs: '#D6A03E',
-  macroFat: '#7A9A6E',
-  macroFiber: '#9C7FA0',
-
-  hrZone1: '#5E8FA8',
-  hrZone2: '#7A9A6E',
-  hrZone3: '#D6A03E',
-  hrZone4: '#D2722F',
-  hrZone5: '#B03636',
-
-  shadow: '#7A4B2E',
-  overlay: 'rgba(59,46,36,0.5)',
-
-  // Bricolage's 600 is loaded too, but stays on the display face rather than
-  // being borrowed for body: mixing the two grotesques inside a paragraph
-  // reads as a bug rather than as emphasis.
-  fontDisplay: 'BricolageGrotesque_700Bold',
-  fontBodyRegular: 'NunitoSans_400Regular',
-  fontBody: 'NunitoSans_500Medium',
-  fontBodySemi: 'NunitoSans_600SemiBold',
-  fontBodyBold: 'NunitoSans_700Bold',
-
-  gray900: '#3B2E24',
-  gray700: '#6B5A48',
-  gray500: '#8A7969',
-  gray400: '#A8977F',
-  gray300: '#E0CBAE',
-  gray200: '#EEDFCC',
-  gray100: '#F3E6D8',
-  gray50: '#FBF3EA',
-  white: '#FFFDF9',
-};
-
 export function resolveTheme(pack: ThemeMode): Theme {
   switch (pack) {
     case 'sportTech':
       return sportTechTheme;
-    case 'warmWellness':
-      return warmWellnessTheme;
     default:
       return editorialTheme;
   }

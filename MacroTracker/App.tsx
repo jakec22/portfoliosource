@@ -23,16 +23,6 @@ import {
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
-import {
-  BricolageGrotesque_600SemiBold,
-  BricolageGrotesque_700Bold,
-} from '@expo-google-fonts/bricolage-grotesque';
-import {
-  NunitoSans_400Regular,
-  NunitoSans_500Medium,
-  NunitoSans_600SemiBold,
-  NunitoSans_700Bold,
-} from '@expo-google-fonts/nunito-sans';
 import { useTheme } from './src/theme/useTheme';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon } from './src/components/TabIcon';
@@ -231,12 +221,6 @@ export default function App() {
     SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
-    BricolageGrotesque_600SemiBold,
-    BricolageGrotesque_700Bold,
-    NunitoSans_400Regular,
-    NunitoSans_500Medium,
-    NunitoSans_600SemiBold,
-    NunitoSans_700Bold,
   });
 
   // Keep the OS-scheduled reminders in sync with the saved preferences. Runs on

@@ -761,7 +761,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 10,
+      version: 11,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -845,7 +845,7 @@ export const useStore = create<AppState>()(
           };
         }
         // v8 replaced the light/dark/system appearance toggle with selectable
-        // theme packs (editorial/sportTech/warmWellness) — full visual
+        // theme packs (editorial/sportTech) — full visual
         // identities rather than a brightness setting. Map the old value to
         // the closest pack: a prior dark preference lands on the one dark
         // pack; light/system land on the calmer, general-purpose default.
@@ -873,6 +873,11 @@ export const useStore = create<AppState>()(
               state.goalsBasisWeightLbs ?? state.profile?.weightLbs ?? undefined,
             goalsUpdateNotice: undefined,
           };
+        }
+        // v11 retired the Wellness pack and turned Executive dark. Anyone on
+        // Wellness lands on Executive, the same way Classic's users did at v9.
+        if (version < 11 && state?.themeMode === 'warmWellness') {
+          state = { ...state, themeMode: 'editorial' };
         }
         return state;
       },

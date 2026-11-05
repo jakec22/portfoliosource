@@ -5,10 +5,10 @@ module.exports = config => ({
   icon: '../../assets/icon.png',
   // Baked into the target's asset catalog at build time, so no theme sync can
   // change it — it only shows in UI the system draws before or outside our own
-  // views. Kept at the Executive pack's accent, lifted to 4.5:1 against the
-  // watch ground the same way watchPalette() lifts it, so it matches what the
-  // phone pushes for the default pack instead of the app's retired emerald.
-  colors: { $accent: "#569370" },
+  // views. It is the Executive pack's primary verbatim: now that the pack is
+  // dark on the same #221F1B ground the watch paints, the colour already
+  // clears 4.5:1 there and needs no separate lift.
+  colors: { $accent: "#6AA885" },
   deploymentTarget: "9.4",
   entitlements: {
     "com.apple.developer.healthkit": true,
