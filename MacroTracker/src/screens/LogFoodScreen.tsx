@@ -465,15 +465,30 @@ export function LogFoodScreen({ route, navigation }: Props) {
               placeholderTextColor={c.textFaint}
             />
             {loading && <ActivityIndicator size="small" color={c.primary} />}
-            <TouchableOpacity
-              style={styles.barcodeInField}
-              onPress={() => setScannerVisible(true)}
-              hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
-            >
-              <BarcodeIcon size={20} color={c.primary} />
-            </TouchableOpacity>
           </View>
         </View>
+
+        {/* The two routes where the machine does the reading sit in the same
+            slot, one at a time, so the eye only ever learns one place: scan
+            when the field is empty, estimate once you've typed something for
+            it to estimate. They share a treatment because they are the same
+            kind of offer — don't look this up yourself. */}
+        {!searching && (
+          <TouchableOpacity
+            style={[styles.offerRow, styles.offerRowStandalone]}
+            onPress={() => setScannerVisible(true)}
+            activeOpacity={0.8}
+          >
+            <BarcodeIcon size={24} color={c.primary} />
+            <View style={styles.offerText}>
+              <Text style={styles.offerTitle}>Scan barcode or label</Text>
+              <Text style={styles.offerSub} numberOfLines={1}>
+                Exact macros off the package
+              </Text>
+            </View>
+            <Icon name="forward" size="md" color={c.primary} />
+          </TouchableOpacity>
+        )}
 
         <FlatList
           keyExtractor={(r) => (r.kind === 'meal' ? `m:${r.meal.id}` : `f:${r.food.id}`)}
@@ -486,7 +501,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   you just typed is what it acts on. */}
               {searching && query.trim().length >= MIN_AI_CHARS && (
                 <TouchableOpacity
-                  style={styles.aiRow}
+                  style={styles.offerRow}
                   onPress={() =>
                     navigation.navigate('MealPhoto', {
                       meal,
@@ -497,9 +512,9 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   activeOpacity={0.8}
                 >
                   <Icon name="aiEstimate" size="lg" color={c.primary} />
-                  <View style={styles.aiRowText}>
-                    <Text style={styles.aiTitle}>Estimate with AI</Text>
-                    <Text style={styles.aiSub} numberOfLines={1}>
+                  <View style={styles.offerText}>
+                    <Text style={styles.offerTitle}>Estimate with AI</Text>
+                    <Text style={styles.offerSub} numberOfLines={1}>
                       “{query.trim()}”
                     </Text>
                   </View>
@@ -795,17 +810,9 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  // Divider-separated so it reads as a second control inside the field rather
-  // than a glyph belonging to the text.
-  barcodeInField: {
-    alignSelf: 'stretch',
-    justifyContent: 'center',
-    paddingLeft: space.md,
-    marginLeft: space.xxs,
-    borderLeftWidth: 1,
-    borderLeftColor: c.border,
-  },
-  aiRow: {
+  // Shared by the scan offer and the AI offer — one shape, one slot, so the
+  // two never read as competing controls.
+  offerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
@@ -816,13 +823,16 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     padding: space.lg,
     marginBottom: space.md,
   },
-  aiRowText: { flex: 1, minWidth: 0 },
-  aiTitle: {
+  // The scan offer sits outside the FlatList, so it carries the horizontal
+  // inset the list's contentContainer supplies to the AI offer.
+  offerRowStandalone: { marginHorizontal: space.md },
+  offerText: { flex: 1, minWidth: 0 },
+  offerTitle: {
     ...type.body(c),
     fontFamily: c.fontBodySemi,
     color: c.text,
   },
-  aiSub: {
+  offerSub: {
     ...type.caption(c),
     color: c.textMuted,
     marginTop: space.xxs,
