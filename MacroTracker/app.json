@@ -4,11 +4,7 @@
     "slug": "HolyMacro",
     "version": "1.0.5",
     "orientation": "portrait",
-    "icon": {
-      "light": "./assets/icon.png",
-      "dark": "./assets/icon-dark.png",
-      "tinted": "./assets/icon-tinted.png"
-    },
+    "icon": "./assets/icon.png",
     "scheme": "holymacro",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -46,6 +42,11 @@
       "backgroundColor": "#0E0E10"
     },
     "ios": {
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      },
       "supportsTablet": true,
       "bundleIdentifier": "com.jacobclover.macrotracker",
       "appleTeamId": "D8S2K2WAL9",
