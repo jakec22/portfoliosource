@@ -27,6 +27,10 @@ interface Props {
 
 const MEALS: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
+// How full a bar should be. A goal of 0 would make this NaN and hand the bar
+// an invalid width, so it reads as empty — the same guard MacroBar carries.
+const ratio = (value: number, goal: number) => (goal > 0 ? Math.min(value / goal, 1) : 0);
+
 // The food log, on its own tab.
 //
 // This was the lower two thirds of Home. Home answers "where do I stand", which
@@ -79,6 +83,28 @@ export function FoodScreen({ navigation }: Props) {
   const isToday = selectedDate === todayString();
   const remaining = Math.round(goals.calories - totals.calories);
   const over = remaining < 0;
+
+  const caloriePct = ratio(totals.calories, goals.calories);
+
+  const macroColumns = useMemo(
+    () =>
+      (
+        [
+          ['Protein', totals.protein, goals.protein, c.macroProtein],
+          ['Carbs', totals.carbs, goals.carbs, c.macroCarbs],
+          ['Fat', totals.fat, goals.fat, c.macroFat],
+          ['Fiber', totals.fiber ?? 0, goals.fiber, c.macroFiber],
+        ] as const
+      ).map(([label, value, goal, color]) => ({
+        label,
+        value,
+        goal,
+        color,
+        pct: ratio(value, goal),
+        over: goal > 0 && value > goal,
+      })),
+    [totals, goals, c]
+  );
 
   function goDay(offset: number) {
     const current = new Date(selectedDate + 'T12:00:00');
@@ -140,14 +166,55 @@ export function FoodScreen({ navigation }: Props) {
 
         <View style={styles.remainingRow}>
           <Text style={[styles.remainingNum, over && styles.remainingOver]}>
-            {Math.abs(remaining)}
+            {Math.abs(remaining).toLocaleString()}
           </Text>
           <Text style={styles.remainingLabel}>{over ? 'kcal over' : 'kcal left'}</Text>
           <View style={{ flex: 1 }} />
-          <Text style={styles.remainingMacros}>
-            {Math.round(totals.protein)}p · {Math.round(totals.carbs)}c ·{' '}
-            {Math.round(totals.fat)}f
+          <Text style={styles.calTotals}>
+            {Math.round(totals.calories).toLocaleString()} /{' '}
+            {Math.round(goals.calories).toLocaleString()}
           </Text>
+        </View>
+
+        {/* The day's four macros, in the same colours and against the same
+            goals Home uses.
+            This was "128p · 96c · 51f" — 13px, in the faintest colour the
+            theme has, with no targets, so none of the three numbers meant
+            anything on its own, and fiber was dropped entirely. A bar answers
+            "what still needs filling" without reading any of them, which is
+            the question you actually have between logging one food and the
+            next. */}
+        <View style={styles.calTrack}>
+          <View
+            style={[
+              styles.barFill,
+              { width: `${caloriePct * 100}%` as any },
+              { backgroundColor: over ? c.danger : c.primary },
+            ]}
+          />
+        </View>
+
+        <View style={styles.macroGrid}>
+          {macroColumns.map((m) => (
+            <View key={m.label} style={styles.macroCol}>
+              <Text style={styles.macroName}>{m.label}</Text>
+              <Text style={styles.macroReadout}>
+                <Text style={[styles.macroValue, m.over && styles.remainingOver]}>
+                  {Math.round(m.value)}
+                </Text>
+                <Text style={styles.macroGoal}>/{m.goal}</Text>
+              </Text>
+              <View style={styles.macroTrack}>
+                <View
+                  style={[
+                    styles.barFill,
+                    { width: `${m.pct * 100}%` as any },
+                    { backgroundColor: m.over ? c.danger : m.color },
+                  ]}
+                />
+              </View>
+            </View>
+          ))}
         </View>
       </View>
 
@@ -206,7 +273,35 @@ const makeStyles = (c: Theme) =>
     remainingNum: { ...type.title(c), ...tabular, color: c.text },
     remainingOver: { color: c.danger },
     remainingLabel: { ...type.caption(c), color: c.textMuted },
-    remainingMacros: { ...type.caption(c), ...tabular, color: c.textFaint },
+    calTotals: { ...type.caption(c), ...tabular, color: c.textFaint },
+
+    // Both tracks share barFill, and both use MacroBar's geometry — 6pt on
+    // borderStrong — so a macro bar means the same thing here as on Home.
+    calTrack: {
+      height: 6,
+      borderRadius: radius.hairline,
+      backgroundColor: c.borderStrong,
+      overflow: 'hidden',
+      marginTop: space.sm,
+    },
+    barFill: { height: '100%', borderRadius: radius.hairline },
+
+    macroGrid: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
+    macroCol: { flex: 1 },
+    // The label sits above the value rather than beside it: four columns in
+    // 358pt leave ~83pt each, and "PROTEIN" plus its number does not fit on
+    // one line.
+    macroName: { ...type.overline(c), color: c.textFaint },
+    macroReadout: { ...tabular, marginTop: space.xxs },
+    macroValue: { ...type.body(c), fontFamily: c.fontDisplay, color: c.text },
+    macroGoal: { ...type.caption(c), fontFamily: c.fontDisplay, color: c.textFaint },
+    macroTrack: {
+      height: 6,
+      borderRadius: radius.hairline,
+      backgroundColor: c.borderStrong,
+      overflow: 'hidden',
+      marginTop: space.xs,
+    },
 
     snapBtn: {
       flexDirection: 'row',
