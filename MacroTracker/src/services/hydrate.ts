@@ -234,6 +234,9 @@ export async function syncOnLogin(userId: string): Promise<void> {
       customFoods: settings?.custom_foods?.length
         ? settings.custom_foods
         : state.customFoods,
+      customExercises: settings?.custom_exercises?.length
+        ? settings.custom_exercises
+        : state.customExercises,
       savedMeals: settings?.saved_meals?.length
         ? settings.saved_meals
         : state.savedMeals,

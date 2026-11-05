@@ -212,12 +212,13 @@ export interface AppState {
   /**
    * Exercise names typed by hand and kept for the picker.
    *
-   * Local only, deliberately. settingsRow() in services/sync.ts maps explicit
-   * columns, so syncing this needs a custom_exercises column on the settings
-   * table first — and until that column exists a push carrying it fails the
-   * whole upsert, taking goals, templates and water with it.
+   * Synced, as of migration 0003_custom_exercises.sql. It was local-only until
+   * that column existed, because pushSettings maps explicit columns and sends
+   * the whole row at once: one unknown column fails the entire upsert, taking
+   * goals, templates and water with it. Run the migration before any build
+   * carrying this field.
    */
-  customExercises: string[]; // user-created foods with custom macros
+  customExercises: string[];
   savedMeals: SavedMeal[]; // named meal templates for quick re-logging
   workoutTemplates: WorkoutTemplate[];
   activeWorkout: WorkoutSession | null;

@@ -66,6 +66,7 @@ export interface SettingsSnapshot {
   recentFoods: Food[];
   favoriteFoods: Food[];
   customFoods: Food[];
+  customExercises: string[];
   savedMeals: SavedMeal[];
   waterIntake: Record<string, number>;
   workoutTemplates: WorkoutTemplate[];
@@ -98,6 +99,7 @@ export function settingsSnapshot(s: AppState): SettingsSnapshot {
     recentFoods: s.recentFoods,
     favoriteFoods: s.favoriteFoods,
     customFoods: s.customFoods,
+    customExercises: s.customExercises,
     savedMeals: s.savedMeals,
     waterIntake: s.waterIntake,
     workoutTemplates: s.workoutTemplates,
@@ -162,6 +164,10 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     recent_foods: s.recentFoods,
     favorite_foods: s.favoriteFoods,
     custom_foods: s.customFoods,
+    // Needs migration 0003. Until that column exists this one field fails the
+    // whole upsert, taking goals, templates and water with it — see the note
+    // at the top of 0003_custom_exercises.sql.
+    custom_exercises: s.customExercises,
     saved_meals: s.savedMeals,
     water_intake: s.waterIntake,
     workout_templates: s.workoutTemplates,
