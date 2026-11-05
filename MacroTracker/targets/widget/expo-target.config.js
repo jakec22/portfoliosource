@@ -3,7 +3,10 @@ module.exports = config => ({
   type: "widget",
   displayName: "Macros",
   icon: '../../assets/icon.png',
-  colors: { $accent: "#3F6B52" },
+  // Executive primary, matching the watch target and the app. This sat on
+  // the pre-dark #3F6B52 after the pack went dark, so the widget tinted
+  // itself a colour the app no longer contains.
+  colors: { $accent: "#34C77B" },
   deploymentTarget: "17.0",
   entitlements: {
     // Mirrors the main app's group so the widget can read the payload the JS

@@ -176,8 +176,8 @@ laid out the way `MealPhotoScreen` renders them.
 
 ### Regenerating them
 
-`marketing/appstore/gen.py` writes six standalone HTML slides; `shoot.js`
-renders them through Playwright at a 428 × 926 viewport and
+`marketing/appstore/gen.py` writes five standalone HTML slides; `shoot.js`
+renders every `slideN.html` it finds through Playwright at a 428 × 926 viewport and
 `deviceScaleFactor: 3`, which lands exactly on 1284 × 2778.
 
 ```sh
@@ -185,7 +185,12 @@ cd marketing/appstore
 python3 gen.py
 node shoot.js 3 appstore     # arg 1 = scale, arg 2 = output prefix
 node shoot.js 1 preview      # 1x, for a quick look
+node overflow.js             # fails if any slide clips its in-phone content
 ```
+
+`overflow.js` exists because the phone screen clips with `overflow:hidden`,
+so a slide that grows past it loses its last element silently — which is how
+a macro ladder once shipped without its Fiber bar.
 
 Playwright is required rather than `chrome --headless --screenshot`: that flag
 reserves ~87px of the window for browser chrome, so the viewport ends up
