@@ -2,7 +2,7 @@
   "expo": {
     "name": "HolyMacro",
     "slug": "HolyMacro",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": {
       "light": "./assets/icon.png",
