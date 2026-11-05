@@ -96,12 +96,15 @@ def svg(width_frac: float, stroke_frac: float, color: str, ground: str | None) -
 # mark this flat is bound by its bounding box's diagonal, not its width —
 # measured, then set with margin rather than trusted to the algebra.
 IOS_WIDTH, ANDROID_WIDTH = 0.68, 0.55
-# Fraction of the mark's own inked width, matching the shipped mark's
-# measured 5.5%. An earlier pass lifted it to 8% on a bad arithmetic step —
-# "1.2px at 29pt" treated 29pt as 29px, where iOS renders that slot from an
-# 87px @3x asset and the real figure is ~3.3px. Side by side at every slot
-# size, the heavier stroke closed the body up.
-STROKE = 0.055
+# Fraction of the mark's own inked width.
+#
+# Lighter than the shipped mark's measured 5.5%, which still read heavy on a
+# near-black ground: dark ink on cream looks finer than it measures, and the
+# same weight in #34C77B on #0E0E10 gains apparent mass. Rendered as a ladder
+# (0.055 / 0.046 / 0.038 / 0.031) at 180, 60 and 29pt, this is the lightest
+# weight that still holds at the 29pt Settings slot — 0.031 starts to
+# disappear there.
+STROKE = 0.038
 
 ASSET_SPECS = [
     # (filename, px, width_frac, color, ground)
