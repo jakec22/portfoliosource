@@ -12,6 +12,12 @@ function isVolume(food: Food): boolean {
  * volume. "serving" is always available.
  */
 export function availableUnits(food: Food): ServingUnit[] {
+  // A food whose base serving *is* "a serving" has no mass or volume to
+  // convert from — serving_size is 1 and means one unnamed portion. Offering
+  // grams here makes toMultiplier divide by that 1, so entering "150 g" logs
+  // 150 servings: 150x the calories. AI estimates and scanned labels land in
+  // this shape whenever no gram weight comes back.
+  if (food.serving_unit === 'serving') return ['serving'];
   if (isVolume(food)) return ['serving', 'fl oz', 'ml'];
   // Default to mass-based foods (grams).
   return ['serving', 'g', 'oz'];

@@ -154,6 +154,21 @@ export async function syncOnLogin(userId: string): Promise<void> {
       (logs[row.date] ??= []).push(entry);
     });
 
+    // Food entries merge both ways too, for the same reason workouts do.
+    //
+    // This used to replace `logs` with the cloud's copy outright, which
+    // destroyed anything logged while a push was failing: log lunch on a
+    // plane (the push fails and the sync warning shows), get killed, relaunch
+    // after the cooldown — and the cloud row, which never received lunch,
+    // overwrote it. No copy left anywhere and nothing told the user.
+    const cloudEntryIds = new Set((rows ?? []).map((r: any) => String(r.id)));
+    const localOnlyEntries = Object.values(useStore.getState().logs)
+      .flat()
+      .filter((e) => !cloudEntryIds.has(e.id));
+    for (const e of localOnlyEntries) {
+      (logs[e.date] ??= []).push(e);
+    }
+
     // Workouts: merge local and cloud bidirectionally.
     // Local sessions not yet in the cloud are pushed up — this handles the
     // one-time transition for users who had workouts before sync was added,
@@ -164,9 +179,14 @@ export async function syncOnLogin(userId: string): Promise<void> {
     const localWorkouts = useStore.getState().workoutHistory;
     const localOnly = localWorkouts.filter((w) => !cloudIds.has(w.id));
 
-    if (localOnly.length > 0) {
+    // One unsuspended window for everything this device holds that the cloud
+    // doesn't, rather than toggling the guard once per kind.
+    if (localOnly.length > 0 || localOnlyEntries.length > 0) {
       setSuspended(false);
-      await pushWorkouts(localOnly);
+      await Promise.all([
+        localOnly.length > 0 ? pushWorkouts(localOnly) : null,
+        localOnlyEntries.length > 0 ? pushEntries(localOnlyEntries) : null,
+      ]);
       setSuspended(true);
     }
 

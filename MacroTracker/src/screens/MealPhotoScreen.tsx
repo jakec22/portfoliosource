@@ -69,13 +69,6 @@ function buildFood(it: ReviewItem | AnalyzedItem): Food {
   };
 }
 
-// Units offered for an AI item — same logic as LogFoodScreen but gated on
-// whether we have a gram weight to convert from.
-function itemUnits(it: ReviewItem): ServingUnit[] {
-  if (!it.serving_grams) return ['serving'];
-  return availableUnits(buildFood(it));
-}
-
 export function MealPhotoScreen({ route, navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -364,7 +357,10 @@ export function MealPhotoScreen({ route, navigation }: Props) {
                   carbs: Math.round(it.carbs * multiplier),
                   fat: Math.round(it.fat * multiplier),
                 };
-                const units = itemUnits(it);
+                // buildFood marks an item with no gram weight as
+                // serving_unit:'serving', which availableUnits now reads as
+                // "one unit only" — so this needs no gate of its own.
+                const units = availableUnits(buildFood(it));
                 const isExpanded = expandedId === it.id;
 
                 return (

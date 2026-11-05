@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActionSheetIOS,
   Platform,
   Alert,
+  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
@@ -39,6 +40,37 @@ export function FoodScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const [selectedDate, setSelectedDate] = useState(todayString());
+
+  // Notice midnight.
+  //
+  // This is a tab screen, so it stays mounted for the life of the app and
+  // `selectedDate` held whatever day it was when the screen first appeared.
+  // Open the app at 23:50 and log a snack at 00:05 and the entry went to
+  // yesterday — the one case a calorie tracker has to get right.
+  //
+  // `shownAsToday` is the day that `selectedDate` means "today" for. When the
+  // real day moves past it, a date still sitting on the old today follows;
+  // a day the user stepped back to deliberately stays where they put it.
+  const shownAsToday = useRef(selectedDate);
+  useEffect(() => {
+    function rollForward() {
+      const now = todayString();
+      if (now === shownAsToday.current) return;
+      setSelectedDate((d) => (d === shownAsToday.current ? now : d));
+      shownAsToday.current = now;
+    }
+    // Focus covers moving between tabs; AppState covers the app being
+    // backgrounded overnight and reopened on this screen, where the screen
+    // never loses focus and no navigation event fires.
+    const unsubscribeFocus = navigation.addListener('focus', rollForward);
+    const appStateSub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') rollForward();
+    });
+    return () => {
+      unsubscribeFocus();
+      appStateSub.remove();
+    };
+  }, [navigation]);
 
   const goals = useStore((s) => s.goals);
   const dateEntries = useStore((s) => s.logs[selectedDate]);

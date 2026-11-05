@@ -265,11 +265,22 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   async function performDelete() {
     setBusy(true);
     try {
-      clearLocalData();
+      // Server first, device second.
+      //
+      // Clearing local state before the call meant a failed delete — expired
+      // session, no signal — left the user signed in looking at an empty app
+      // while their cloud data was still there, and the next thing that
+      // touched settings (a water tap, a theme switch) pushed that emptiness
+      // over their real row. Nothing to recover from at that point.
+      //
+      // On success deleteAccount signs out, which clears the sync user, so the
+      // reset below can't be pushed anywhere either.
       const { error } = await deleteAccount();
       if (error) {
         Alert.alert('Error', `Could not delete account: ${error.message}`);
+        return;
       }
+      clearLocalData();
     } finally {
       setBusy(false);
     }
