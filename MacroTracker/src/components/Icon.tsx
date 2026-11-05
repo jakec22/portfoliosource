@@ -57,6 +57,7 @@ const GLYPH = {
   key: 'key',
   add: 'plus',
   subtract: 'minus',
+  more: 'dots-horizontal',
 
   // State
   favorite: 'star',

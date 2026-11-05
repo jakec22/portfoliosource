@@ -5,11 +5,11 @@ import {
   StyleSheet,
   TextInput,
   FlatList,
-  ScrollView,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActionSheetIOS,
   ActivityIndicator,
   Keyboard,
 } from 'react-native';
@@ -39,6 +39,16 @@ interface Props {
   route: { params: { meal: MealType; date: string } };
   navigation: any;
 }
+
+// The merged list carries two row shapes: a saved meal (multi-item) and a
+// single food. They share one list because they are the same answer to the
+// same question — something you've had before — and splitting them into
+// sections is what made this screen a search for the search.
+type Row = { kind: 'meal'; meal: SavedMeal } | { kind: 'food'; food: Food };
+
+// analyzeMealText needs something to work with; below this the AI row would
+// only produce a shrug.
+const MIN_AI_CHARS = 3;
 
 // Simple barcode icon drawn with react-native-svg (already a project dep).
 // 7 alternating narrow/wide bars to suggest a barcode at small sizes.
@@ -114,27 +124,57 @@ export function LogFoodScreen({ route, navigation }: Props) {
     }
     return foods;
   }, [logs]);
-  const HISTORY_PAGE_SIZE = 20;
-  const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE_SIZE);
-  const visibleHistory = useMemo(
-    () => historyFoods.slice(0, historyLimit),
-    [historyFoods, historyLimit]
-  );
 
-  // Previously-logged foods matching the typed query — surfaced ahead of
-  // fresh search results so re-adding something you've already eaten doesn't
-  // get buried under a generic database match.
-  const historyMatches = useMemo(() => {
+  // One list, not three.
+  //
+  // Favorites, Recent and History were three separate sections — two chip
+  // strips and a card list — holding the same kind of thing: a food you've
+  // had before. Three shapes for one concept pushed the actual list below the
+  // fold and gave the eye three places to look before it found a food. They
+  // are now one ordered list: starred first (the star is already on every row,
+  // so it does the sorting), then recently handled, then everything else by
+  // recency. Nothing the three sections showed is lost — `recentFoods` carries
+  // scanned-but-not-yet-logged products, which never reach `logs`.
+  const yourFoods = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Food[] = [];
+    for (const list of [favoriteFoods, recentFoods, historyFoods]) {
+      for (const f of list) {
+        if (seen.has(f.id)) continue;
+        seen.add(f.id);
+        out.push(f);
+      }
+    }
+    return out;
+  }, [favoriteFoods, recentFoods, historyFoods]);
+
+  const PAGE_SIZE = 20;
+  const [listLimit, setListLimit] = useState(PAGE_SIZE);
+
+  // Foods you already have matching the typed query — surfaced ahead of fresh
+  // search results so re-adding something you've eaten doesn't get buried
+  // under a generic database match.
+  const yourMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return historyFoods.filter(
+    return yourFoods.filter(
       (f) => f.name.toLowerCase().includes(q) || (f.brand && f.brand.toLowerCase().includes(q))
     );
-  }, [historyFoods, query]);
-  const historyMatchIds = useMemo(
-    () => new Set(historyMatches.map((f) => f.id)),
-    [historyMatches]
+  }, [yourFoods, query]);
+  const yourMatchIds = useMemo(
+    () => new Set(yourMatches.map((f) => f.id)),
+    [yourMatches]
   );
+
+  // Saved meals sit at the top of the same list rather than in a section of
+  // their own, and filter with it. They are multi-item, so they keep their own
+  // row shape — but they are still "something you've had before", which is
+  // what this list is.
+  const matchingSavedMeals = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return savedMeals;
+    return savedMeals.filter((m) => m.name.toLowerCase().includes(q));
+  }, [savedMeals, query]);
 
   // Debounced live search against USDA (falls back to local foods offline).
   // Custom foods are merged in front of API results when their name matches.
@@ -286,7 +326,18 @@ export function LogFoodScreen({ route, navigation }: Props) {
       }
     : null;
 
-  const showShortcuts = query.trim() === '';
+  const searching = query.trim() !== '';
+
+  // The one list, in display order: saved meals, then your foods. In search
+  // mode the same list filters, with fresh database results appended behind
+  // what you already have.
+  const rows = useMemo<Row[]>(() => {
+    const meals: Row[] = matchingSavedMeals.map((m) => ({ kind: 'meal', meal: m }));
+    const foods = searching
+      ? [...yourMatches, ...results.filter((f) => !yourMatchIds.has(f.id))]
+      : yourFoods.slice(0, listLimit);
+    return [...meals, ...foods.map((f): Row => ({ kind: 'food', food: f }))];
+  }, [matchingSavedMeals, searching, yourMatches, yourMatchIds, results, yourFoods, listLimit]);
 
   function prevDay(dateStr: string): string {
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -325,6 +376,36 @@ export function LogFoodScreen({ route, navigation }: Props) {
     );
   }
 
+  // Meal-level actions — build a multi-item meal, copy yesterday's, save this
+  // one — are things you do to the meal, not ways to find a food. As three
+  // always-visible controls they competed with the list for the same glance;
+  // behind one header button they cost nothing until you want them.
+  function handleMoreActions() {
+    const actions: { label: string; run: () => void }[] = [
+      { label: 'Build a meal', run: () => navigation.navigate('BuildMeal', { meal, date }) },
+      { label: 'Copy yesterday', run: handleCopyYesterday },
+    ];
+    if (mealEntries.length > 0) {
+      actions.push({ label: 'Save this meal', run: handleSaveMeal });
+    }
+    const labels = actions.map((a) => a.label);
+    // ActionSheetIOS is iOS-only; Android gets the equivalent alert, as
+    // elsewhere in the app.
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { title: MEAL_LABELS[meal], options: ['Cancel', ...labels], cancelButtonIndex: 0 },
+        (index) => {
+          if (index > 0) actions[index - 1].run();
+        }
+      );
+    } else {
+      Alert.alert(MEAL_LABELS[meal], undefined, [
+        ...actions.map((a) => ({ text: a.label, onPress: a.run })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]);
+    }
+  }
+
   function handleLogSavedMeal(sm: SavedMeal) {
     const now = Date.now();
     for (const item of sm.items) {
@@ -354,15 +435,29 @@ export function LogFoodScreen({ route, navigation }: Props) {
             </View>
           </TouchableOpacity>
           <Text style={styles.title}>Add to {MEAL_LABELS[meal]}</Text>
-          <View style={styles.backBtn} />
+          <TouchableOpacity
+            onPress={handleMoreActions}
+            style={[styles.backBtn, styles.moreBtn]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Icon name="more" size="lg" color={c.primary} />
+          </TouchableOpacity>
         </View>
 
+        {/* The field is the only thing above the list.
+            It takes a search term *or* a description — typing "2 eggs and
+            sourdough toast" used to be a dead end, because the field could
+            only match a database, and the AI route was a separate button you
+            had to notice before you started typing. Now the typing is the
+            route: the AI row below offers to estimate whatever is in here.
+            Barcode sits inside the field because it is the one capture method
+            that can't start from text. */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
             <Icon name="search" size="sm" color={c.textFaint} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search foods..."
+              placeholder="Search or describe what you ate"
               value={query}
               onChangeText={setQuery}
               autoCapitalize="none"
@@ -370,185 +465,99 @@ export function LogFoodScreen({ route, navigation }: Props) {
               placeholderTextColor={c.textFaint}
             />
             {loading && <ActivityIndicator size="small" color={c.primary} />}
+            <TouchableOpacity
+              style={styles.barcodeInField}
+              onPress={() => setScannerVisible(true)}
+              hitSlop={{ top: 12, bottom: 12, left: 8, right: 12 }}
+            >
+              <BarcodeIcon size={20} color={c.primary} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* The three ways to add a food that don't involve searching a
-            database: describe it or photograph it and let AI estimate, scan a
-            barcode, or assemble a multi-item meal. These were three unlabeled
-            46pt icon squares crowded beside the search field, which read as
-            accessories to search. They are the primary capture routes — the
-            search field and the history list below it are the secondary
-            path — so they get labels and the full width. */}
-        <View style={styles.captureRow}>
-          <TouchableOpacity
-            style={styles.captureBtn}
-            onPress={() => navigation.navigate('MealPhoto', { meal, date })}
-            activeOpacity={0.8}
-          >
-            <Icon name="aiEstimate" size="md" color={c.onPrimary} />
-            <Text style={styles.captureLabel}>AI estimate</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.captureBtn}
-            onPress={() => setScannerVisible(true)}
-            activeOpacity={0.8}
-          >
-            <BarcodeIcon size={20} color={c.onPrimary} />
-            <Text style={styles.captureLabel}>Barcode</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.captureBtn}
-            onPress={() => navigation.navigate('BuildMeal', { meal, date })}
-            activeOpacity={0.8}
-          >
-            <Icon name="meal" size="md" color={c.onPrimary} />
-            <Text style={styles.captureLabel}>Build meal</Text>
-          </TouchableOpacity>
-        </View>
-
         <FlatList
-          keyExtractor={(f) => f.id}
+          keyExtractor={(r) => (r.kind === 'meal' ? `m:${r.meal.id}` : `f:${r.food.id}`)}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            showShortcuts ? (
-              <View style={styles.recentSection}>
-                {/* Favorites */}
-                {favoriteFoods.length > 0 && (
-                  <>
-                    <Text style={styles.recentTitle}>Favorites</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
-                      contentContainerStyle={styles.recentRow}
-                    >
-                      {favoriteFoods.map((f) => (
-                        <TouchableOpacity
-                          key={f.id}
-                          style={styles.recentChip}
-                          onPress={() => handleSelectFood(f)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.recentChipName} numberOfLines={1}>
-                            {f.name}
-                          </Text>
-                          <Text style={styles.recentChipCals}>
-                            {f.macros.calories} kcal
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </>
-                )}
-
-                {/* Saved meals */}
-                {savedMeals.length > 0 && (
-                  <>
-                    <Text style={styles.recentTitle}>Saved Meals</Text>
-                    {savedMeals.map((sm) => {
-                      const totalCal = Math.round(
-                        sm.items.reduce(
-                          (s, i) => s + i.food.macros.calories * i.servings,
-                          0
-                        )
-                      );
-                      return (
-                        <TouchableOpacity
-                          key={sm.id}
-                          style={styles.savedMealRow}
-                          onPress={() => handleLogSavedMeal(sm)}
-                          activeOpacity={0.7}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.savedMealName}>{sm.name}</Text>
-                            <Text style={styles.savedMealMeta}>
-                              {sm.items.length} item{sm.items.length === 1 ? '' : 's'}{' '}
-                              · {totalCal} kcal
-                            </Text>
-                          </View>
-                          <TouchableOpacity
-                            onPress={() => {
-                              deleteSavedMeal(sm.id);
-                              showSnackbar(`Deleted ${sm.name}`, {
-                                label: 'Undo',
-                                onPress: () => restoreSavedMeal(sm),
-                              });
-                            }}
-                            hitSlop={{ top: 8, bottom: 8, left: 12, right: 8 }}
-                          >
-                            <Icon name="close" size="sm" color={c.textFaint} />
-                          </TouchableOpacity>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </>
-                )}
-
-                {/* Shortcut buttons */}
-                <View style={styles.shortcutRow}>
+            <>
+              {/* Typing is the AI route. The estimate offer sits at the head of
+                  the results rather than in a button above them, so the thing
+                  you just typed is what it acts on. */}
+              {searching && query.trim().length >= MIN_AI_CHARS && (
+                <TouchableOpacity
+                  style={styles.aiRow}
+                  onPress={() =>
+                    navigation.navigate('MealPhoto', {
+                      meal,
+                      date,
+                      description: query.trim(),
+                    })
+                  }
+                  activeOpacity={0.8}
+                >
+                  <Icon name="aiEstimate" size="lg" color={c.primary} />
+                  <View style={styles.aiRowText}>
+                    <Text style={styles.aiTitle}>Estimate with AI</Text>
+                    <Text style={styles.aiSub} numberOfLines={1}>
+                      “{query.trim()}”
+                    </Text>
+                  </View>
+                  <Icon name="forward" size="md" color={c.primary} />
+                </TouchableOpacity>
+              )}
+              {rows.length > 0 && (
+                <Text style={styles.listLabel}>
+                  {searching ? 'Results' : 'Your foods'}
+                </Text>
+              )}
+            </>
+          }
+          data={rows}
+          renderItem={({ item: row }) => {
+            if (row.kind === 'meal') {
+              const sm = row.meal;
+              const totalCal = Math.round(
+                sm.items.reduce((s, i) => s + i.food.macros.calories * i.servings, 0)
+              );
+              return (
+                <TouchableOpacity
+                  style={styles.savedMealRow}
+                  onPress={() => handleLogSavedMeal(sm)}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.foodNameRow}>
+                      <Text style={styles.savedMealName}>{sm.name}</Text>
+                      <View style={styles.mealTag}>
+                        <Text style={styles.mealTagText}>Meal</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.savedMealMeta}>
+                      {sm.items.length} item{sm.items.length === 1 ? '' : 's'} · {totalCal} kcal
+                    </Text>
+                  </View>
                   <TouchableOpacity
-                    style={styles.shortcutBtn}
-                    onPress={handleCopyYesterday}
-                    activeOpacity={0.7}
+                    onPress={() => {
+                      deleteSavedMeal(sm.id);
+                      showSnackbar(`Deleted ${sm.name}`, {
+                        label: 'Undo',
+                        onPress: () => restoreSavedMeal(sm),
+                      });
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 12, right: 8 }}
                   >
-                    <Icon name="templates" size="sm" color={c.gray700} />
-                    <Text style={styles.shortcutBtnText}>Copy yesterday</Text>
+                    <Icon name="close" size="sm" color={c.textFaint} />
                   </TouchableOpacity>
-                  {mealEntries.length > 0 && (
-                    <TouchableOpacity
-                      style={styles.shortcutBtn}
-                      onPress={handleSaveMeal}
-                      activeOpacity={0.7}
-                    >
-                      <Icon name="save" size="sm" color={c.gray700} />
-                      <Text style={styles.shortcutBtnText}>Save this meal</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                </TouchableOpacity>
+              );
+            }
 
-                {/* Recents */}
-                {recentFoods.length > 0 && (
-                  <>
-                    <Text style={styles.recentTitle}>Recent</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
-                      contentContainerStyle={styles.recentRow}
-                    >
-                      {recentFoods.map((f) => (
-                        <TouchableOpacity
-                          key={f.id}
-                          style={styles.recentChip}
-                          onPress={() => handleSelectFood(f)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.recentChipName} numberOfLines={1}>
-                            {f.name}
-                          </Text>
-                          <Text style={styles.recentChipCals}>
-                            {f.macros.calories} kcal
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </>
-                )}
-
-                <Text style={styles.allFoodsLabel}>History</Text>
-              </View>
-            ) : null
-          }
-          data={
-            showShortcuts
-              ? visibleHistory
-              : [...historyMatches, ...results.filter((f) => !historyMatchIds.has(f.id))]
-          }
-          renderItem={({ item }) => {
+            const item = row.food;
             const isFav = favoriteFoods.some((f) => f.id === item.id);
-            const isHistoryMatch = !showShortcuts && historyMatchIds.has(item.id);
+            // Only worth tagging while searching: in the idle list every row
+            // is already one of yours, so the tag would be on all of them.
+            const isYours = searching && yourMatchIds.has(item.id);
             return (
               <TouchableOpacity
                 style={[
@@ -561,15 +570,13 @@ export function LogFoodScreen({ route, navigation }: Props) {
                 <View style={styles.foodItemLeft}>
                   <View style={styles.foodNameRow}>
                     <Text style={styles.foodName}>{item.name}</Text>
-                    {isHistoryMatch && (
+                    {isYours && (
                       <View style={styles.historyTag}>
-                        <Text style={styles.historyTagText}>History</Text>
+                        <Text style={styles.historyTagText}>Yours</Text>
                       </View>
                     )}
                   </View>
-                  {item.brand && (
-                    <Text style={styles.foodBrand}>{item.brand}</Text>
-                  )}
+                  {item.brand && <Text style={styles.foodBrand}>{item.brand}</Text>}
                   <Text style={styles.foodServing}>
                     per {item.serving_size}{item.serving_unit}
                   </Text>
@@ -586,18 +593,10 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   />
                 </TouchableOpacity>
                 <View style={styles.foodItemRight}>
-                  <Text style={styles.foodCals}>
-                    {item.macros.calories} kcal
-                  </Text>
-                  <Text style={styles.foodMacro}>
-                    P {item.macros.protein}g
-                  </Text>
-                  <Text style={styles.foodMacro}>
-                    C {item.macros.carbs}g
-                  </Text>
-                  <Text style={styles.foodMacro}>
-                    F {item.macros.fat}g
-                  </Text>
+                  <Text style={styles.foodCals}>{item.macros.calories} kcal</Text>
+                  <Text style={styles.foodMacro}>P {item.macros.protein}g</Text>
+                  <Text style={styles.foodMacro}>C {item.macros.carbs}g</Text>
+                  <Text style={styles.foodMacro}>F {item.macros.fat}g</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -608,28 +607,28 @@ export function LogFoodScreen({ route, navigation }: Props) {
                 <ActivityIndicator color={c.primary} />
                 <Text style={styles.emptySubtext}>Searching foods…</Text>
               </View>
-            ) : showShortcuts ? (
+            ) : searching ? (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>Nothing logged yet</Text>
+                <Text style={styles.emptyText}>No match in the database</Text>
                 <Text style={styles.emptySubtext}>
-                  Add one with AI estimate, a barcode, or search — everything
-                  you log shows up here for one-tap re-adding
+                  Tap Estimate with AI above, or scan the barcode
                 </Text>
               </View>
             ) : (
               <View style={styles.empty}>
-                <Text style={styles.emptyText}>No foods found</Text>
+                <Text style={styles.emptyText}>Nothing logged yet</Text>
                 <Text style={styles.emptySubtext}>
-                  Try a different search term or scan a barcode
+                  Describe what you ate in the field above, or scan a barcode —
+                  everything you log collects here for one-tap re-adding
                 </Text>
               </View>
             )
           }
           ListFooterComponent={
-            showShortcuts && historyLimit < historyFoods.length ? (
+            !searching && listLimit < yourFoods.length ? (
               <TouchableOpacity
                 style={styles.loadMoreBtn}
-                onPress={() => setHistoryLimit((n) => n + HISTORY_PAGE_SIZE)}
+                onPress={() => setListLimit((n) => n + PAGE_SIZE)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.loadMoreText}>Load more</Text>
@@ -763,6 +762,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     width: 60,
   },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
+  moreBtn: { alignItems: 'flex-end' },
   backText: {
     ...type.body(c),
     fontFamily: c.fontBodySemi,
@@ -795,29 +795,37 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  captureRow: {
+  // Divider-separated so it reads as a second control inside the field rather
+  // than a glyph belonging to the text.
+  barcodeInField: {
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    paddingLeft: space.md,
+    marginLeft: space.xxs,
+    borderLeftWidth: 1,
+    borderLeftColor: c.border,
+  },
+  aiRow: {
     flexDirection: 'row',
-    gap: space.sm,
-    marginHorizontal: space.md,
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: c.primarySoft,
+    borderWidth: 1,
+    borderColor: c.primary,
+    borderRadius: radius.card,
+    padding: space.lg,
     marginBottom: space.md,
   },
-  captureBtn: {
-    flex: 1,
-    alignItems: 'center',
-    gap: space.xs,
-    backgroundColor: c.primary,
-    borderRadius: radius.control,
-    paddingVertical: space.md,
-    paddingHorizontal: space.xs,
-    shadowColor: c.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+  aiRowText: { flex: 1, minWidth: 0 },
+  aiTitle: {
+    ...type.body(c),
+    fontFamily: c.fontBodySemi,
+    color: c.text,
   },
-  captureLabel: {
-    ...type.captionStrong(c),
-    color: c.onPrimary,
-    textAlign: 'center',
+  aiSub: {
+    ...type.caption(c),
+    color: c.textMuted,
+    marginTop: space.xxs,
   },
   scanOverlay: {
     position: 'absolute',
@@ -850,45 +858,22 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     paddingHorizontal: space.md,
     paddingBottom: space.sm,
   },
-  recentSection: {
-    marginBottom: space.xs,
-  },
-  recentTitle: {
+  listLabel: {
     ...type.overline(c),
     color: c.textFaint,
     marginBottom: space.sm,
     marginLeft: space.xxs,
   },
-  recentRow: {
-    gap: space.sm,
-    paddingBottom: space.xs,
-    paddingRight: space.sm,
+  mealTag: {
+    backgroundColor: c.cardMuted,
+    borderRadius: radius.hairline,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xxs,
   },
-  recentChip: {
-    backgroundColor: c.card,
-    borderRadius: radius.control,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    maxWidth: 160,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  recentChipName: {
-    ...type.captionStrong(c),
-    color: c.text,
-  },
-  recentChipCals: {
+  mealTagText: {
     ...type.micro(c),
-    fontFamily: c.fontBodySemi,
-    color: c.primary,
-    marginTop: space.xxs,
-  },
-  allFoodsLabel: {
-    ...type.overline(c),
-    color: c.textFaint,
-    marginTop: space.md,
-    marginBottom: space.xs,
-    marginLeft: space.xxs,
+    fontFamily: c.fontBodyBold,
+    color: c.textMuted,
   },
   loadMoreBtn: {
     alignItems: 'center',
@@ -896,28 +881,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginTop: space.xs,
   },
   loadMoreText: { ...type.bodyStrong(c), color: c.primary },
-  shortcutRow: {
-    flexDirection: 'row',
-    gap: space.sm,
-    marginBottom: space.md,
-  },
-  shortcutBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: space.sm,
-    justifyContent: 'center',
-    backgroundColor: c.cardMuted,
-    borderRadius: radius.control,
-    paddingVertical: space.md,
-    paddingHorizontal: space.md,
-    borderWidth: 1,
-    borderColor: c.border,
-    alignItems: 'center',
-  },
-  shortcutBtnText: {
-    ...type.captionStrong(c),
-    color: c.gray700,
-  },
   savedMealRow: {
     flexDirection: 'row',
     alignItems: 'center',

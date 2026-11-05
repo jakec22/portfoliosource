@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -37,7 +37,10 @@ interface ReviewItem extends AnalyzedItem {
 }
 
 interface Props {
-  route: { params: { meal: MealType; date: string } };
+  // `description` is set when you arrive from the "Estimate with AI" row in
+  // LogFood — you already typed what you ate there, so it is carried over and
+  // run on arrival rather than asking you to type it a second time.
+  route: { params: { meal: MealType; date: string; description?: string } };
   navigation: any;
 }
 
@@ -76,14 +79,28 @@ function itemUnits(it: ReviewItem): ServingUnit[] {
 export function MealPhotoScreen({ route, navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const { meal, date } = route.params;
+  const { meal, date, description: handedOver } = route.params;
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [analyzed, setAnalyzed] = useState(false);
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(handedOver ?? '');
   const addEntry = useStore((s) => s.addEntry);
+
+  // Run a handed-over description immediately: arriving at a prefilled field
+  // with a button still to press would make the tap on "Estimate with AI" do
+  // nothing visible. Mount only — editing the field afterwards goes through
+  // the button as usual.
+  useEffect(() => {
+    if (handedOver && handedOver.trim().length >= 3) {
+      analyzeWith(
+        () => analyzeMealText(handedOver.trim()),
+        'Try describing the foods and amounts more specifically.',
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function pick(source: 'camera' | 'library') {
     const perm =
