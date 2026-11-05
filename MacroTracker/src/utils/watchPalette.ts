@@ -4,13 +4,14 @@ import type { ThemeMode } from '../types';
 /**
  * The surface each pack renders on.
  *
- * Both packs are dark, so this is now the same colour the phone paints: the
- * watch no longer diverges from the app. Executive's warm near-black reads as
- * a considered surface rather than a void; Modern keeps pure black, where its
- * neon accents already sit at 5-16:1.
+ * Both packs are dark, so this is the same colour the phone paints and the
+ * watch no longer diverges from the app. Executive's is a neutral near-black
+ * rather than pure black, which keeps its cards a readable step above the
+ * ground; Modern keeps pure black, where its neon accents already sit at
+ * 5-16:1.
  */
 export const WATCH_GROUND: Record<ThemeMode, string> = {
-  editorial: '#221F1B',
+  editorial: '#0E0E10',
   sportTech: '#000000',
 };
 

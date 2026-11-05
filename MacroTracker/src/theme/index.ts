@@ -103,82 +103,73 @@ export interface Theme {
   white: string; // surface-white → the pack's card color in a dark pack
 }
 
-// Executive: the app's original, official look, now dark — warm near-black
-// ground, one lifted green accent, restrained muted macro hues, serif display
-// numerals. The default pack, and the one every other pack is judged against.
+// Executive: the app's original, official look, now dark — a neutral
+// near-black ground, saturated accents, serif display numerals. The default
+// pack, and the one every other pack is judged against.
 //
-// The ground is #221F1B, which is the colour the watch app already paints
-// behind this pack (see WATCH_GROUND in utils/watchPalette.ts). Deliberately
-// not pure black: that is Modern's ground, and a warm near-black reads as a
-// considered surface rather than a void. Phone and wrist now sit on the same
-// black.
+// The ground carries no colour cast on purpose. An earlier pass sat on
+// #221F1B, the warm near-black the watch paints, which read brown and pulled
+// every surface with it: the text was +14 red-over-blue and the cards +8.
+// #0E0E10 is -2, so the terracotta and gold below read as chosen colours
+// rather than as the ground showing through. The watch ground follows it (see
+// WATCH_GROUND in utils/watchPalette.ts) so phone and wrist still match.
 //
-// Every value below was derived against that ground and checked, rather than
-// inverted by eye. Two things a naive inversion gets wrong:
+// Dark enough to let the accents be rich. This is the part that is easy to get
+// backwards: the earlier pass looked washed because every accent had to clear
+// 4.5:1 against lightish #36332E cards, and the only way up is lightness,
+// which bleeds saturation. Dropping the ground buys headroom — #34C77B sits at
+// 7.0:1 on the card here without being lightened at all.
 //
-//   - The card has to move, not the ground. A card one step off #221F1B sits
-//     at 1.1:1 and disappears; #36332E is 1.30:1, about the step iOS uses for
-//     an elevated dark surface.
-//   - The accent needs more lift here than on the watch. The watch lifts the
-//     original #3F6B52 against the *ground*; on the phone it sits on *cards*,
-//     which are lighter, so the same value drops to 4.0:1. Hence #6AA885.
+// Two measurements that do not survive being eyeballed:
 //
-// The macro hues are held to 3:1, not 4.5:1, because they are bar fills rather
-// than text. Lifting all four to 4.5 put them at one luminance and they came
-// out muddy and near-identical; at 3:1 they keep the light pack's character.
+//   - Cards need a proportionally bigger step at near-black. #0E0E10 to
+//     #1A1A1D is 1.11:1 and invisible; #252527 is 1.26:1.
+//   - Macro hues are held to 3:1, not 4.5:1, because bar fills are graphics
+//     rather than text. At 4.5 all four land on one luminance and go muddy.
+//
+// accent and macroProtein are deliberately one colour, as are warning and
+// macroCarbs — that pairing is inherited from the light pack.
 export const editorialTheme: Theme = {
   scheme: 'dark',
 
-  bg: '#221F1B',
-  card: '#36332E',
-  cardMuted: '#2C2823',
-  input: '#2C2823',
+  bg: '#0E0E10',
+  card: '#252527',
+  cardMuted: '#1A1A1C',
+  input: '#1A1A1C',
 
-  text: '#F2EDE4',
-  textMuted: '#A79D8F',
-  textFaint: '#7A7268',
+  text: '#F4F4F5',
+  textMuted: '#A1A1A8',
+  textFaint: '#6E6E76',
 
-  border: '#45403A',
-  borderStrong: '#5A544B',
+  border: '#34343A',
+  borderStrong: '#47474F',
 
-  primary: '#6AA885',
-  primaryDark: '#4E8365',
-  primarySoft: 'rgba(106,168,133,0.16)',
-  onPrimary: '#1A1714',
-  danger: '#EF796C',
-  dangerSoft: 'rgba(239,121,108,0.18)',
-  warning: '#C19347',
-  warningSoft: 'rgba(193,147,71,0.18)',
-  info: '#869EAE',
-  infoSoft: 'rgba(134,158,174,0.16)',
-  accent: '#C58E7B',
-  accentSoft: 'rgba(197,142,123,0.16)',
+  primary: '#34C77B',
+  primaryDark: '#27A663',
+  primarySoft: 'rgba(52,199,123,0.16)',
+  onPrimary: '#07140D',
+  danger: '#F4756D',
+  dangerSoft: 'rgba(244,117,109,0.18)',
+  warning: '#E0A32E',
+  warningSoft: 'rgba(224,163,46,0.18)',
+  info: '#5A9FD4',
+  infoSoft: 'rgba(90,159,212,0.16)',
+  accent: '#E2683C',
+  accentSoft: 'rgba(226,104,60,0.16)',
 
-  // Two pairs needed separating after lifting, both found by checking every
-  // pair rather than the ones expected to collide. Protein and fat landed 54
-  // apart, and protein and carbs 58, against the 60 watchPalette enforces for
-  // colours read side by side; fat moved to #A66F7C and carbs to #BA8C3D.
-  //
-  // danger and accent were the harder one. Executive's red and its terracotta
-  // are near-neighbours in hue — only 52 apart even in the light pack — and
-  // lifting both onto a dark ground closed that to 23. They sit side by side
-  // as set-type badges on a workout (failure vs dropset), so that is not
-  // survivable. Rather than bend the accent into a grey, danger became a
-  // franker red: #D4877C was a washed salmon that read poorly as danger
-  // anyway, and #EF796C is both clearer and 78 from the accent.
-  macroProtein: '#B26950',
-  macroCarbs: '#BA8C3D',
-  macroFat: '#A66F7C',
-  macroFiber: '#738067',
+  macroProtein: '#E2683C',
+  macroCarbs: '#E0A32E',
+  macroFat: '#D1699B',
+  macroFiber: '#79C993',
 
-  hrZone1: '#57819B',
-  hrZone2: '#74965C',
-  hrZone3: '#C9A227',
-  hrZone4: '#C4703A',
-  hrZone5: '#D15248',
+  hrZone1: '#5A9FD4',
+  hrZone2: '#79C993',
+  hrZone3: '#E0A32E',
+  hrZone4: '#E2683C',
+  hrZone5: '#F4756D',
 
   shadow: '#000000',
-  overlay: 'rgba(0,0,0,0.65)',
+  overlay: 'rgba(0,0,0,0.7)',
 
   fontDisplay: 'DMSerifDisplay_400Regular',
   fontBodyRegular: 'Manrope_400Regular',
@@ -188,15 +179,15 @@ export const editorialTheme: Theme = {
 
   // Inverted, as on every dark pack: gray900 is the strongest ink, which on a
   // dark ground is the lightest value.
-  gray900: '#F2EDE4',
-  gray700: '#D6CFC2',
-  gray500: '#A79D8F',
-  gray400: '#8A8075',
-  gray300: '#5A544B',
-  gray200: '#45403A',
-  gray100: '#36332E',
-  gray50: '#2C2823',
-  white: '#36332E',
+  gray900: '#F4F4F5',
+  gray700: '#D2D2D7',
+  gray500: '#A1A1A8',
+  gray400: '#85858D',
+  gray300: '#47474F',
+  gray200: '#34343A',
+  gray100: '#252527',
+  gray50: '#1A1A1C',
+  white: '#252527',
 };
 
 // B — Sport-Tech Energy: near-black, neon lime/cyan/pink, bold geometric
