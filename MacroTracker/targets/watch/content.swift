@@ -8,15 +8,20 @@ import WatchKit
 // (see WatchPalette).
 //
 // These are exactly what watchPalette() produces for the default Executive
-// pack — the pack's tokens, lifted to 4.5:1 against the watch's warm near-black
-// ground. They used to be the app's original emerald set, which meant a watch
-// that hadn't synced yet showed a palette the phone had long since dropped.
+// pack, taken from running it rather than worked out by hand. They are what a
+// watch shows before the phone has pushed anything — on a fresh install, or
+// when a payload is malformed — so they have to be kept in step with the pack
+// by hand. A stale set here means a watch that hasn't synced yet shows a
+// palette the phone has long since dropped.
+//
+// Nothing is lifted any more: Executive is dark on the same #0E0E10 ground the
+// watch paints, so every value already clears 4.5:1 there.
 extension Color {
-    static let hmGreen = Color(red: 0x56 / 255, green: 0x93 / 255, blue: 0x70 / 255) // #569370
-    static let macroProtein = Color(red: 0xB8 / 255, green: 0x76 / 255, blue: 0x5F / 255) // #B8765F
-    static let macroCarbs = Color(red: 0xB9 / 255, green: 0x8A / 255, blue: 0x3E / 255)   // #B98A3E
-    static let macroFat = Color(red: 0xAC / 255, green: 0x79 / 255, blue: 0x80 / 255)     // #AC7980
-    static let waterBlue = Color(red: 0x6C / 255, green: 0x8A / 255, blue: 0x9D / 255)    // #6C8A9D
+    static let hmGreen = Color(red: 0x34 / 255, green: 0xC7 / 255, blue: 0x7B / 255) // #34C77B
+    static let macroProtein = Color(red: 0xE2 / 255, green: 0x68 / 255, blue: 0x3C / 255) // #E2683C
+    static let macroCarbs = Color(red: 0xE0 / 255, green: 0xA3 / 255, blue: 0x2E / 255)   // #E0A32E
+    static let macroFat = Color(red: 0xD1 / 255, green: 0x69 / 255, blue: 0x9B / 255)     // #D1699B
+    static let waterBlue = Color(red: 0x5A / 255, green: 0x9F / 255, blue: 0xD4 / 255)    // #5A9FD4
 
     // "#RRGGBB" → Color, falling back to a supplied default on anything
     // malformed so a bad payload can't blank the UI.
@@ -41,23 +46,23 @@ extension Color {
 // wrist — watchOS has no light mode to follow — and the phone lifts anything
 // too dim to read against that ground before sending it.
 struct WatchPalette {
-    // Background the app paints, per pack: Executive and Wellness get a warm
-    // near-black that reads as a surface rather than a void, Modern keeps pure
+    // Background the app paints, per pack: Executive's neutral near-black,
+    // which is also what the phone paints, so the two match. Modern keeps pure
     // black where its neon accents already sit high. See watchPalette.ts.
-    var ground: Color = Color(red: 0x22 / 255, green: 0x1F / 255, blue: 0x1B / 255) // #221F1B
+    var ground: Color = Color(red: 0x0E / 255, green: 0x0E / 255, blue: 0x10 / 255) // #0E0E10
     var accent: Color = .hmGreen
-    // Executive's danger, lifted for the ground. Explicit rather than relying
-    // on SwiftUI's `role: .destructive`: the view-level tint below wins over
-    // the role, which is what turned the stop button green.
-    var danger: Color = Color(red: 0xCA / 255, green: 0x6B / 255, blue: 0x5D / 255) // #CA6B5D
+    // Executive's danger. Explicit rather than relying on SwiftUI's
+    // `role: .destructive`: the view-level tint below wins over the role,
+    // which is what turned the stop button green.
+    var danger: Color = Color(red: 0xF4 / 255, green: 0x75 / 255, blue: 0x6D / 255) // #F4756D
     var protein: Color = .macroProtein
     var carbs: Color = .macroCarbs
     var fat: Color = .macroFat
     var water: Color = .waterBlue
-    // Executive's hrZone2 / hrZone3 / hrZone5, lifted for the ground.
-    var zoneEasy: Color = Color(red: 0x74 / 255, green: 0x96 / 255, blue: 0x5C / 255) // #74965C
-    var zoneMid: Color = Color(red: 0xC9 / 255, green: 0xA2 / 255, blue: 0x27 / 255)  // #C9A227
-    var zoneHigh: Color = Color(red: 0xD6 / 255, green: 0x63 / 255, blue: 0x59 / 255) // #D66359
+    // Executive's hrZone2 / hrZone3 / hrZone5.
+    var zoneEasy: Color = Color(red: 0x79 / 255, green: 0xC9 / 255, blue: 0x93 / 255) // #79C993
+    var zoneMid: Color = Color(red: 0xE0 / 255, green: 0xA3 / 255, blue: 0x2E / 255)  // #E0A32E
+    var zoneHigh: Color = Color(red: 0xF4 / 255, green: 0x75 / 255, blue: 0x6D / 255) // #F4756D
 
     static func from(_ ctx: [String: Any], current: WatchPalette) -> WatchPalette {
         func color(_ key: String, _ fallback: Color) -> Color {
