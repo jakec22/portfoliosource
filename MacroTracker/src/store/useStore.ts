@@ -99,6 +99,7 @@ export const useStore = create<AppState>()(
       recentFoods: [],
       favoriteFoods: [],
       customFoods: [],
+      customExercises: [],
       savedMeals: [],
       workoutTemplates: [],
       activeWorkout: null,
@@ -131,6 +132,28 @@ export const useStore = create<AppState>()(
       },
 
       dismissGoalsUpdateNotice: () => set({ goalsUpdateNotice: undefined }),
+
+      // Remembers a name typed at the rack so the picker has it next time.
+      // Case-insensitive, because "hack squat" and "Hack Squat" are the same
+      // machine and two entries would be worse than none.
+      addCustomExercise: (name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        const key = trimmed.toLowerCase();
+        set((state) => {
+          if (state.customExercises.some((n) => n.toLowerCase() === key)) return state;
+          return { customExercises: [...state.customExercises, trimmed].sort() };
+        });
+        syncSettings();
+      },
+
+      removeCustomExercise: (name: string) => {
+        const key = name.trim().toLowerCase();
+        set((state) => ({
+          customExercises: state.customExercises.filter((n) => n.toLowerCase() !== key),
+        }));
+        syncSettings();
+      },
 
       addRecentFood: (food) => {
         set((state) => ({
@@ -738,6 +761,7 @@ export const useStore = create<AppState>()(
           recentFoods: [],
           favoriteFoods: [],
           customFoods: [],
+      customExercises: [],
           savedMeals: [],
           workoutTemplates: [],
           activeWorkout: null,
@@ -761,7 +785,7 @@ export const useStore = create<AppState>()(
     {
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 11,
+      version: 12,
       // v1 switched water from milliliters to fluid ounces; reset stored
       // water so old ml values aren't misread as oz. Food logs/goals kept.
       // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
@@ -878,6 +902,11 @@ export const useStore = create<AppState>()(
         // Wellness lands on Executive, the same way Classic's users did at v9.
         if (version < 11 && state?.themeMode === 'warmWellness') {
           state = { ...state, themeMode: 'editorial' };
+        }
+        // v12 added the saved-exercise list. Anyone upgrading has no array at
+        // all, and the picker maps over it on every render.
+        if (version < 12 && state && !Array.isArray(state.customExercises)) {
+          state = { ...state, customExercises: [] };
         }
         return state;
       },

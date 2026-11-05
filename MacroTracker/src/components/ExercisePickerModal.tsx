@@ -11,7 +11,9 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { EXERCISE_CATALOG } from '../utils/exerciseList';
+import { EXERCISE_CATALOG, type ExerciseCategory } from '../utils/exerciseList';
+import { categoryForExercise } from '../utils/trainingSplit';
+import { useStore } from '../store/useStore';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -30,23 +32,43 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
   const styles = useMemo(() => makeStyles(c), [c]);
   const [query, setQuery] = useState('');
 
+  const customExercises = useStore((s) => s.customExercises);
+  const addCustomExercise = useStore((s) => s.addCustomExercise);
+
+  // Saved names are merged into the catalog rather than shown in a bin of
+  // their own: a machine you named yourself is still a chest machine, and a
+  // separate "Custom" group would put it furthest from where you look for it.
+  const catalog = useMemo(() => {
+    if (customExercises.length === 0) return EXERCISE_CATALOG;
+    const groups = EXERCISE_CATALOG.map((g) => ({ ...g, exercises: [...g.exercises] }));
+    const extra: ExerciseCategory[] = [];
+    for (const name of customExercises) {
+      const cat = categoryForExercise(name);
+      const target = groups.find((g) => g.category === cat) ?? extra.find((g) => g.category === cat);
+      if (target) target.exercises.push(name);
+      else extra.push({ category: cat, exercises: [name] });
+    }
+    for (const g of groups) g.exercises.sort();
+    return [...groups, ...extra];
+  }, [customExercises]);
+
   const trimmed = query.trim();
   const filtered = useMemo(() => {
-    if (!trimmed) return EXERCISE_CATALOG;
+    if (!trimmed) return catalog;
     const q = trimmed.toLowerCase();
-    return EXERCISE_CATALOG.map((group) => ({
+    return catalog.map((group) => ({
       category: group.category,
       exercises: group.exercises.filter((name) => name.toLowerCase().includes(q)),
     })).filter((group) => group.exercises.length > 0);
-  }, [trimmed]);
+  }, [trimmed, catalog]);
 
   const exactMatch = useMemo(
     () =>
       trimmed.length > 0 &&
-      EXERCISE_CATALOG.some((group) =>
+      catalog.some((group) =>
         group.exercises.some((name) => name.toLowerCase() === trimmed.toLowerCase())
       ),
-    [trimmed]
+    [trimmed, catalog]
   );
 
   function handleSelect(name: string) {
@@ -92,15 +114,24 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
             {trimmed.length > 0 && !exactMatch && (
               <TouchableOpacity
                 style={styles.customRow}
-                onPress={() => handleSelect(trimmed)}
+                onPress={() => {
+                  // Saved on use, not behind a separate "save" step: the scene
+                  // is one-handed between sets, and a name worth typing is a
+                  // name worth keeping.
+                  addCustomExercise(trimmed);
+                  handleSelect(trimmed);
+                }}
                 activeOpacity={0.7}
               >
                 <Text style={styles.customRowText}>Use “{trimmed}”</Text>
+                <Text style={styles.customRowHint}>
+                  Saved to {categoryForExercise(trimmed)} for next time
+                </Text>
               </TouchableOpacity>
             )}
 
             {filtered.length === 0 ? (
-              <Text style={styles.emptyText}>No matches — tap “Use” above to add it as typed.</Text>
+              <Text style={styles.emptyText}>No matches — tap “Use” above to keep it.</Text>
             ) : (
               filtered.map((group) => (
                 <View key={group.category} style={styles.group}>
@@ -170,6 +201,7 @@ const makeStyles = (c: Theme) =>
       marginBottom: space.lg,
     },
     customRowText: { ...type.bodyStrong(c), color: c.primaryDark },
+    customRowHint: { ...type.caption(c), color: c.textMuted, marginTop: space.xxs },
 
     emptyText: { ...type.body(c), color: c.textMuted, textAlign: 'center', marginTop: space.lg },
 

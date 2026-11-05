@@ -31,10 +31,48 @@ const CATEGORY_BY_NAME: Map<string, string> = (() => {
   return map;
 })();
 
+// Last resort before Other: the words gyms actually print on machines. A name
+// typed at the rack is usually a variant nobody put in the catalog — "Iso
+// Lateral Decline Press", "Seated Row Machine" — but it almost always contains
+// a word that places it. Order matters: the first match wins, so the more
+// specific terms come first ("leg curl" before "curl", or every curl is Legs).
+const CATEGORY_KEYWORDS: ReadonlyArray<readonly [string, string]> = [
+  ['leg curl', 'Legs'], ['leg extension', 'Legs'], ['leg press', 'Legs'],
+  ['calf', 'Legs'], ['squat', 'Legs'], ['lunge', 'Legs'], ['hip thrust', 'Legs'],
+  ['glute', 'Legs'], ['hamstring', 'Legs'], ['quad', 'Legs'], ['abduct', 'Legs'],
+  ['adduct', 'Legs'], ['step-up', 'Legs'], ['step up', 'Legs'],
+  ['deadlift', 'Back'], ['pulldown', 'Back'], ['pull-up', 'Back'], ['pull up', 'Back'],
+  ['chin-up', 'Back'], ['chin up', 'Back'], ['row', 'Back'], ['shrug', 'Back'],
+  ['lat ', 'Back'], ['back extension', 'Back'], ['pullover', 'Back'],
+  ['bench', 'Chest'], ['chest', 'Chest'], ['pec ', 'Chest'], ['push-up', 'Chest'],
+  ['push up', 'Chest'], ['dip', 'Chest'], ['crossover', 'Chest'],
+  ['lateral raise', 'Shoulders'], ['rear delt', 'Shoulders'], ['delt', 'Shoulders'],
+  ['overhead press', 'Shoulders'], ['shoulder', 'Shoulders'], ['front raise', 'Shoulders'],
+  ['upright row', 'Shoulders'], ['arnold', 'Shoulders'],
+  ['tricep', 'Arms'], ['bicep', 'Arms'], ['curl', 'Arms'], ['pushdown', 'Arms'],
+  ['skull crusher', 'Arms'], ['wrist', 'Arms'], ['forearm', 'Arms'],
+  ['plank', 'Core'], ['crunch', 'Core'], ['ab ', 'Core'], ['abs', 'Core'],
+  ['oblique', 'Core'], ['sit-up', 'Core'], ['sit up', 'Core'], ['leg raise', 'Core'],
+  ['russian twist', 'Core'], ['woodchop', 'Core'], ['pallof', 'Core'],
+  ['treadmill', 'Cardio'], ['bike', 'Cardio'], ['cycl', 'Cardio'], ['run', 'Cardio'],
+  ['walk', 'Cardio'], ['elliptical', 'Cardio'], ['stair', 'Cardio'], ['erg', 'Cardio'],
+  ['rowing machine', 'Cardio'], ['jump rope', 'Cardio'], ['swim', 'Cardio'], ['sled', 'Cardio'],
+  ['clean', 'Full Body'], ['snatch', 'Full Body'], ['thruster', 'Full Body'],
+  ['burpee', 'Full Body'], ['kettlebell swing', 'Full Body'], ['carry', 'Full Body'],
+  // Last, so every specific press above wins first. A press that has reached
+  // this line is a chest machine under a brand name — "Iso-Lateral Decline
+  // Press" and its relatives.
+  ['decline', 'Chest'], ['press', 'Chest'],
+];
+
 /**
- * Which body part an exercise trains. Falls back to a substring match against
- * catalog entries before giving up — a logged "Incline Bench Press (Smith)"
- * should still count as Chest rather than silently becoming Other.
+ * Which body part an exercise trains. Three passes, narrowing: the catalog by
+ * exact name, then by substring, then the keyword table above.
+ *
+ * The keyword pass is what keeps a typed-in machine name off the Other pile.
+ * Without it anything the catalog had not heard of went unattributed, so it
+ * vanished from the training split and showed as untrained on the body map —
+ * which is the opposite of true for someone who had just trained it.
  */
 export function categoryForExercise(name: string): string {
   const key = normalizeExerciseName(name);
@@ -43,6 +81,9 @@ export function categoryForExercise(name: string): string {
   if (exact) return exact;
   for (const [catalogName, category] of CATEGORY_BY_NAME) {
     if (key.includes(catalogName) || catalogName.includes(key)) return category;
+  }
+  for (const [word, category] of CATEGORY_KEYWORDS) {
+    if (key.includes(word)) return category;
   }
   return OTHER;
 }

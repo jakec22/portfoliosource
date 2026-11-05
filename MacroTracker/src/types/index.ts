@@ -208,7 +208,16 @@ export interface AppState {
   goalsUpdateNotice?: GoalsUpdateNotice;
   recentFoods: Food[]; // most-recently scanned/logged foods, newest first
   favoriteFoods: Food[]; // user-starred foods, shown above recents
-  customFoods: Food[]; // user-created foods with custom macros
+  customFoods: Food[];
+  /**
+   * Exercise names typed by hand and kept for the picker.
+   *
+   * Local only, deliberately. settingsRow() in services/sync.ts maps explicit
+   * columns, so syncing this needs a custom_exercises column on the settings
+   * table first — and until that column exists a push carrying it fails the
+   * whole upsert, taking goals, templates and water with it.
+   */
+  customExercises: string[]; // user-created foods with custom macros
   savedMeals: SavedMeal[]; // named meal templates for quick re-logging
   workoutTemplates: WorkoutTemplate[];
   activeWorkout: WorkoutSession | null;
@@ -226,6 +235,8 @@ export interface AppState {
   addCustomFood: (food: Food) => void;
   deleteCustomFood: (id: string) => void;
   saveMeal: (meal: SavedMeal) => void;
+  addCustomExercise: (name: string) => void;
+  removeCustomExercise: (name: string) => void;
   deleteSavedMeal: (id: string) => void;
   restoreSavedMeal: (meal: SavedMeal) => void;
   copyMealFromDate: (fromDate: string, toDate: string, meal: MealType) => number;
