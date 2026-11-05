@@ -1,26 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  ActionSheetIOS,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
 import { useSnackbar } from '../store/useSnackbar';
-import { todayString, displayDate, formatDate } from '../utils/date';
+import { todayString, getPastDays, formatDuration, parseDate } from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
 import { MacroBar } from '../components/MacroBar';
 import { GoalsUpdatedCard } from '../components/GoalsUpdatedCard';
-import { MealSection } from '../components/MealSection';
 import { WorkoutHistoryItem } from '../components/WorkoutHistoryItem';
-import { MealType } from '../types';
 import { computeStreak } from '../utils/streak';
 import { sessionVolume } from '../utils/analytics';
-import { formatDuration } from '../utils/date';
 import { heartRateStats } from '../services/heartRate';
 import {
   activeEnergyAvailable,
@@ -29,31 +18,57 @@ import {
 } from '../services/activeEnergy';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
-import { radius, space, type } from '../theme/tokens';
+import { radius, space, tabular, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 
 interface Props {
   navigation: any;
 }
 
+const WEEK = 7;
+
+// Today, across both halves of the app.
+//
+// This screen used to be the food log with a summary on top, which made it the
+// nutrition tab under another name — the only training fact on it was one line
+// buried at the bottom of a card that otherwise repeated the card above it.
+// The log moved to its own tab; what is left answers three questions without
+// scrolling: how much is left to eat, did I train, and is the streak alive.
+//
+// Home reads, Food logs. Water is the one exception, because it is the only
+// log in the app that finishes in a single tap with nothing to type.
 export function HomeScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const [selectedDate, setSelectedDate] = useState(todayString());
+  const today = todayString();
+
   const goals = useStore((s) => s.goals);
-  const dateEntries = useStore((s) => s.logs[selectedDate]);
+  const allLogs = useStore((s) => s.logs);
+  const todayEntries = useStore((s) => s.logs[today]);
   const workoutHistory = useStore((s) => s.workoutHistory);
   const deleteWorkout = useStore((s) => s.deleteWorkout);
   const restoreWorkout = useStore((s) => s.restoreWorkout);
   const showSnackbar = useSnackbar((s) => s.show);
   const waterIntake = useStore((s) => s.waterIntake);
+  const setWater = useStore((s) => s.setWater);
+  const waterGoal = useStore((s) => s.waterGoal);
+  const waterIncrement = useStore((s) => s.waterIncrement);
+  const showWaterTracker = useStore((s) => s.showWaterTracker);
   const goalsUpdateNotice = useStore((s) => s.goalsUpdateNotice);
   const dismissGoalsUpdateNotice = useStore((s) => s.dismissGoalsUpdateNotice);
   const setGoalsAutoUpdate = useStore((s) => s.setGoalsAutoUpdate);
 
+  const totals = useMemo(() => sumMacros(todayEntries ?? []), [todayEntries]);
+  const water = waterIntake[today] ?? 0;
+
+  const { current: currentStreak, best: bestStreak } = useMemo(
+    () => computeStreak(allLogs),
+    [allLogs]
+  );
+
   const dayWorkouts = useMemo(
-    () => workoutHistory.filter((w) => w.date === selectedDate),
-    [workoutHistory, selectedDate]
+    () => workoutHistory.filter((w) => w.date === today),
+    [workoutHistory, today]
   );
   const dayWorkoutStats = useMemo(() => {
     if (dayWorkouts.length === 0) return null;
@@ -74,9 +89,9 @@ export function HomeScreen({ navigation }: Props) {
     return { totalDurationMs, totalVolume, totalSets, doneSets, hr };
   }, [dayWorkouts]);
 
-  // Active Energy (kcal burned) from HealthKit — enriched by an Apple Watch
-  // when one's worn, but degrades to null (hidden) with no native module,
-  // no permission, or no data for the selected day.
+  // Active Energy from HealthKit — enriched by a watch when one is worn, and
+  // null (hidden) with no native module, no permission or no data, so it never
+  // shows a misleading zero.
   const [activeEnergy, setActiveEnergy] = useState<number | null>(null);
   const [hkAvailable] = useState(() => activeEnergyAvailable());
   useEffect(() => {
@@ -86,34 +101,32 @@ export function HomeScreen({ navigation }: Props) {
   useEffect(() => {
     if (!hkAvailable) return;
     let cancelled = false;
-    queryActiveEnergy(selectedDate).then((kcal) => {
+    queryActiveEnergy(today).then((kcal) => {
       if (!cancelled) setActiveEnergy(kcal);
     });
     return () => {
       cancelled = true;
     };
-  }, [hkAvailable, selectedDate]);
-  const setWater = useStore((s) => s.setWater);
-  const waterGoal = useStore((s) => s.waterGoal);
-  const waterIncrement = useStore((s) => s.waterIncrement);
-  const showWaterTracker = useStore((s) => s.showWaterTracker);
+  }, [hkAvailable, today]);
 
-  const totals = useMemo(() => sumMacros(dateEntries ?? []), [dateEntries]);
-  const water = waterIntake[selectedDate] ?? 0;
-
-  const allLogs = useStore((s) => s.logs);
-  const { current: currentStreak, best: bestStreak } = useMemo(
-    () => computeStreak(allLogs),
-    [allLogs]
-  );
-
-  const calPct = goals.calories > 0
-    ? Math.min(Math.round((totals.calories / goals.calories) * 100), 100)
-    : 0;
-
-  function macroStatus(current: number, goal: number) {
-    return goal > 0 && current / goal >= 0.8;
-  }
+  // The week as adherence, not as a chart: one column per day, filled to how
+  // close that day landed. Reading the shape is the point — detail is a tap away.
+  const week = useMemo(() => {
+    const workoutDates = new Set(workoutHistory.map((w) => w.date));
+    return getPastDays(WEEK)
+      .reverse()
+      .map((date) => {
+        const t = sumMacros(allLogs[date] ?? []);
+        return {
+          date,
+          pct: goals.calories > 0 ? Math.min(t.calories / goals.calories, 1) : 0,
+          logged: (allLogs[date]?.length ?? 0) > 0,
+          trained: workoutDates.has(date),
+          isToday: date === today,
+          initial: parseDate(date).toLocaleDateString('en-US', { weekday: 'narrow' }),
+        };
+      });
+  }, [allLogs, workoutHistory, goals.calories, today]);
 
   const OZ_PER_BUBBLE = waterIncrement;
   const numBubbles = Math.max(4, Math.round(waterGoal / OZ_PER_BUBBLE));
@@ -121,43 +134,11 @@ export function HomeScreen({ navigation }: Props) {
   const waterPct = Math.min(Math.round((water / waterGoal) * 100), 100);
 
   function handleBubblePress(index: number) {
-    // Tapping the topmost filled bubble un-fills it (undo accidental tap);
-    // tapping any other bubble fills/empties up to that point.
-    if (index + 1 === filledBubbles) {
-      setWater(selectedDate, index * OZ_PER_BUBBLE);
-    } else {
-      setWater(selectedDate, (index + 1) * OZ_PER_BUBBLE);
-    }
+    // Tapping the topmost filled bubble un-fills it (undo an accidental tap);
+    // any other bubble fills or empties up to that point.
+    if (index + 1 === filledBubbles) setWater(today, index * OZ_PER_BUBBLE);
+    else setWater(today, (index + 1) * OZ_PER_BUBBLE);
   }
-
-  function goDay(offset: number) {
-    const current = new Date(selectedDate + 'T12:00:00');
-    current.setDate(current.getDate() + offset);
-    const newDate = formatDate(current);
-    if (newDate <= todayString()) {
-      setSelectedDate(newDate);
-    }
-  }
-
-  function handleAddFood(meal: MealType) {
-    navigation.navigate('LogFood', { meal, date: selectedDate });
-  }
-
-  function handleSnapMeal() {
-    const meals: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: ['Cancel', 'Breakfast', 'Lunch', 'Dinner', 'Snacks'],
-        cancelButtonIndex: 0,
-      },
-      (index) => {
-        if (index === 0) return;
-        navigation.navigate('MealPhoto', { meal: meals[index - 1], date: selectedDate });
-      },
-    );
-  }
-
-  const isToday = selectedDate === todayString();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -166,22 +147,25 @@ export function HomeScreen({ navigation }: Props) {
         backgroundColor={c.bg}
       />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        {/* Date Navigation */}
-        <View style={styles.dateNav}>
-          <TouchableOpacity onPress={() => goDay(-1)} style={styles.navBtn}>
-            <Icon name="back" size="lg" color={c.gray700} />
-          </TouchableOpacity>
-          <Text style={styles.dateLabel}>{displayDate(selectedDate)}</Text>
-          <TouchableOpacity
-            onPress={() => goDay(1)}
-            style={[styles.navBtn, isToday && styles.navBtnDisabled]}
-            disabled={isToday}
-          >
-            <Icon name="forward" size="lg" color={isToday ? c.textFaint : c.gray700} />
-          </TouchableOpacity>
+        <View style={styles.titleRow}>
+          <Text style={styles.pageTitle}>Today</Text>
+          {currentStreak > 0 && (
+            <View style={styles.streakBadge}>
+              <Icon name="streak" size="xs" color={c.warning} />
+              <Text style={styles.streakBadgeText}>
+                {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
         </View>
+        <Text style={styles.pageDate}>
+          {parseDate(today).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+          })}
+        </Text>
 
-        {/* Goals changed on their own — say so before showing the new numbers. */}
         {goalsUpdateNotice && (
           <GoalsUpdatedCard
             notice={goalsUpdateNotice}
@@ -193,129 +177,82 @@ export function HomeScreen({ navigation }: Props) {
           />
         )}
 
-        {/* Calories and macros are one question, so they are one card. Split
-            across two equal cards they read as two peers, and the screen's
-            primary answer had the same weight as everything under it. */}
+        {/* Calories and macros are one question, so they are one card. */}
         <View style={[styles.card, styles.todayCard]}>
           <CalorieSummary consumed={totals.calories} goal={goals.calories} />
           <View style={styles.todayDivider} />
           <View style={styles.macroList}>
-            <MacroBar
-              current={totals.protein}
-              goal={goals.protein}
-              label="Protein"
-              color={c.macroProtein}
-            />
-            <MacroBar
-              current={totals.carbs}
-              goal={goals.carbs}
-              label="Carbs"
-              color={c.macroCarbs}
-            />
-            <MacroBar
-              current={totals.fat}
-              goal={goals.fat}
-              label="Fat"
-              color={c.macroFat}
-            />
-            <MacroBar
-              current={totals.fiber ?? 0}
-              goal={goals.fiber}
-              label="Fiber"
-              color={c.macroFiber}
-            />
+            <MacroBar current={totals.protein} goal={goals.protein} label="Protein" color={c.macroProtein} />
+            <MacroBar current={totals.carbs} goal={goals.carbs} label="Carbs" color={c.macroCarbs} />
+            <MacroBar current={totals.fat} goal={goals.fat} label="Fat" color={c.macroFat} />
+            <MacroBar current={totals.fiber ?? 0} goal={goals.fiber} label="Fiber" color={c.macroFiber} />
           </View>
         </View>
 
-        {/* Active Energy (Apple Health / Apple Watch) — only shown when we
-            actually got a reading, so it's invisible for anyone not using
-            HealthKit rather than showing a misleading zero. */}
-        {activeEnergy != null && (
-          <View style={styles.card}>
-            <View style={styles.cardTitleRow}>
-              <Icon name="streak" size="sm" color={c.gray700} />
-              <Text style={styles.cardTitleInline}>Active Energy</Text>
-            </View>
-            <View style={styles.energyRow}>
-              <Text style={styles.energyValue}>{activeEnergy}</Text>
-              <Text style={styles.energyUnit}>kcal burned</Text>
-            </View>
-            <Text style={styles.energyCaption}>From Apple Health</Text>
+        {/* Training. Used to be one line at the bottom of the screen, under the
+            entire food log, which is why this never read as a training app. */}
+        <View style={styles.card}>
+          <View style={styles.cardTitleRow}>
+            <Icon name="workout" size="sm" color={c.gray700} />
+            <Text style={styles.cardTitleInline}>Training</Text>
+            {activeEnergy != null && (
+              <>
+                <View style={{ flex: 1 }} />
+                <Text style={styles.energyInline}>{activeEnergy} kcal burned</Text>
+              </>
+            )}
           </View>
-        )}
 
-        {/* Today's Summary + Streak */}
-        {isToday && (
-          <View style={styles.card}>
-            <View style={styles.summaryHeader}>
-              <Text style={styles.cardTitle}>Today's Summary</Text>
-              {currentStreak > 0 && (
-                <View style={styles.streakBadge}>
-                  <Icon name="streak" size="xs" color={c.warning} />
-                  <Text style={styles.streakBadgeText}>
-                    {currentStreak} day{currentStreak !== 1 ? 's' : ''}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Calorie progress bar */}
-            <View style={styles.summaryCalRow}>
-              <Text style={styles.summaryCalNum}>{Math.round(totals.calories)}</Text>
-              <Text style={styles.summaryCalSep}> / {goals.calories} kcal</Text>
-              <View style={{ flex: 1 }} />
-              <View style={styles.summaryStatus}>
-                {calPct >= 80 && (
-                  <Icon
-                    name={calPct >= 100 ? 'goal' : 'protein'}
-                    size="xs"
-                    color={calPct >= 90 ? c.primary : c.textFaint}
-                  />
+          {dayWorkoutStats ? (
+            <>
+              <View style={styles.workoutStatsRow}>
+                <WorkoutStat label="Duration" value={formatDuration(dayWorkoutStats.totalDurationMs)} c={c} />
+                <WorkoutStat
+                  label="Volume"
+                  value={
+                    dayWorkoutStats.totalVolume >= 1000
+                      ? `${(dayWorkoutStats.totalVolume / 1000).toFixed(1)}k`
+                      : String(Math.round(dayWorkoutStats.totalVolume))
+                  }
+                  unit="lb"
+                  c={c}
+                />
+                <WorkoutStat label="Sets" value={`${dayWorkoutStats.doneSets}/${dayWorkoutStats.totalSets}`} c={c} />
+                {dayWorkoutStats.hr && (
+                  <WorkoutStat label="Avg HR" value={String(dayWorkoutStats.hr.avg)} unit="bpm" c={c} />
                 )}
-                <Text style={calPct >= 90 ? styles.summaryHit : styles.summaryMiss}>
-                  {calPct >= 100 ? 'Goal hit!' : calPct >= 80 ? 'Almost there' : `${calPct}%`}
-                </Text>
               </View>
-            </View>
-            <View style={styles.summaryBarTrack}>
-              <View style={[styles.summaryBarFill, { width: `${calPct}%` as any }]} />
-            </View>
-
-            {/* Macro status dots */}
-            <View style={styles.summaryMacroRow}>
-              {[
-                { label: 'Protein', hit: macroStatus(totals.protein, goals.protein),        color: c.macroProtein },
-                { label: 'Carbs',   hit: macroStatus(totals.carbs, goals.carbs),            color: c.macroCarbs },
-                { label: 'Fat',     hit: macroStatus(totals.fat, goals.fat),                color: c.macroFat },
-                { label: 'Fiber',   hit: macroStatus(totals.fiber ?? 0, goals.fiber),       color: c.macroFiber },
-              ].map(({ label, hit, color }) => (
-                <View key={label} style={styles.summaryMacro}>
-                  <View style={[styles.summaryMacroDot, { backgroundColor: hit ? color : c.border }]} />
-                  <Text style={[styles.summaryMacroLabel, hit && { color }]}>{label}</Text>
-                </View>
+              {dayWorkouts.map((w) => (
+                <WorkoutHistoryItem
+                  key={w.id}
+                  session={w}
+                  showDate={false}
+                  onPress={() =>
+                    navigation.navigate('WorkoutSummary', { sessionId: w.id, viewOnly: true })
+                  }
+                  onDelete={() => {
+                    deleteWorkout(w.id);
+                    showSnackbar('Workout deleted', {
+                      label: 'Undo',
+                      onPress: () => restoreWorkout(w),
+                    });
+                  }}
+                />
               ))}
-            </View>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.restRow}
+              onPress={() => navigation.navigate('Exercise')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.restText}>Nothing logged yet today</Text>
+              <Text style={styles.restAction}>Start a workout</Text>
+              <Icon name="forward" size="sm" color={c.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
 
-            {/* Workout status & best streak note */}
-            <View style={styles.summaryFooter}>
-              {dayWorkouts.length > 0 ? (
-                <View style={styles.summaryStatus}>
-                  <Icon name="workout" size="xs" color={c.gray700} />
-                  <Text style={styles.summaryWorkout}>
-                    {dayWorkouts.length} workout{dayWorkouts.length !== 1 ? 's' : ''} logged
-                  </Text>
-                </View>
-              ) : (
-                <Text style={styles.summaryNoWorkout}>No workout logged yet</Text>
-              )}
-              {bestStreak > 1 && currentStreak < bestStreak && (
-                <Text style={styles.summaryBest}>Best: {bestStreak} days</Text>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Water Tracker */}
         {showWaterTracker && (
           <View style={styles.card}>
             <View style={styles.waterHeader}>
@@ -327,14 +264,9 @@ export function HomeScreen({ navigation }: Props) {
                 {Math.round(water)} / {waterGoal} fl oz
               </Text>
             </View>
-
-            {/* Progress bar */}
             <View style={styles.waterBarTrack}>
               <View style={[styles.waterBarFill, { width: `${waterPct}%` as any }]} />
             </View>
-            <Text style={styles.waterPctText}>{waterPct}% of daily goal</Text>
-
-            {/* Bubbles */}
             <View style={styles.waterDots}>
               {Array.from({ length: numBubbles }).map((_, i) => (
                 <TouchableOpacity
@@ -342,6 +274,7 @@ export function HomeScreen({ navigation }: Props) {
                   onPress={() => handleBubblePress(i)}
                   style={[styles.waterDot, i < filledBubbles && styles.waterDotFilled]}
                   activeOpacity={0.6}
+                  hitSlop={4}
                 >
                   <Icon name="water" size="xs" color={i < filledBubbles ? c.info : c.textFaint} />
                 </TouchableOpacity>
@@ -353,7 +286,41 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* Key Insights */}
+        {/* The week, then the door to every day before it. */}
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => navigation.navigate('History')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.weekHeader}>
+            <Text style={styles.cardTitle}>This week</Text>
+            <View style={styles.weekLink}>
+              <Text style={styles.weekLinkText}>All days</Text>
+              <Icon name="forward" size="sm" color={c.textFaint} />
+            </View>
+          </View>
+          <View style={styles.weekRow}>
+            {week.map((d) => (
+              <View key={d.date} style={styles.weekCol}>
+                <View style={styles.weekTrack}>
+                  <View
+                    style={[
+                      styles.weekFill,
+                      { height: `${Math.max(d.pct * 100, d.logged ? 6 : 0)}%` as any },
+                      d.isToday && { backgroundColor: c.primary },
+                    ]}
+                  />
+                </View>
+                <View style={[styles.weekDot, d.trained && { backgroundColor: c.primary }]} />
+                <Text style={[styles.weekDay, d.isToday && styles.weekDayToday]}>{d.initial}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.weekCaption}>
+            Bar is calories against goal · dot means you trained
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.trendsBtn}
           onPress={() => navigation.navigate('KeyInsights')}
@@ -367,79 +334,8 @@ export function HomeScreen({ navigation }: Props) {
           <Icon name="forward" size="md" color={c.textFaint} />
         </TouchableOpacity>
 
-        {/* AI Meal Logger */}
-        <TouchableOpacity style={styles.snapBtn} onPress={handleSnapMeal} activeOpacity={0.85}>
-          <Icon name="aiEstimate" size="lg" color={c.onPrimary} />
-          <View>
-            <Text style={styles.snapTitle}>AI Meal Logger</Text>
-            <Text style={styles.snapSub}>Snap a photo or describe your meal in words</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Meal Sections */}
-        <View style={styles.mealsHeader}>
-          <Text style={styles.mealsTitle}>Food Log</Text>
-        </View>
-        {(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map((meal) => (
-          <MealSection
-            key={meal}
-            meal={meal}
-            date={selectedDate}
-            onAddFood={handleAddFood}
-          />
-        ))}
-
-        {dayWorkouts.length > 0 && dayWorkoutStats && (
-          <View style={styles.workoutsSection}>
-            <Text style={styles.workoutsTitle}>Workouts</Text>
-
-            <View style={styles.workoutStatsRow}>
-              <WorkoutStat
-                label="Duration"
-                value={formatDuration(dayWorkoutStats.totalDurationMs)}
-                c={c}
-              />
-              <WorkoutStat
-                label="Volume"
-                value={
-                  dayWorkoutStats.totalVolume >= 1000
-                    ? `${(dayWorkoutStats.totalVolume / 1000).toFixed(1)}k`
-                    : String(Math.round(dayWorkoutStats.totalVolume))
-                }
-                unit="lb"
-                c={c}
-              />
-              <WorkoutStat
-                label="Sets"
-                value={`${dayWorkoutStats.doneSets}/${dayWorkoutStats.totalSets}`}
-                c={c}
-              />
-              {dayWorkoutStats.hr && (
-                <WorkoutStat label="Avg HR" value={String(dayWorkoutStats.hr.avg)} unit="bpm" c={c} />
-              )}
-            </View>
-
-            {dayWorkouts.map((w) => (
-              <WorkoutHistoryItem
-                key={w.id}
-                session={w}
-                showDate={false}
-                onPress={() =>
-                  navigation.navigate('WorkoutSummary', {
-                    sessionId: w.id,
-                    viewOnly: true,
-                  })
-                }
-                onDelete={() => {
-                        deleteWorkout(w.id);
-                        showSnackbar('Workout deleted', {
-                          label: 'Undo',
-                          onPress: () => restoreWorkout(w),
-                        });
-                      }}
-              />
-            ))}
-          </View>
+        {bestStreak > 1 && currentStreak < bestStreak && (
+          <Text style={styles.bestStreak}>Best streak: {bestStreak} days</Text>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -457,315 +353,155 @@ function WorkoutStat({
   unit?: string;
   c: Theme;
 }) {
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const s = useMemo(() => makeStatStyles(c), [c]);
   return (
-    <View style={styles.workoutStat}>
-      <Text style={styles.workoutStatValue}>
-        {value}
-        {unit ? <Text style={styles.workoutStatUnit}> {unit}</Text> : null}
-      </Text>
-      <Text style={styles.workoutStatLabel}>{label}</Text>
+    <View style={s.stat}>
+      <View style={s.statValueRow}>
+        <Text style={s.statValue}>{value}</Text>
+        {unit && <Text style={s.statUnit}>{unit}</Text>}
+      </View>
+      <Text style={s.statLabel}>{label}</Text>
     </View>
   );
 }
 
-const makeStyles = (c: Theme) => StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: c.bg,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: space.lg,
-    paddingBottom: space.xxl,
-  },
-  dateNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: space.lg,
-    gap: space.lg,
-  },
-  navBtn: {
-    padding: space.sm,
-  },
-  navBtnDisabled: {
-    opacity: 0.3,
-  },
-  dateLabel: {
-    ...type.heading(c),
-    color: c.text,
-    minWidth: 120,
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: c.card,
-    borderRadius: radius.card,
-    padding: space.xl,
-    marginBottom: space.lg,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  // The one card that answers "where am I today", so it carries more room
-  // than the supporting cards below it.
-  todayCard: { paddingVertical: space.xl },
-  todayDivider: {
-    height: 1,
-    backgroundColor: c.border,
-    marginVertical: space.lg,
-  },
-  cardTitle: {
-    ...type.bodyStrong(c),
-    color: c.gray700,
-    marginBottom: space.lg,
-  },
-  // A title with an icon beside it: the row owns the bottom margin so the
-  // icon and the words share one baseline band.
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    marginBottom: space.lg,
-  },
-  cardTitleInline: {
-    ...type.bodyStrong(c),
-    color: c.gray700,
-  },
-  summaryStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.xs,
-  },
-  macroList: {
-    gap: space.md,
-  },
-  waterHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: space.lg,
-  },
-  waterAmount: {
-    ...type.bodyStrong(c),
-    color: c.info,
-  },
-  waterBarTrack: {
-    height: 8,
-    backgroundColor: c.infoSoft,
-    borderRadius: radius.hairline,
-    overflow: 'hidden',
-    marginBottom: space.xs,
-  },
-  waterBarFill: {
-    height: 8,
-    borderRadius: radius.hairline,
-    backgroundColor: c.info,
-  },
-  waterPctText: {
-    ...type.micro(c),
-    color: c.textFaint,
-    marginBottom: space.md,
-  },
-  waterDots: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.xs,
-    marginBottom: space.sm,
-  },
-  waterDot: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    backgroundColor: c.infoSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    opacity: 0.3,
-  },
-  waterDotFilled: {
-    opacity: 1,
-    backgroundColor: c.infoSoft,
-  },
-  waterGoal: {
-    ...type.caption(c),
-    color: c.textFaint,
-    textAlign: 'center',
-  },
-  snapBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    backgroundColor: c.primary,
-    borderRadius: radius.card,
-    padding: space.lg,
-    marginBottom: space.lg,
-    shadowColor: c.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  snapTitle: {
-    ...type.bodyStrong(c),
-    color: c.onPrimary,
-  },
-  snapSub: {
-    ...type.caption(c),
-    color: `${c.onPrimary}CC`,
-    marginTop: space.xxs,
-  },
-  trendsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    backgroundColor: c.card,
-    borderRadius: radius.card,
-    padding: space.lg,
-    marginBottom: space.lg,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  trendsTitle: { ...type.bodyStrong(c), color: c.text },
-  trendsSub: { ...type.caption(c), color: c.textFaint, marginTop: space.xxs },
-  mealsHeader: {
-    marginBottom: space.sm,
-  },
-  mealsTitle: {
-    ...type.subhead(c),
-    color: c.text,
-  },
-  workoutsSection: {
-    marginTop: space.sm,
-  },
-  workoutsTitle: {
-    ...type.subhead(c),
-    color: c.text,
-    marginBottom: space.sm,
-  },
-  workoutStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: c.card,
-    borderRadius: radius.card,
-    paddingVertical: space.lg,
-    marginBottom: space.md,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  workoutStat: { alignItems: 'center' },
-  workoutStatValue: {
-    ...type.bodyStrong(c),
-    color: c.text,
-    fontVariant: ['tabular-nums'],
-  },
-  workoutStatUnit: { ...type.micro(c), fontFamily: c.fontBodySemi, color: c.textFaint },
-  workoutStatLabel: { ...type.micro(c), color: c.textFaint, marginTop: space.xxs },
+const makeStatStyles = (c: Theme) =>
+  StyleSheet.create({
+    stat: { flex: 1, alignItems: 'center' },
+    statValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+    statValue: { ...type.subhead(c), ...tabular, color: c.text },
+    statUnit: { ...type.micro(c), color: c.textFaint },
+    statLabel: { ...type.micro(c), color: c.textMuted, marginTop: space.xxs },
+  });
 
-  // Active Energy card
-  energyRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs },
-  energyValue: { ...type.title(c), color: c.text, fontVariant: ['tabular-nums'] },
-  energyUnit: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.textFaint },
-  energyCaption: { ...type.micro(c), color: c.textFaint, marginTop: space.xs },
-  // Today's Summary card
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: space.md,
-  },
-  streakBadge: {
-    backgroundColor: c.warningSoft,
-    borderRadius: radius.card,
-    paddingHorizontal: space.md,
-    paddingVertical: space.xs,
-    borderWidth: 1,
-    borderColor: `${c.warning}80`,
-  },
-  streakBadgeText: {
-    ...type.captionStrong(c),
-    color: c.warning,
-  },
-  summaryCalRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: space.xs,
-  },
-  summaryCalNum: {
-    ...type.heading(c),
-    color: c.text,
-  },
-  summaryCalSep: {
-    ...type.caption(c),
-    color: c.textFaint,
-    marginLeft: space.xxs,
-  },
-  summaryHit: {
-    ...type.captionStrong(c),
-    color: c.primary,
-  },
-  summaryMiss: {
-    ...type.captionStrong(c),
-    color: c.textFaint,
-  },
-  summaryBarTrack: {
-    height: 6,
-    borderRadius: radius.hairline,
-    backgroundColor: c.cardMuted,
-    overflow: 'hidden',
-    marginBottom: space.md,
-  },
-  summaryBarFill: {
-    height: 6,
-    borderRadius: radius.hairline,
-    backgroundColor: c.primary,
-  },
-  summaryMacroRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: space.md,
-  },
-  summaryMacro: {
-    alignItems: 'center',
-    gap: space.xs,
-  },
-  summaryMacroDot: {
-    width: 12,
-    height: 12,
-    borderRadius: radius.pill,
-  },
-  summaryMacroLabel: {
-    ...type.micro(c),
-    fontFamily: c.fontBodySemi,
-    color: c.textFaint,
-  },
-  summaryFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: space.md,
-    borderTopWidth: 1,
-    borderTopColor: c.border,
-  },
-  summaryWorkout: {
-    ...type.captionStrong(c),
-    color: c.gray700,
-  },
-  summaryNoWorkout: {
-    ...type.caption(c),
-    color: c.textFaint,
-  },
-  summaryBest: {
-    ...type.caption(c),
-    color: c.textFaint,
-  },
-});
+const makeStyles = (c: Theme) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.bg },
+    scroll: { flex: 1 },
+    content: { padding: space.lg, paddingBottom: space.xxl },
+
+    titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    pageTitle: { ...type.title(c), color: c.text },
+    pageDate: { ...type.caption(c), color: c.textMuted, marginTop: space.xxs, marginBottom: space.lg },
+
+    streakBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.xs,
+      backgroundColor: c.warningSoft,
+      borderRadius: radius.card,
+      paddingHorizontal: space.md,
+      paddingVertical: space.xs,
+      borderWidth: 1,
+      borderColor: `${c.warning}80`,
+    },
+    streakBadgeText: { ...type.captionStrong(c), color: c.warning },
+
+    card: {
+      backgroundColor: c.card,
+      borderRadius: radius.card,
+      padding: space.xl,
+      marginBottom: space.lg,
+      shadowColor: c.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    todayCard: { paddingVertical: space.xl },
+    todayDivider: { height: 1, backgroundColor: c.border, marginVertical: space.lg },
+    macroList: { gap: space.md },
+
+    cardTitle: { ...type.bodyStrong(c), color: c.gray700 },
+    cardTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.sm,
+      marginBottom: space.lg,
+    },
+    cardTitleInline: { ...type.bodyStrong(c), color: c.gray700 },
+    energyInline: { ...type.caption(c), ...tabular, color: c.textMuted },
+
+    workoutStatsRow: { flexDirection: 'row', marginBottom: space.md },
+    restRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    restText: { ...type.body(c), color: c.textMuted, flex: 1 },
+    restAction: { ...type.captionStrong(c), color: c.primary },
+
+    waterHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    waterAmount: { ...type.caption(c), ...tabular, color: c.textMuted, marginBottom: space.lg },
+    waterBarTrack: {
+      height: 8,
+      borderRadius: radius.hairline,
+      backgroundColor: c.borderStrong,
+      overflow: 'hidden',
+    },
+    waterBarFill: { height: '100%', borderRadius: radius.hairline, backgroundColor: c.info },
+    waterDots: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: space.sm,
+      marginTop: space.md,
+    },
+    waterDot: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: c.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+      opacity: 0.55,
+    },
+    waterDotFilled: { opacity: 1, backgroundColor: c.infoSoft, borderColor: c.info },
+    waterGoal: { ...type.caption(c), color: c.textFaint, textAlign: 'center', marginTop: space.md },
+
+    weekHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: space.lg,
+    },
+    weekLink: { flexDirection: 'row', alignItems: 'center', gap: space.xxs },
+    weekLinkText: { ...type.caption(c), color: c.textFaint },
+    weekRow: { flexDirection: 'row', gap: space.sm },
+    weekCol: { flex: 1, alignItems: 'center' },
+    weekTrack: {
+      width: '100%',
+      height: 56,
+      borderRadius: radius.hairline,
+      backgroundColor: c.cardMuted,
+      justifyContent: 'flex-end',
+      overflow: 'hidden',
+    },
+    weekFill: { width: '100%', borderRadius: radius.hairline, backgroundColor: c.borderStrong },
+    weekDot: {
+      width: 5,
+      height: 5,
+      borderRadius: radius.pill,
+      backgroundColor: 'transparent',
+      marginTop: space.sm,
+    },
+    weekDay: { ...type.micro(c), color: c.textFaint, marginTop: space.xs },
+    weekDayToday: { color: c.text, fontFamily: c.fontBodyBold },
+    weekCaption: { ...type.micro(c), color: c.textFaint, textAlign: 'center', marginTop: space.md },
+
+    trendsBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
+      backgroundColor: c.card,
+      borderRadius: radius.card,
+      padding: space.lg,
+      marginBottom: space.lg,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    trendsTitle: { ...type.bodyStrong(c), color: c.text },
+    trendsSub: { ...type.caption(c), color: c.textMuted, marginTop: space.xxs },
+
+    bestStreak: { ...type.caption(c), color: c.textFaint, textAlign: 'center' },
+  });

@@ -64,6 +64,10 @@ const GLYPH = {
   check: 'check',
   close: 'close',
 
+  // Navigation
+  home: 'home-variant',
+  profile: 'account-circle-outline',
+
   // Direction
   up: 'chevron-up',
   down: 'chevron-down',

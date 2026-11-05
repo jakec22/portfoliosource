@@ -41,6 +41,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { LogFoodScreen } from './src/screens/LogFoodScreen';
 import { MealPhotoScreen } from './src/screens/MealPhotoScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
+import { FoodScreen } from './src/screens/FoodScreen';
 import { CalculatorScreen } from './src/screens/CalculatorScreen';
 import { ExerciseScreen } from './src/screens/ExerciseScreen';
 import { WorkoutTemplateScreen } from './src/screens/WorkoutTemplateScreen';
@@ -52,7 +53,6 @@ import { BuildMealScreen } from './src/screens/BuildMealScreen';
 import { GoalWizardScreen } from './src/screens/GoalWizardScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
-import type { StackScreenProps } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSession } from './src/hooks/useSession';
 import { useTemplateImport } from './src/hooks/useTemplateImport';
@@ -78,6 +78,22 @@ function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Home" component={HomeScreen} />
+      {/* History lost its tab to Food and is pushed from Home's week strip.
+          Its day cards are too heavy for a glance surface, so the dashboard
+          shows the week and this holds every day before it. */}
+      <Stack.Screen name="History" component={HistoryScreen as any} />
+      <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
+      <Stack.Screen name="KeyInsights" component={KeyInsightsScreen as any} />
+      <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
+    </Stack.Navigator>
+  );
+}
+
+// Everything that writes a food entry lives behind the Food tab.
+function FoodStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="FoodHome" component={FoodScreen as any} />
       <Stack.Screen
         name="LogFood"
         component={LogFoodScreen as any}
@@ -88,14 +104,12 @@ function HomeStack() {
         component={MealPhotoScreen as any}
         options={{ presentation: 'modal' }}
       />
-      <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
-      <Stack.Screen name="KeyInsights" component={KeyInsightsScreen as any} />
-      <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
       <Stack.Screen
         name="BuildMeal"
         component={BuildMealScreen as any}
         options={{ presentation: 'modal' }}
       />
+      <Stack.Screen name="KeyInsights" component={KeyInsightsScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -113,17 +127,6 @@ function ExerciseStack() {
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
       <Stack.Screen name="KeyInsights" component={KeyInsightsScreen as any} />
-    </Stack.Navigator>
-  );
-}
-
-function HistoryStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="HistoryHome" component={HistoryScreen as any} />
-      <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
-      <Stack.Screen name="KeyInsights" component={KeyInsightsScreen as any} />
-      <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
     </Stack.Navigator>
   );
 }
@@ -187,7 +190,7 @@ function MainTabs() {
             },
             tabBarIcon: ({ focused, color }) => (
               <TabIcon
-                name={route.name as 'Home' | 'Exercise' | 'History' | 'Profile'}
+                name={route.name as 'Home' | 'Food' | 'Exercise' | 'Profile'}
                 color={color}
                 size={focused ? 28 : 24}
               />
@@ -195,8 +198,8 @@ function MainTabs() {
           })}
         >
           <Tab.Screen name="Home" component={HomeStack} />
+          <Tab.Screen name="Food" component={FoodStack} />
           <Tab.Screen name="Exercise" component={ExerciseStack} />
-          <Tab.Screen name="History" component={HistoryStack} />
           <Tab.Screen name="Profile" component={ProfileStack} />
         </Tab.Navigator>
       </NavigationContainer>

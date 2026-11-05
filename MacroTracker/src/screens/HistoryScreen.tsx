@@ -48,6 +48,17 @@ export function HistoryScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.content}>
+        {/* This is pushed from Home's week strip now, not a tab root, so it
+            needs its own way back. */}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backRow}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          <Icon name="back" size="sm" color={c.primary} />
+          <Text style={styles.backText}>Today</Text>
+        </TouchableOpacity>
         <Text style={styles.pageTitle}>History</Text>
 
         {/* Key Insights */}
@@ -253,6 +264,13 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     padding: space.lg,
     paddingBottom: space.xxl,
   },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xxs,
+    marginBottom: space.sm,
+  },
+  backText: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.primary },
   pageTitle: {
     ...type.title(c),
     color: c.text,
