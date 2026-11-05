@@ -214,3 +214,26 @@ after the consistency grid.
 chart lives on `WorkoutSummaryScreen`, not on the live workout screen — an
 earlier pass put it on the set logger, where the app only ever shows a bpm
 readout in the status bar.
+
+## Versioning
+
+`version` in `app.json` is the marketing version and is the only one a human
+sets. Build numbers are **not** in `app.json`: `eas.json` sets
+`appVersionSource: "remote"`, so EAS keeps the counter server-side and the
+`production` profile increments it on every build.
+
+`ios.buildNumber` and `android.versionCode` used to sit in `app.json` reading
+3 and 2 while the real remote counter was at 56. They were removed, because a
+submit failure says "Increment it by setting ios.buildNumber in app.json",
+which is the wrong fix here and the stale values made it look plausible.
+
+A rejected submit with "build number N has already been used" means an
+artifact that was already submitted is being sent again — `autoIncrement`
+runs at build time, not submit time. Rebuild, then submit the new build:
+
+```sh
+eas build -p ios --profile production
+eas submit -p ios --latest
+```
+
+To force a specific number instead: `eas build:version:set -p ios`.
