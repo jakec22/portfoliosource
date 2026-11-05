@@ -251,7 +251,10 @@ export async function searchFoodsApi(
   signal?: AbortSignal,
 ): Promise<Food[]> {
   const q = query.trim();
-  if (!q) return searchLocalFoods('');
+  // An empty query is not "give me everything" — it has no results. Returning
+  // the whole curated list here is what put a 25-item generic food dump in
+  // front of callers that hadn't been typed into yet.
+  if (!q) return [];
 
   const localMatches = searchLocalFoods(q);
 

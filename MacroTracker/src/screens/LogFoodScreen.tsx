@@ -17,7 +17,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Food, MealType, SavedMeal, ServingUnit } from '../types';
 import { useStore } from '../store/useStore';
 import { useSnackbar } from '../store/useSnackbar';
-import { searchFoods } from '../data/foods';
 import { searchFoodsApi, lookupBarcode } from '../services/foodApi';
 import { analyzeLabelPhoto } from '../services/mealPhoto';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -67,7 +66,13 @@ export function LogFoodScreen({ route, navigation }: Props) {
   const styles = useMemo(() => makeStyles(c), [c]);
   const { meal, date } = route.params;
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Food[]>(() => searchFoods(''));
+  // Search results only — empty until something is typed. This used to be
+  // seeded with the whole 25-item curated list, which never showed while the
+  // field was empty (the list renders history then) but *was* still sitting in
+  // state the instant you typed: for the debounce plus the round trip you got
+  // all 25 generic foods, unfiltered, under your query. That stale dump is the
+  // "default food list" problem.
+  const [results, setResults] = useState<Food[]>([]);
   const [loading, setLoading] = useState(false);
   const [scannerVisible, setScannerVisible] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
@@ -134,6 +139,12 @@ export function LogFoodScreen({ route, navigation }: Props) {
   // Debounced live search against USDA (falls back to local foods offline).
   // Custom foods are merged in front of API results when their name matches.
   useEffect(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
     let active = true;
     const controller = new AbortController();
     setLoading(true);
@@ -141,14 +152,11 @@ export function LogFoodScreen({ route, navigation }: Props) {
       searchFoodsApi(query, controller.signal)
         .then((r) => {
           if (active) {
-            const q = query.toLowerCase().trim();
-            const customMatches = q
-              ? customFoods.filter(
-                  (f) =>
-                    f.name.toLowerCase().includes(q) ||
-                    (f.brand && f.brand.toLowerCase().includes(q))
-                )
-              : customFoods;
+            const customMatches = customFoods.filter(
+              (f) =>
+                f.name.toLowerCase().includes(q) ||
+                (f.brand && f.brand.toLowerCase().includes(q))
+            );
             const apiIds = new Set(r.map((f) => f.id));
             setResults([
               ...customMatches.filter((f) => !apiIds.has(f.id)),
@@ -363,26 +371,39 @@ export function LogFoodScreen({ route, navigation }: Props) {
             />
             {loading && <ActivityIndicator size="small" color={c.primary} />}
           </View>
+        </View>
+
+        {/* The three ways to add a food that don't involve searching a
+            database: describe it or photograph it and let AI estimate, scan a
+            barcode, or assemble a multi-item meal. These were three unlabeled
+            46pt icon squares crowded beside the search field, which read as
+            accessories to search. They are the primary capture routes — the
+            search field and the history list below it are the secondary
+            path — so they get labels and the full width. */}
+        <View style={styles.captureRow}>
           <TouchableOpacity
-            style={styles.scanBtn}
-            onPress={() => setScannerVisible(true)}
-            activeOpacity={0.8}
-          >
-            <BarcodeIcon size={22} color={c.onPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.photoBtn}
+            style={styles.captureBtn}
             onPress={() => navigation.navigate('MealPhoto', { meal, date })}
             activeOpacity={0.8}
           >
             <Icon name="aiEstimate" size="md" color={c.onPrimary} />
+            <Text style={styles.captureLabel}>AI estimate</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.mealBtn}
+            style={styles.captureBtn}
+            onPress={() => setScannerVisible(true)}
+            activeOpacity={0.8}
+          >
+            <BarcodeIcon size={20} color={c.onPrimary} />
+            <Text style={styles.captureLabel}>Barcode</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.captureBtn}
             onPress={() => navigation.navigate('BuildMeal', { meal, date })}
             activeOpacity={0.8}
           >
             <Icon name="meal" size="md" color={c.onPrimary} />
+            <Text style={styles.captureLabel}>Build meal</Text>
           </TouchableOpacity>
         </View>
 
@@ -591,7 +612,8 @@ export function LogFoodScreen({ route, navigation }: Props) {
               <View style={styles.empty}>
                 <Text style={styles.emptyText}>Nothing logged yet</Text>
                 <Text style={styles.emptySubtext}>
-                  Foods you log will show up here for quick re-adding
+                  Add one with AI estimate, a barcode, or search — everything
+                  you log shows up here for one-tap re-adding
                 </Text>
               </View>
             ) : (
@@ -754,7 +776,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: space.md,
-    marginVertical: space.md,
+    marginTop: space.md,
+    marginBottom: space.sm,
     gap: space.sm,
   },
   searchBar: {
@@ -772,43 +795,29 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  scanBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.control,
-    backgroundColor: c.primary,
+  captureRow: {
+    flexDirection: 'row',
+    gap: space.sm,
+    marginHorizontal: space.md,
+    marginBottom: space.md,
+  },
+  captureBtn: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: space.xs,
+    backgroundColor: c.primary,
+    borderRadius: radius.control,
+    paddingVertical: space.md,
+    paddingHorizontal: space.xs,
     shadowColor: c.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  photoBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.control,
-    backgroundColor: c.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: space.sm,
-    shadowColor: c.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  mealBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.control,
-    backgroundColor: c.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: space.sm,
-    shadowColor: c.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+  captureLabel: {
+    ...type.captionStrong(c),
+    color: c.onPrimary,
+    textAlign: 'center',
   },
   scanOverlay: {
     position: 'absolute',
