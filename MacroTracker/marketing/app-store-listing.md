@@ -177,8 +177,22 @@ laid out the way `MealPhotoScreen` renders them.
 ### Regenerating them
 
 `marketing/appstore/gen.py` writes five standalone HTML slides; `shoot.js`
-renders every `slideN.html` it finds through Playwright at a 428 × 926 viewport and
-`deviceScaleFactor: 3`, which lands exactly on 1284 × 2778.
+renders every `slideN.html` it finds through Playwright at `deviceScaleFactor: 3`,
+once per iPhone screenshot class:
+
+| Class | Viewport  | Output      | Files                 |
+|-------|-----------|-------------|-----------------------|
+| 6.9"  | 440 × 956 | 1320 × 2868 | `appstore-6.9-N.png`  |
+| 6.7"  | 430 × 932 | 1290 × 2796 | `appstore-6.7-N.png`  |
+| 6.3"  | 402 × 874 | 1206 × 2622 | `appstore-6.3-N.png`  |
+
+All three ship because Apple has moved which class is *required* more than
+once (6.5 → 6.7 → 6.9, and more recently a 6.3 set), and a rejected upload
+costs a round trip. Upload whichever App Store Connect asks for.
+
+The slide composes on a fixed 428 × 926 canvas and scales to fit the
+viewport, so one layout serves every class without being re-measured; the
+ground gradient sits on `body` so it stays full-bleed at every aspect ratio.
 
 ```sh
 cd marketing/appstore

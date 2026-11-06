@@ -92,20 +92,25 @@ def barcode(size, color):
 
 CSS = f"""
 *{{box-sizing:border-box;margin:0;padding:0}}
-html,body{{width:428px;height:926px;background:{BG}}}
+html,body{{width:100%;height:100%;overflow:hidden;background:{BG}}}
 body{{position:relative;font-family:'Manrope',-apple-system,Arial,sans-serif;
- -webkit-font-smoothing:antialiased}}
-
-/* ---- slide ground ----
-   Strictly neutral. The pack's own note explains why: a warm near-black read
-   brown and pulled every surface with it, so #0E0E10 was chosen at -2
-   red-over-blue precisely so the green reads as a chosen colour rather than
-   the ground showing through. An olive slide would undo that on the store
-   page, which is where most people meet the app first. */
-.bg{{position:absolute;inset:0;
+ -webkit-font-smoothing:antialiased;
  background:
   radial-gradient(120% 62% at 84% -10%, rgba(255,255,255,.055) 0%, rgba(255,255,255,0) 60%),
   linear-gradient(176deg,#1B1B1F 0%,#141417 38%,#101012 70%,{BG} 100%);}}
+
+/* Everything is composed on this fixed canvas and scaled to fit the target
+   device class, so one layout serves 6.9in, 6.7in and 6.3in without being
+   re-measured for each. */
+.stage{{position:absolute;left:50%;top:50%;width:428px;height:926px;
+ transform-origin:center center}}
+
+/* The ground is strictly neutral and lives on the body, above. The pack's
+   own note explains why: a warm near-black read brown and pulled every
+   surface with it, so #0E0E10 was chosen at -2 red-over-blue precisely so
+   the green reads as a chosen colour rather than the ground showing
+   through. An olive slide would undo that on the store page, which is
+   where most people meet the app first. */
 .arcs{{position:absolute;inset:0;overflow:hidden}}
 .arcs i{{position:absolute;border:1px solid rgba(244,244,245,.055);border-radius:50%}}
 
@@ -311,7 +316,7 @@ def page(idx, total, h1, sub, screen_html):
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@500;600;700;800&display=swap">
 <style>{CSS}</style></head><body>
-<div class="bg"></div>
+<div class="stage">
 <div class="arcs">
   <i style="width:760px;height:760px;right:-250px;top:-330px"></i>
   <i style="width:1080px;height:1080px;right:-420px;top:-500px"></i>
@@ -331,6 +336,17 @@ def page(idx, total, h1, sub, screen_html):
 </div>
 <div class="foot">HolyMacro &mdash; Nutrition &amp; Training</div>
 <div class="dots">{dots}</div>
+</div>
+<script>
+// Fit the 428x926 canvas inside whatever viewport shoot.js opens. Scaling
+// rather than reflowing keeps every slide identical across device classes,
+// and the render happens at the final scale so type stays crisp.
+(function () {{
+  var s = Math.min(window.innerWidth / 428, window.innerHeight / 926);
+  document.querySelector('.stage').style.transform =
+    'translate(-50%, -50%) scale(' + s + ')';
+}})();
+</script>
 </body></html>"""
 
 
