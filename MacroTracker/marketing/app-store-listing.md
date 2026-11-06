@@ -251,3 +251,29 @@ eas submit -p ios --latest
 ```
 
 To force a specific number instead: `eas build:version:set -p ios`.
+
+## Featuring / promotional artwork
+
+`marketing/appstore/promo.py` writes `promo-wide-4320x1080.png` plus the two
+centre crops Apple cuts it down to (`promo-half-2160x1080.png`,
+`promo-square-1080x1080.png`). Run it with `python3 promo.py`.
+
+Three things worth knowing before using it:
+
+* **Apple crops this.** One file feeds placements from a full-width hero down
+  to a near-square card, so everything that has to be read sits inside the
+  central 1080 x 1080 square and the flanks carry ground only. Check the
+  crops, not just the master.
+* **The slot is conditional.** The Promotional Artwork tab appears in App
+  Store Connect only once an app is under consideration for featuring; Apple
+  emails Admin, App Manager and Marketing roles to ask. Nominations want at
+  least two weeks' notice.
+* **Apple wants a PSD built on its own template**, with safe areas that
+  differ per placement. These PNGs are the flat artwork to place into that
+  template, not a drop-in substitute — check the dimensions and safe areas
+  against the template App Store Connect gives you.
+
+The mark is imported from `assets/source/mark.py` rather than an exported
+PNG, so the artwork cannot drift from the shipping icon's geometry, and the
+subtitle is the App Store subtitle verbatim rather than a claim written for
+the artwork.
