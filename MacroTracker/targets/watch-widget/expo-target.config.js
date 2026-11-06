@@ -2,7 +2,17 @@
 module.exports = config => ({
   type: "watch-widget",
   displayName: "Holy Macro",
-  icon: '../../assets/icon.png',
+  // No `icon`, deliberately. The plugin only generates watchOS idioms when
+  // the target type is exactly "watch" (withIosIcon in
+  // @bacons/apple-targets); every other type, this one included, gets
+  // iphone / ipad / ios-marketing idioms. Pointing an icon at a target that
+  // builds for watchOS therefore produced an AppIcon.appiconset with nothing
+  // applicable in it, and Xcode failed the build on exactly that:
+  // "The stickers icon set, app icon set, or icon stack named AppIcon did
+  // not have any applicable content."
+  //
+  // A complication extension needs no icon of its own in any case — it is
+  // presented through the watch app, which has one.
   // Executive primary, same value the watch app and the iOS widget carry.
   // Baked into the asset catalog at build time, so it is what the system
   // draws before our own views render.
