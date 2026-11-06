@@ -42,9 +42,10 @@ _spec.loader.exec_module(mark)
 BG, TEXT, MUTED = "#0E0E10", "#F4F4F5", "#A1A1A8"
 PRIMARY = "#34C77B"
 
-# App Store Connect subtitle, from PRODUCT.md. Not a new claim.
+# The App Store subtitle, from PRODUCT.md, so the artwork and the listing
+# say the same thing. Not a claim written for the artwork.
 NAME = "HolyMacro"
-SUBTITLE = "Snap food. Scan real labels."
+SUBTITLE = "Tracking Simplified"
 
 MASTER = (4320, 1080)
 # The crops Apple cuts this down to. Each is taken from the centre, which is

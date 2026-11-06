@@ -93,7 +93,7 @@ Constraints:
 ## Brand Commitments
 
 - Name **HolyMacro**; App Store name `HolyMacro: Macro Tracker`, subtitle
-  `Snap food. Scan real labels.`
+  `Tracking Simplified`
 - The app mark is an **ichthys** outline, shipping across iOS, Android, the
   watch and the widget. The name and mark carry a deliberate faith reference;
   it is an identity element, not a feature, and the app contains no religious

@@ -23,14 +23,18 @@ The name field carries the most ASO weight of any field, and "HolyMacro" alone
 is a brand nobody is searching for yet. The suffix buys the head term without
 making the name read like a keyword dump.
 
-## Subtitle — 28 / 30
+## Subtitle — 19 / 30
 
 ```
-Snap food. Scan real labels.
+Tracking Simplified
 ```
 
-"real" is doing the work: it sets up the barcode-database complaint that the
-second screenshot pays off.
+A brand line rather than a keyword line. The previous subtitle, "Snap food.
+Scan real labels.", carried three search terms and set up the barcode
+complaint the label-scan screenshot pays off; this trades that reach for a
+cleaner read. The capture claims still appear in the first screenshot's
+headline and in the description, so they are not lost from the page — only
+from the one field the App Store weights most heavily for search.
 
 ## Promotional text — 161 / 170
 
