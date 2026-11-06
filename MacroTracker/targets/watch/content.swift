@@ -1104,8 +1104,12 @@ struct ContentView: View {
             Text(stats.templates.isEmpty
                  ? "Quick start a session"
                  : "\(stats.templates.count) saved template\(stats.templates.count == 1 ? "" : "s")")
-                .font(WatchType.body(10))
-                .foregroundColor(Color.white.opacity(0.42))
+                // Same 0.55 and 11pt as StopCard's caption. This stop is hand
+                // laid out rather than going through StopCard, so it kept the
+                // 0.42 the others were lifted off — about 4.1:1 on this
+                // ground, under the floor.
+                .font(WatchType.body(11))
+                .foregroundColor(Color.white.opacity(0.55))
                 .padding(.top, 3)
             Spacer()
 
