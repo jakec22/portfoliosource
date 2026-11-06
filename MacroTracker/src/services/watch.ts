@@ -227,6 +227,16 @@ export function sendWatchContext(ctx: WatchContext): void {
   pushContext();
 }
 
+// Re-send the last context unchanged.
+//
+// Exists for the case where the watch acted optimistically and the phone
+// then did nothing: a saved meal whose id no longer resolves, for instance.
+// Every other push rides a state change, so without this the watch would sit
+// on totals the phone never agreed to and nothing would ever correct it.
+export function repushWatchContext(): void {
+  pushContext();
+}
+
 // Mirror the active pack's accents to the watch. The watch keeps its black
 // background whatever the pack — only the accents travel.
 // Takes WatchPalette rather than Record<string, string>: the body reads nine

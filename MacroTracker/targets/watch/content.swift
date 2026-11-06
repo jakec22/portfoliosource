@@ -182,24 +182,31 @@ let watchSnapshotKey = "watchDayStats"
 ///
 /// The phone's rule (src/theme/index.ts) is that `fontDisplay` carries
 /// headlines and hero numerals and the body ladder carries everything else.
-/// The watch has exactly one hero numeral — the calories figure — so that is
-/// the only place the serif appears; labels stay on Manrope, which holds up
-/// at 11pt where a serif would not.
+/// The watch follows the same rule: the serif is on each stop's hero numeral
+/// and on the three short headings (Train, Start Workout, Workout Complete),
+/// and nothing else. Labels stay on Manrope, which holds up at 11pt where a
+/// serif would not, and so do two numerals that change while you watch them —
+/// the workout clock and the live heart rate — because DM Serif Display has
+/// no tabular figures and would jitter sideways on every tick.
+///
+/// Every size passes through `relativeTo:`, so the watch's own text-size
+/// setting scales the app instead of being ignored. Sizes below are the
+/// default-setting values, not fixed points.
 ///
 /// Every call falls back to the system face, so a build where the fonts did
 /// not register renders plainly instead of blank.
 enum WatchType {
-    static func display(_ size: CGFloat) -> Font {
-        Font.custom("DMSerifDisplay-Regular", size: size)
+    static func display(_ size: CGFloat, relativeTo style: Font.TextStyle = .title) -> Font {
+        Font.custom("DMSerifDisplay-Regular", size: size, relativeTo: style)
     }
-    static func body(_ size: CGFloat) -> Font {
-        Font.custom("Manrope-Medium", size: size)
+    static func body(_ size: CGFloat, relativeTo style: Font.TextStyle = .body) -> Font {
+        Font.custom("Manrope-Medium", size: size, relativeTo: style)
     }
-    static func semibold(_ size: CGFloat) -> Font {
-        Font.custom("Manrope-SemiBold", size: size)
+    static func semibold(_ size: CGFloat, relativeTo style: Font.TextStyle = .body) -> Font {
+        Font.custom("Manrope-SemiBold", size: size, relativeTo: style)
     }
-    static func bold(_ size: CGFloat) -> Font {
-        Font.custom("Manrope-Bold", size: size)
+    static func bold(_ size: CGFloat, relativeTo style: Font.TextStyle = .body) -> Font {
+        Font.custom("Manrope-Bold", size: size, relativeTo: style)
     }
 }
 
@@ -777,71 +784,104 @@ struct StopCard<Action: View>: View {
     /// each set at a size chosen for them instead of one size shrunk to fit
     /// the longest case. minimumScaleFactor stays as the floor under a goal
     /// nobody anticipated.
-    private var numeralSize: CGFloat {
+    ///
+    /// The numeral as a fraction of the arc's diameter, by character count.
+    ///
+    /// A fraction rather than a point size, because the arc no longer has a
+    /// fixed diameter: it takes whatever height is left once the date, the
+    /// label, the caption and the action slot have taken theirs, which moves
+    /// with both the device class and the watch's text-size setting. 0.63
+    /// puts three DM Serif digits at roughly the arc's full width, so the
+    /// numeral crosses the stroke instead of sitting inside it.
+    private var numeralFactor: CGFloat {
         switch value.count {
-        case 0...3: return 74
-        case 4: return 62
-        case 5: return 52
-        default: return 44
+        case 0...3: return 0.63
+        case 4: return 0.50
+        case 5: return 0.38
+        default: return 0.30
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Text(date)
-                .font(WatchType.semibold(9))
+                .font(WatchType.semibold(11))
                 .tracking(0.9)
                 .textCase(.uppercase)
                 .foregroundColor(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            ZStack {
-                Circle()
-                    .stroke(tint.opacity(0.16), lineWidth: 5)
-                Circle()
-                    .trim(from: 0, to: isOver ? 1 : progress)
-                    .stroke(tint.opacity(isOver ? 0.38 : 1),
-                            style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                if isOver {
-                    Circle()
-                        .trim(from: 0, to: overProgress)
-                        .stroke(tint, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                }
+            Spacer(minLength: 0)
 
-                VStack(spacing: 1) {
+            // Only the numeral goes inside the arc. The label and caption sit
+            // under it in clear space.
+            //
+            // Both earlier attempts put all three inside the stroke. The
+            // first shrank the numeral to 74pt to make room, which turned the
+            // arc into a ring drawn around a reading — the arrangement this
+            // screen exists to refuse. The second enlarged the numeral but
+            // left the caption crossing the arc's lower stroke, and at the
+            // larger watch text sizes the whole block overran the circle.
+            //
+            // The arc takes whatever square is left after everything else has
+            // its height, so the layout holds from a 40mm up to a 49mm and
+            // through the text-size setting: when the labels grow, the circle
+            // yields to them rather than being overrun.
+            GeometryReader { geo in
+                let d = min(geo.size.width, geo.size.height)
+                ZStack {
+                    Circle()
+                        .stroke(tint.opacity(0.16), lineWidth: 5)
+                    Circle()
+                        .trim(from: 0, to: isOver ? 1 : progress)
+                        .stroke(tint.opacity(isOver ? 0.38 : 1),
+                                style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    if isOver {
+                        Circle()
+                            .trim(from: 0, to: overProgress)
+                            .stroke(tint, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                    }
+                    // Sized off the arc, not off the text-size setting: this
+                    // numeral's job is to fill the circle it is drawn over,
+                    // and the circle has already yielded to the labels that
+                    // do scale.
                     Text(value)
-                        .font(WatchType.display(numeralSize))
+                        .font(.custom("DMSerifDisplay-Regular", fixedSize: d * numeralFactor))
                         .foregroundColor(tint)
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
-                    Text(label)
-                        .font(WatchType.semibold(9.5))
-                        .tracking(1.1)
-                        .textCase(.uppercase)
-                        .foregroundColor(.secondary)
-                    Text(caption)
-                        .font(WatchType.body(10))
-                        .foregroundColor(Color.white.opacity(0.42))
-                        .padding(.top, 5)
                 }
-                .padding(.horizontal, 10)
+                .frame(width: d, height: d)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            // Squares itself against whatever width the watch has, so one
-            // layout serves 40mm through 49mm without a size class.
-            //
-            // Capped at 150. Left uncapped it grew to fill the panel — about
-            // 178pt on a 45mm — and at that size the arc stops being a thing
-            // the numeral sits in front of and becomes a ring drawn around
-            // it, which is the arrangement this screen exists to get away
-            // from. 150 against a 198pt panel is the proportion the chosen
-            // composition had.
             .aspectRatio(1, contentMode: .fit)
-            .frame(maxWidth: 150, maxHeight: 150)
             .frame(maxHeight: .infinity)
 
+            Text(label)
+                .font(WatchType.semibold(11))
+                .tracking(1.1)
+                .textCase(.uppercase)
+                .foregroundColor(.secondary)
+                .padding(.top, 4)
+            Text(caption)
+                // 0.55, not the 0.42 this was: composited on #0E0E10 that
+                // measured about 4.1:1, under the 4.5:1 floor for text this
+                // size.
+                .font(WatchType.body(11))
+                .foregroundColor(Color.white.opacity(0.55))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Spacer(minLength: 0)
+
+            // Reserved whether or not this stop has an action, so the arc
+            // holds its position as the crown pages. Letting EmptyView
+            // collapse moved the focal element ~20pt between a reading-only
+            // stop and one with a button, which is visible as a jump.
             action()
+                .frame(height: 34)
         }
         .padding(.horizontal, 4)
     }
@@ -941,6 +981,12 @@ struct ContentView: View {
             trainStop.tag(DayStop.train)
         }
         .tabViewStyle(.verticalPage)
+        // Switching the phone's water tracker off takes the tagged page out
+        // of the hierarchy; if the crown happened to be sitting on it, the
+        // selection would name a page that no longer exists.
+        .onChange(of: stats.showWater) { _, on in
+            if !on, stop == .water { stop = .calories }
+        }
         .background(stats.palette.ground.ignoresSafeArea())
         // Every control SwiftUI draws for us — the page indicator, Stepper's
         // ± buttons, the crown indicator — otherwise falls back to the
@@ -1163,7 +1209,7 @@ struct WorkoutView: View {
         }
         // The plan usually lands before the session does; this covers the case
         // where the push that carried it never arrived.
-        .onChange(of: workout.isActive) { _ in stats.requestPlanIfMissing() }
+        .onChange(of: workout.isActive) { _, _ in stats.requestPlanIfMissing() }
         .alert(
             "Couldn't Start Workout",
             isPresented: Binding(
@@ -1483,12 +1529,12 @@ struct SetEditView: View {
                     Stepper(value: $duration, in: 0...86400, step: 5) {
                         field("Time", timeString(TimeInterval(duration)))
                     }
-                    .onChange(of: duration) { _ in pushEdit() }
+                    .onChange(of: duration) { _, _ in pushEdit() }
                 } else {
                     Stepper(value: $reps, in: 0...999, step: 1) {
                         field("Reps", "\(reps)")
                     }
-                    .onChange(of: reps) { _ in pushEdit() }
+                    .onChange(of: reps) { _, _ in pushEdit() }
                 }
 
                 // Doubles as the "done" action: mark the set complete and close
@@ -1521,7 +1567,7 @@ struct SetEditView: View {
     private func field(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label).font(WatchType.body(11)).foregroundColor(.secondary)
-            Text(value).font(WatchType.display(20)).foregroundColor(.primary)
+            Text(value).font(WatchType.bold(20)).foregroundColor(.primary)
         }
     }
 

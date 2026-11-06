@@ -6,6 +6,7 @@ import {
   sendWatchContext,
   setWatchPalette,
   setWatchSavedMeals,
+  repushWatchContext,
   subscribeWatchAddWater,
   subscribeWatchLogSavedMeal,
 } from '../services/watch';
@@ -107,7 +108,14 @@ export function useWatchSync(): void {
   useEffect(() => {
     return subscribeWatchLogSavedMeal((mealId) => {
       const meal = useStore.getState().savedMeals.find((m) => m.id === mealId);
-      if (!meal) return;
+      if (!meal) {
+        // Deleted since the last push. The watch has already added this
+        // meal's calories to its own display and nothing here is going to
+        // change, so without an explicit re-push it would keep them for the
+        // rest of the day.
+        repushWatchContext();
+        return;
+      }
       const now = Date.now();
       const date = todayString();
       const window = mealForNow();

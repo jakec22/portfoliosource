@@ -43,7 +43,7 @@ struct watchEntry: App {
         // only on delivery would leave the watch showing yesterday to anyone
         // who raises their wrist before logging breakfast — which is the
         // whole complaint.
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             if phase == .active { DayStats.shared.zeroIfStale() }
         }
     }
