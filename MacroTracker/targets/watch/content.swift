@@ -319,6 +319,11 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     func logWater(_ oz: Int) {
         water = max(0, water + oz)
         persistSnapshot()
+        // The wrist's own "it landed". Mid-set, with the screen glanced at
+        // rather than read, a tap that only confirms itself visually confirms
+        // nothing — and this screen's whole premise is that it is not being
+        // looked at properly. The rest timer already buzzes; so does this.
+        WKInterfaceDevice.current().play(.click)
         sendReliable(["type": "addWater", "oz": oz])
     }
 
@@ -334,6 +339,10 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         fat += meal.fat
         fiber += meal.fiber
         persistSnapshot()
+        // A heavier confirmation than water's click: logging a meal moves
+        // every number on the stack at once and is the harder one to undo
+        // from the wrist.
+        WKInterfaceDevice.current().play(.success)
         sendReliable(["type": "logSavedMeal", "mealId": meal.id])
     }
 
@@ -1036,7 +1045,13 @@ struct ContentView: View {
         ) {
             // Nothing to do with a macro on its own — these stops are pure
             // readings, and a button repeated five times is noise, not reach.
-            EmptyView()
+            //
+            // Color.clear rather than EmptyView: a modified EmptyView often
+            // contributes no layout at all in SwiftUI, which would quietly
+            // drop the reserved action slot and let the arc jump ~20pt
+            // between a reading stop and one with a button — the baseline
+            // this is here to hold.
+            Color.clear
         }
     }
 
