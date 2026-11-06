@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate App Store featuring/promotional artwork (4320 x 1080).
+"""Generate App Store featuring/promotional artwork (3840 x 1646).
 
 Apple asks for this when an app is under consideration for editorial
 featuring; the Promotional Artwork tab only appears in App Store Connect once
@@ -47,10 +47,14 @@ PRIMARY = "#34C77B"
 NAME = "HolyMacro"
 SUBTITLE = "Tracking Simplified"
 
-MASTER = (4320, 1080)
-# The crops Apple cuts this down to. Each is taken from the centre, which is
-# why the lockup sits there.
-CROPS = [("wide", 4320, 1080), ("half", 2160, 1080), ("square", 1080, 1080)]
+# The master size Apple's template asks for. Everything else is derived from
+# its height, so changing this one tuple re-sizes the whole set.
+MASTER = (3840, 1646)
+
+# The crops Apple cuts the master down to, each taken from the centre — which
+# is why the lockup lives there and the flanks carry ground only.
+_W, _H = MASTER
+CROPS = [("wide", _W, _H), ("half", _H * 2, _H), ("square", _H, _H)]
 
 
 def page(w: int, h: int) -> str:

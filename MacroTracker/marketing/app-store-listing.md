@@ -258,15 +258,19 @@ To force a specific number instead: `eas build:version:set -p ios`.
 
 ## Featuring / promotional artwork
 
-`marketing/appstore/promo.py` writes `promo-wide-4320x1080.png` plus the two
-centre crops Apple cuts it down to (`promo-half-2160x1080.png`,
-`promo-square-1080x1080.png`). Run it with `python3 promo.py`.
+`marketing/appstore/promo.py` writes `promo-wide-3840x1646.png` plus the two
+centre crops Apple cuts it down to (`promo-half-3292x1646.png`,
+`promo-square-1646x1646.png`). Run it with `python3 promo.py`.
+
+The size lives in one tuple, `MASTER`, and the crops derive from its height —
+so if Apple's template asks for different dimensions, change that line and
+re-run rather than re-measuring the composition.
 
 Three things worth knowing before using it:
 
 * **Apple crops this.** One file feeds placements from a full-width hero down
   to a near-square card, so everything that has to be read sits inside the
-  central 1080 x 1080 square and the flanks carry ground only. Check the
+  central square and the flanks carry ground only. Check the
   crops, not just the master.
 * **The slot is conditional.** The Promotional Artwork tab appears in App
   Store Connect only once an app is under consideration for featuring; Apple
