@@ -2,6 +2,16 @@
 module.exports = config => ({
   type: "watch-widget",
   displayName: "Holy Macro",
+  // Without this the id is derived from the folder name, giving
+  // com.jacobclover.macrotracker.watch-widget — and App Store Connect
+  // rejected the upload (90347): this extension is embedded in the WATCH
+  // app, not the phone app, so its id has to begin with the watch app's own
+  // id and add exactly one more period-separated segment. The watch target
+  // is .watch, so this is .watch.widget.
+  //
+  // The leading dot makes it relative to the main app's bundle identifier,
+  // so it follows if that ever changes rather than going stale as a literal.
+  bundleIdentifier: ".watch.widget",
   // No `icon`, deliberately. The plugin only generates watchOS idioms when
   // the target type is exactly "watch" (withIosIcon in
   // @bacons/apple-targets); every other type, this one included, gets
