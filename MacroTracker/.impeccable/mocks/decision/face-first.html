@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:198px;height:242px;overflow:hidden}
+body{background:#0E0E10;color:#fff;font-family:Manrope,sans-serif;-webkit-font-smoothing:antialiased}
+.s{padding:8px 13px 10px;display:flex;flex-direction:column;height:100%}
+.date{font:600 9px Manrope;letter-spacing:.1em;text-transform:uppercase;color:#9A9AA2;text-align:center}
+
+/* hero */
+.hero{text-align:center;margin-top:5px}
+.num{font:400 46px/1 'DM Serif Display',serif;color:#34C77B;letter-spacing:-.02em}
+.cap{font:600 9px Manrope;letter-spacing:.11em;text-transform:uppercase;color:#9A9AA2;margin-top:2px}
+
+/* the signature move: four macros as ONE segmented gauge */
+.gauge{display:flex;gap:2px;margin-top:11px;height:11px}
+.cell{flex:1;border-radius:2px;overflow:hidden;position:relative}
+.cell i{position:absolute;left:0;top:0;bottom:0;border-radius:2px}
+.keys{display:flex;gap:2px;margin-top:4px}
+.key{flex:1;text-align:center}
+.key b{display:block;font:700 10px Manrope;color:#fff;line-height:1.1}
+.key span{display:block;font:600 7.5px Manrope;letter-spacing:.08em;color:#9A9AA2;margin-top:1px}
+
+/* water */
+.wat{margin-top:9px}
+.wrow{display:flex;justify-content:space-between;align-items:baseline}
+.wl{font:600 9px Manrope;letter-spacing:.08em;text-transform:uppercase;color:#9A9AA2}
+.wv{font:700 10px Manrope;color:#fff}
+.wtr{height:4px;border-radius:2px;background:rgba(90,159,212,.24);margin-top:3px;overflow:hidden}
+.wtr i{display:block;height:100%;width:62.5%;background:#5A9FD4;border-radius:2px}
+
+/* actions */
+.acts{display:flex;gap:6px;margin-top:auto}
+.pill{flex:1;background:rgba(255,255,255,.1);border-radius:13px;height:26px;display:flex;
+      align-items:center;justify-content:center;font:700 10px Manrope;color:#fff}
+.go{margin-top:6px;background:#34C77B;color:#07140D;border-radius:14px;height:27px;
+    display:flex;align-items:center;justify-content:center;font:700 11px Manrope}
+</style></head><body>
+<div class="s">
+  <div class="date">Thu 6 Nov</div>
+  <div class="hero">
+    <div class="num">580</div>
+    <div class="cap">cal left</div>
+  </div>
+
+  <div class="gauge">
+    <div class="cell" style="background:rgba(226,104,60,.24)"><i style="width:69%;background:#E2683C"></i></div>
+    <div class="cell" style="background:rgba(224,163,46,.24)"><i style="width:40%;background:#E0A32E"></i></div>
+    <div class="cell" style="background:rgba(209,105,155,.24)"><i style="width:73%;background:#D1699B"></i></div>
+    <div class="cell" style="background:rgba(121,201,147,.24)"><i style="width:60%;background:#79C993"></i></div>
+  </div>
+  <div class="keys">
+    <div class="key"><b>128</b><span>PRO</span></div>
+    <div class="key"><b>96</b><span>CARB</span></div>
+    <div class="key"><b>51</b><span>FAT</span></div>
+    <div class="key"><b>18</b><span>FIB</span></div>
+  </div>
+
+  <div class="wat">
+    <div class="wrow"><span class="wl">Water</span><span class="wv">40 / 64 oz</span></div>
+    <div class="wtr"><i></i></div>
+  </div>
+
+  <div class="acts">
+    <div class="pill">+8 oz</div>
+    <div class="pill">Meal</div>
+  </div>
+  <div class="go">Start Workout</div>
+</div>
+</body></html>

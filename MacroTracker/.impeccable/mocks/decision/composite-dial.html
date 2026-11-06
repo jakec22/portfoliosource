@@ -1,0 +1,64 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:198px;height:242px;overflow:hidden}
+body{background:#0E0E10;color:#fff;font-family:Manrope,sans-serif;-webkit-font-smoothing:antialiased}
+.s{height:100%;padding:7px 12px 10px;display:flex;flex-direction:column;align-items:center}
+.date{font:600 9px Manrope;letter-spacing:.1em;text-transform:uppercase;color:#9A9AA2}
+
+.dial{position:relative;width:132px;height:132px;margin-top:3px}
+.dial svg{position:absolute;inset:0}
+.mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.num{font:400 30px/1 'DM Serif Display',serif;color:#34C77B;letter-spacing:-.02em}
+.cap{font:600 7.5px Manrope;letter-spacing:.11em;text-transform:uppercase;color:#9A9AA2;margin-top:2px}
+
+/* the arcs the dial cannot hold, demoted to numerals */
+.rest{display:flex;gap:9px;margin-top:7px}
+.r{text-align:center}
+.r b{display:block;font:700 11px Manrope;color:#fff;line-height:1}
+.r span{display:block;font:600 7.5px Manrope;letter-spacing:.07em;color:#9A9AA2;margin-top:2px}
+.r u{display:block;height:3px;border-radius:2px;margin-top:3px;width:30px}
+
+.acts{display:flex;gap:5px;margin-top:auto;width:100%}
+.pill{flex:1;background:rgba(255,255,255,.1);border-radius:12px;height:24px;display:flex;
+      align-items:center;justify-content:center;font:700 9.5px Manrope;color:#fff}
+.pill.go{background:#34C77B;color:#07140D}
+</style></head><body>
+<div class="s">
+  <div class="date">Thu 6 Nov</div>
+
+  <div class="dial">
+    <svg viewBox="0 0 132 132">
+      <!-- outer: calories -->
+      <circle cx="66" cy="66" r="60" fill="none" stroke="#34C77B" stroke-opacity=".18" stroke-width="9"/>
+      <circle cx="66" cy="66" r="60" fill="none" stroke="#34C77B" stroke-width="9" stroke-linecap="round"
+              stroke-dasharray="267 377" transform="rotate(-90 66 66)"/>
+      <!-- middle: protein -->
+      <circle cx="66" cy="66" r="47" fill="none" stroke="#E2683C" stroke-opacity=".18" stroke-width="9"/>
+      <circle cx="66" cy="66" r="47" fill="none" stroke="#E2683C" stroke-width="9" stroke-linecap="round"
+              stroke-dasharray="204 295" transform="rotate(-90 66 66)"/>
+      <!-- inner: water -->
+      <circle cx="66" cy="66" r="34" fill="none" stroke="#5A9FD4" stroke-opacity=".18" stroke-width="9"/>
+      <circle cx="66" cy="66" r="34" fill="none" stroke="#5A9FD4" stroke-width="9" stroke-linecap="round"
+              stroke-dasharray="134 214" transform="rotate(-90 66 66)"/>
+    </svg>
+    <div class="mid">
+      <div class="num">580</div>
+      <div class="cap">cal left</div>
+    </div>
+  </div>
+
+  <div class="rest">
+    <div class="r"><b>96</b><span>CARB</span><u style="background:#E0A32E"></u></div>
+    <div class="r"><b>51</b><span>FAT</span><u style="background:#D1699B"></u></div>
+    <div class="r"><b>18</b><span>FIB</span><u style="background:#79C993"></u></div>
+  </div>
+
+  <div class="acts">
+    <div class="pill">+8 oz</div>
+    <div class="pill">Meal</div>
+    <div class="pill go">Train</div>
+  </div>
+</div>
+</body></html>

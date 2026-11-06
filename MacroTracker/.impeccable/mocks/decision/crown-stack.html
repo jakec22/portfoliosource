@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:198px;height:242px;overflow:hidden}
+body{background:#0E0E10;color:#fff;font-family:Manrope,sans-serif;-webkit-font-smoothing:antialiased}
+.s{height:100%;padding:9px 20px 12px 15px;display:flex;flex-direction:column;position:relative}
+.date{font:600 9px Manrope;letter-spacing:.1em;text-transform:uppercase;color:#9A9AA2}
+
+/* the card's own arc, set behind the numeral rather than around it */
+.stage{flex:1;position:relative;display:flex;flex-direction:column;justify-content:center}
+.arc{position:absolute;left:50%;top:50%;transform:translate(-50%,-52%);width:152px;height:152px}
+.num{position:relative;font:400 76px/1 'DM Serif Display',serif;color:#34C77B;
+     letter-spacing:-.03em;text-align:center}
+.cap{position:relative;font:600 9.5px Manrope;letter-spacing:.12em;text-transform:uppercase;
+     color:#9A9AA2;text-align:center;margin-top:3px}
+.sub{position:relative;font:600 10px Manrope;color:#6E6E76;text-align:center;margin-top:7px}
+
+/* page rail — seven stops, calories is stop one */
+.rail{position:absolute;right:7px;top:50%;transform:translateY(-50%);
+      display:flex;flex-direction:column;gap:7px;align-items:center}
+.rail i{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.26)}
+.rail i.on{background:#34C77B;width:5px;height:5px}
+
+.foot{font:600 9px Manrope;letter-spacing:.09em;text-transform:uppercase;
+      color:#6E6E76;text-align:center}
+</style></head><body>
+<div class="s">
+  <div class="date">Thu 6 Nov</div>
+
+  <div class="stage">
+    <svg class="arc" viewBox="0 0 152 152">
+      <circle cx="76" cy="76" r="71" fill="none" stroke="#34C77B" stroke-opacity=".16" stroke-width="5"/>
+      <circle cx="76" cy="76" r="71" fill="none" stroke="#34C77B" stroke-width="5"
+              stroke-linecap="round" stroke-dasharray="316 446" transform="rotate(-90 76 76)"/>
+    </svg>
+    <div class="num">580</div>
+    <div class="cap">cal left</div>
+    <div class="sub">1,420 / 2,000</div>
+  </div>
+
+  <div class="rail">
+    <i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+
+  <div class="foot">turn for protein</div>
+</div>
+</body></html>
