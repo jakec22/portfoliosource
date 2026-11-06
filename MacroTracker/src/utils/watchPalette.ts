@@ -168,6 +168,7 @@ export interface WatchPalette {
   protein: string;
   carbs: string;
   fat: string;
+  fiber: string;
   water: string;
   zoneEasy: string;
   zoneMid: string;
@@ -192,6 +193,7 @@ export function watchPalette(c: Theme, mode: ThemeMode): WatchPalette {
     protein: lift(c.macroProtein),
     carbs: lift(c.macroCarbs),
     fat: lift(c.macroFat),
+    fiber: lift(c.macroFiber),
     water: lift(c.info),
     zoneEasy: lift(c.hrZone2),
     zoneMid: lift(c.hrZone3),

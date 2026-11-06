@@ -31,6 +31,8 @@ export function useWatchSync(): void {
       carbsGoal: Math.round(goals.carbs),
       fat: Math.round(totals.fat),
       fatGoal: Math.round(goals.fat),
+      fiber: Math.round(totals.fiber ?? 0),
+      fiberGoal: Math.round(goals.fiber),
       water: Math.round(waterIntake[today] ?? 0),
       waterGoal: Math.round(waterGoal),
       showWaterTracker,

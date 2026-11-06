@@ -58,6 +58,7 @@ struct WatchPalette {
     var protein: Color = .macroProtein
     var carbs: Color = .macroCarbs
     var fat: Color = .macroFat
+    var fiber: Color = Color(red: 0x79 / 255, green: 0xC9 / 255, blue: 0x93 / 255) // #79C993
     var water: Color = .waterBlue
     // Executive's hrZone2 / hrZone3 / hrZone5.
     var zoneEasy: Color = Color(red: 0x79 / 255, green: 0xC9 / 255, blue: 0x93 / 255) // #79C993
@@ -76,6 +77,7 @@ struct WatchPalette {
             protein: color("themeProtein", current.protein),
             carbs: color("themeCarbs", current.carbs),
             fat: color("themeFat", current.fat),
+            fiber: color("themeFiber", current.fiber),
             water: color("themeWater", current.water),
             zoneEasy: color("themeZoneEasy", current.zoneEasy),
             zoneMid: color("themeZoneMid", current.zoneMid),
@@ -112,6 +114,31 @@ struct WatchTemplate: Identifiable {
 // Today's stats shown on the watch, fed live from the phone over
 // WatchConnectivity. Read-only: the phone is the source of truth and pushes the
 // latest snapshot via updateApplicationContext (see src/services/watch.ts).
+/// The app's faces on the wrist.
+///
+/// The phone's rule (src/theme/index.ts) is that `fontDisplay` carries
+/// headlines and hero numerals and the body ladder carries everything else.
+/// The watch has exactly one hero numeral — the calories figure — so that is
+/// the only place the serif appears; labels stay on Manrope, which holds up
+/// at 11pt where a serif would not.
+///
+/// Every call falls back to the system face, so a build where the fonts did
+/// not register renders plainly instead of blank.
+enum WatchType {
+    static func display(_ size: CGFloat) -> Font {
+        Font.custom("DMSerifDisplay-Regular", size: size)
+    }
+    static func body(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-Medium", size: size)
+    }
+    static func semibold(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-SemiBold", size: size)
+    }
+    static func bold(_ size: CGFloat) -> Font {
+        Font.custom("Manrope-Bold", size: size)
+    }
+}
+
 final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = DayStats()
 
@@ -123,6 +150,8 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var carbsGoal = 0
     @Published var fat = 0
     @Published var fatGoal = 0
+    @Published var fiber = 0
+    @Published var fiberGoal = 0
     @Published var water = 0
     @Published var waterGoal = 0
     // Mirrors the phone's toggle. Defaults to true so an older phone build,
@@ -138,8 +167,17 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var templates: [WatchTemplate] = [] // saved templates to start from
     @Published var palette = WatchPalette() // active pack's accents
 
-    var caloriesRemaining: Int { max(0, calorieGoal - caloriesConsumed) }
+    var isOverCalories: Bool { calorieGoal > 0 && caloriesConsumed > calorieGoal }
+    /// Unsigned, with `isOverCalories` carrying the direction — the old
+    /// max(0,) clamp meant 2,340 of 2,000 displayed "0 cal left", which is
+    /// both wrong and the least useful thing it could say.
+    var caloriesRemaining: Int { abs(calorieGoal - caloriesConsumed) }
     var calorieProgress: Double { ratio(caloriesConsumed, calorieGoal) }
+    /// How far into a second lap the overage is, matching the phone's ring.
+    var calorieOverProgress: Double {
+        guard isOverCalories else { return 0 }
+        return ratio(caloriesConsumed - calorieGoal, calorieGoal)
+    }
     var waterProgress: Double { ratio(water, waterGoal) }
 
     func ratio(_ value: Int, _ goal: Int) -> Double {
@@ -170,6 +208,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         protein = 0
         carbs = 0
         fat = 0
+        fiber = 0
         water = 0
     }
 
@@ -220,6 +259,8 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             if let v = self.intVal(ctx["carbsGoal"]) { self.carbsGoal = v }
             if let v = self.intVal(ctx["fat"]) { self.fat = v }
             if let v = self.intVal(ctx["fatGoal"]) { self.fatGoal = v }
+            if let v = self.intVal(ctx["fiber"]) { self.fiber = v }
+            if let v = self.intVal(ctx["fiberGoal"]) { self.fiberGoal = v }
             if let v = self.intVal(ctx["water"]) { self.water = v }
             if let v = self.intVal(ctx["waterGoal"]) { self.waterGoal = v }
             if let v = self.boolVal(ctx["showWaterTracker"]) { self.showWater = v }
@@ -562,64 +603,57 @@ struct ContentView: View {
 
     private var dayScreen: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            // 10, not the 16 it was. Fiber made this five stacked blocks
+            // instead of four, and the gaps were the cheapest 24pt to find —
+            // cheaper than the ring, which is the one thing on this screen
+            // that has to be readable without looking properly.
+            VStack(spacing: 10) {
                 if !stats.hasData {
                     VStack(spacing: 6) {
                         Image(systemName: "iphone.and.arrow.forward")
                             .font(.title3)
                             .foregroundColor(stats.palette.accent)
                         Text("Open Holy Macro on your iPhone to sync.")
-                            .font(.footnote)
+                            .font(WatchType.body(13))
                             .multilineTextAlignment(.center)
                             .foregroundColor(.secondary)
                     }
                     .padding(.top, 8)
                 } else {
-                    // Hero: calories remaining ring
-                    ZStack {
-                        Circle()
-                            .stroke(stats.palette.accent.opacity(0.2), lineWidth: 9)
-                        Circle()
-                            .trim(from: 0, to: stats.calorieProgress)
-                            .stroke(stats.palette.accent, style: StrokeStyle(lineWidth: 9, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                        VStack(spacing: 0) {
-                            Text("\(stats.caloriesRemaining)")
-                                .font(.system(size: 30, weight: .bold, design: .rounded))
-                                .foregroundColor(stats.palette.accent)
-                            Text("cal left")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .frame(width: 112, height: 112)
-                    .padding(.top, 2)
+                    calorieRing
 
-                    // Macros as bars, matching the phone and the widget. Three
-                    // small rings under a larger calorie ring read as four
+                    // Macros as bars, matching the phone and the widget. Four
+                    // small rings under a larger calorie ring read as five
                     // competing circles on a 40mm screen; bars let the calorie
                     // ring stay the one focal point and give the numbers room.
-                    VStack(spacing: 7) {
+                    //
+                    // Fiber is here because it is on the phone: four goals on
+                    // one screen and three on the other meant the wrist quietly
+                    // disagreed with the app about what the day's targets were.
+                    VStack(spacing: 6) {
                         MacroBar(label: "Protein", value: stats.protein, goal: stats.proteinGoal,
                                  color: stats.palette.protein, over: stats.palette.danger)
                         MacroBar(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal,
                                  color: stats.palette.carbs, over: stats.palette.danger)
                         MacroBar(label: "Fat", value: stats.fat, goal: stats.fatGoal,
                                  color: stats.palette.fat, over: stats.palette.danger)
+                        MacroBar(label: "Fiber", value: stats.fiber, goal: stats.fiberGoal,
+                                 color: stats.palette.fiber, over: stats.palette.danger)
                     }
-                    .padding(.top, 2)
 
                     // Water bar — hidden when the phone's tracker is off.
                     if stats.showWater {
                         VStack(spacing: 4) {
-                            HStack {
+                            HStack(alignment: .firstTextBaseline) {
                                 Text("Water")
-                                    .font(.caption2)
+                                    .font(WatchType.semibold(11))
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text("\(stats.water) / \(stats.waterGoal) oz")
-                                    .font(.caption2)
-                                    .fontWeight(.semibold)
+                                Text("\(stats.water)")
+                                    .font(WatchType.bold(11))
+                                + Text(" / \(stats.waterGoal) oz")
+                                    .font(WatchType.body(10))
+                                    .foregroundColor(.secondary)
                             }
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
@@ -631,7 +665,6 @@ struct ContentView: View {
                             }
                             .frame(height: 6)
                         }
-                        .padding(.top, 2)
                     }
                 }
 
@@ -640,12 +673,12 @@ struct ContentView: View {
                     stats.showWorkout = true
                 } label: {
                     Label("Start Workout", systemImage: "figure.run")
-                        .font(.footnote)
+                        .font(WatchType.semibold(13))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(stats.palette.accent)
-                .padding(.top, 2)
+                .padding(.top, 4)
             }
             .padding(.horizontal)
             .frame(maxWidth: .infinity)
@@ -659,6 +692,69 @@ struct ContentView: View {
         // Set here rather than per-control so a control added later is themed
         // by default instead of quietly shipping the asset-catalog color.
         .tint(stats.palette.accent)
+    }
+
+    /// The day's one hero: calories left, or over.
+    ///
+    /// 92pt rather than the 112pt it was. The ring was sized before fiber
+    /// joined the macros, and on a 41mm screen (242pt tall) the old ring plus
+    /// four bars plus water plus the button did not fit — the fourth bar simply
+    /// fell off the first screenful. 92pt still leaves the numeral the largest
+    /// thing on the wrist by a wide margin.
+    ///
+    /// Over goal draws a second lap: the completed first lap dims to 38% and a
+    /// solid arc tracks the overage, which is the phone's ring exactly. What it
+    /// replaces was worse than merely plain — the ring pinned full and the
+    /// numeral read "0 cal left", because remaining was clamped at zero. The
+    /// one moment the screen most needs to say something, it said nothing.
+    private var calorieRing: some View {
+        let over = stats.isOverCalories
+        let tint = over ? stats.palette.danger : stats.palette.accent
+        return ZStack {
+            Circle()
+                .stroke(tint.opacity(0.2), lineWidth: 9)
+            // First lap. Full and dimmed once the goal is passed, so the
+            // second lap on top of it reads as the part that matters.
+            Circle()
+                .trim(from: 0, to: over ? 1 : stats.calorieProgress)
+                .stroke(tint.opacity(over ? 0.38 : 1),
+                        style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            if over {
+                Circle()
+                    .trim(from: 0, to: stats.calorieOverProgress)
+                    .stroke(tint, style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            VStack(spacing: 2) {
+                // The serif, at the one size on the watch where it earns its
+                // keep. Every label stays on Manrope: DM Serif Display's thin
+                // strokes disappear at 10–11pt on a wrist.
+                Text(grouped(stats.caloriesRemaining))
+                    .font(WatchType.display(30))
+                    .foregroundColor(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(over ? "CAL OVER" : "CAL LEFT")
+                    .font(WatchType.semibold(10))
+                    .tracking(0.7)
+                    .foregroundColor(.secondary)
+            }
+            // Inside the 9pt stroke, so a four-digit figure never sits on it.
+            .padding(.horizontal, 12)
+        }
+        .frame(width: 92, height: 92)
+    }
+
+    private static let groupingFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        return f
+    }()
+
+    /// 1420 → "1,420", matching the phone's toLocaleString().
+    private func grouped(_ value: Int) -> String {
+        Self.groupingFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }
 
@@ -684,13 +780,13 @@ struct MacroBar: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
                 Text(label)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(WatchType.semibold(11))
                 Spacer()
                 Text("\(value)")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(WatchType.bold(11))
                     .foregroundColor(isOver ? over : .primary)
                 + Text(" / \(goal)g")
-                    .font(.system(size: 10))
+                    .font(WatchType.body(10))
                     .foregroundColor(.secondary)
             }
             GeometryReader { geo in
@@ -773,20 +869,20 @@ struct WorkoutView: View {
     private var exercisesScreen: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Exercises")
-                .font(.caption2)
+                .font(WatchType.semibold(11))
+                .tracking(0.7)
                 .foregroundColor(stats.palette.accent)
-                .fontWeight(.semibold)
 
             if stats.exercises.isEmpty {
                 Text(workout.isActive
                      ? "Waiting for the workout from your iPhone…"
                      : "No exercises in this workout.")
-                    .font(.footnote)
+                    .font(WatchType.body(13))
                     .foregroundColor(.secondary)
             } else {
                 ForEach(stats.exercises) { ex in
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(ex.name).font(.footnote).fontWeight(.bold)
+                        Text(ex.name).font(WatchType.bold(13))
                         ForEach(ex.sets) { set in
                             HStack(spacing: 8) {
                                 Button {
@@ -810,7 +906,7 @@ struct WorkoutView: View {
                                 } label: {
                                     HStack {
                                         Text(setLabel(ex, set))
-                                            .font(.caption2)
+                                            .font(WatchType.body(11))
                                             .foregroundColor(set.completed ? .secondary : .primary)
                                         Spacer()
                                         Image(systemName: "square.and.pencil")
@@ -860,20 +956,24 @@ struct WorkoutView: View {
                 .clipShape(Capsule())
             }
 
+            // The one numeral deliberately left on the system face. It ticks
+            // once a second, and DM Serif Display has no tabular figures — a
+            // serif clock jitters sideways on every digit change. Same reason
+            // the heart rate below stays where it is.
             Text(timeString(workout.elapsed))
                 .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundColor(workout.isPaused ? .secondary : stats.palette.accent)
                 .monospacedDigit()
 
             if workout.isPaused {
-                Text("Paused").font(.caption2).foregroundColor(.secondary)
+                Text("Paused").font(WatchType.body(11)).foregroundColor(.secondary)
             }
 
             HStack(spacing: 4) {
                 Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
                     .font(.title2).fontWeight(.bold)
                     .foregroundColor(workout.heartRate > 0 ? hrZoneColor(workout.heartRate, stats.palette) : .secondary)
-                Text("bpm").font(.caption2).foregroundColor(.secondary)
+                Text("bpm").font(WatchType.semibold(11)).foregroundColor(.secondary)
             }
 
             // A denied HealthKit read looks exactly like a workout where the
@@ -882,7 +982,7 @@ struct WorkoutView: View {
             // which reads as a sensor problem rather than a permission one.
             if workout.hrUnavailable {
                 Text("No heart rate yet. Check Health access for Holy Macro in Watch settings.")
-                    .font(.system(size: 11))
+                    .font(WatchType.body(11))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 4)
@@ -891,7 +991,7 @@ struct WorkoutView: View {
             HStack(spacing: 5) {
                 Image(systemName: "flame.fill").foregroundColor(.orange)
                 Text("\(Int(workout.activeCalories)) cal")
-                    .font(.footnote).fontWeight(.semibold)
+                    .font(WatchType.semibold(13))
             }
 
             HStack(spacing: 8) {
@@ -926,7 +1026,7 @@ struct WorkoutView: View {
                 }
             } label: {
                 Label("Complete Workout", systemImage: "checkmark")
-                    .font(.footnote)
+                    .font(WatchType.semibold(13))
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -952,7 +1052,7 @@ struct WorkoutView: View {
     private var summaryScreen: some View {
         VStack(spacing: 8) {
             Text("Workout Complete")
-                .font(.headline)
+                .font(WatchType.display(18))
                 .foregroundColor(stats.palette.accent)
             summaryRow("Time", timeString(workout.elapsed))
             summaryRow("Avg HR", workout.avgHeartRate > 0 ? "\(Int(workout.avgHeartRate)) bpm" : "--")
@@ -972,13 +1072,13 @@ struct WorkoutView: View {
     private var idleScreen: some View {
         VStack(spacing: 8) {
             Text("Start Workout")
-                .font(.headline)
+                .font(WatchType.display(18))
                 .foregroundColor(stats.palette.accent)
 
             // Saved templates from the phone — tap one to start it.
             if stats.templates.isEmpty {
                 Text("No saved templates. Create them on your iPhone.")
-                    .font(.caption2)
+                    .font(WatchType.body(11))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.vertical, 2)
@@ -988,9 +1088,9 @@ struct WorkoutView: View {
                         stats.startTemplate(t)
                     } label: {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(t.name).font(.footnote).fontWeight(.semibold)
+                            Text(t.name).font(WatchType.semibold(13))
                             Text("\(t.exerciseCount) exercise\(t.exerciseCount == 1 ? "" : "s")")
-                                .font(.caption2)
+                                .font(WatchType.body(11))
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1005,7 +1105,7 @@ struct WorkoutView: View {
                 stats.startTemplate(nil)
             } label: {
                 Label("Quick Start", systemImage: "bolt.fill")
-                    .font(.footnote)
+                    .font(WatchType.semibold(13))
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -1013,16 +1113,16 @@ struct WorkoutView: View {
             .padding(.top, 2)
 
             Button("Cancel") { stats.showWorkout = false }
-                .font(.footnote)
+                .font(WatchType.body(13))
                 .foregroundColor(.secondary)
         }
     }
 
     private func summaryRow(_ label: String, _ value: String) -> some View {
         HStack {
-            Text(label).font(.caption2).foregroundColor(.secondary)
+            Text(label).font(WatchType.body(11)).foregroundColor(.secondary)
             Spacer()
-            Text(value).font(.footnote).fontWeight(.semibold)
+            Text(value).font(WatchType.semibold(13))
         }
     }
 }
@@ -1107,8 +1207,8 @@ struct SetEditView: View {
 
     private func field(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(label).font(.caption2).foregroundColor(.secondary)
-            Text(value).font(.title3).fontWeight(.bold).foregroundColor(.primary)
+            Text(label).font(WatchType.body(11)).foregroundColor(.secondary)
+            Text(value).font(WatchType.display(20)).foregroundColor(.primary)
         }
     }
 

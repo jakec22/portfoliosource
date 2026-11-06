@@ -6,6 +6,23 @@
     <string>Holy Macro reads your heart rate and active energy during workouts to show live stats on your wrist.</string>
     <key>NSHealthUpdateUsageDescription</key>
     <string>Holy Macro saves your workouts to Apple Health.</string>
+    <!-- The app's own faces, bundled into this target rather than loaded
+         through expo-font: that only serves the React Native side, and this
+         is a native SwiftUI target. The plugin adds every file in the target
+         folder to the build (PBXFileSystemSynchronizedRootGroup), so the
+         .ttf files beside this plist ship automatically; they still have to
+         be declared here to be registered at launch.
+         Font.custom() takes the PostScript name, not the file name.
+         Both families are SIL Open Font License 1.1, copied from
+         node_modules/@expo-google-fonts — the same binaries the phone app
+         already ships, so the two can't drift to different cuts. -->
+    <key>UIAppFonts</key>
+    <array>
+      <string>DMSerifDisplay-Regular.ttf</string>
+      <string>Manrope-Medium.ttf</string>
+      <string>Manrope-SemiBold.ttf</string>
+      <string>Manrope-Bold.ttf</string>
+    </array>
     <key>WKBackgroundModes</key>
     <array>
       <string>workout-processing</string>

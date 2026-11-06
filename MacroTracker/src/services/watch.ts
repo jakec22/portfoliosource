@@ -73,6 +73,8 @@ export interface WatchContext {
   carbsGoal: number;
   fat: number;
   fatGoal: number;
+  fiber: number;
+  fiberGoal: number;
   water: number;
   waterGoal: number;
   // Mirrors the phone's water tracker toggle — hiding it there hides it here.
@@ -220,6 +222,7 @@ export function setWatchPalette(p: WatchPalette): void {
     themeProtein: p.protein,
     themeCarbs: p.carbs,
     themeFat: p.fat,
+    themeFiber: p.fiber,
     themeWater: p.water,
     themeZoneEasy: p.zoneEasy,
     themeZoneMid: p.zoneMid,
