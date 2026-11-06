@@ -135,6 +135,23 @@ let watchTemplates: WatchTemplateSummary[] = [];
 // glance push doesn't momentarily clear the watch's list.
 let templatesKnown = false;
 
+// Compact saved-meal shape for the watch's one-tap meal list (short keys, and
+// totals rather than items — the watch only displays them and sends the id
+// back, so shipping every food would multiply the payload for nothing).
+export interface WatchSavedMealSummary {
+  id: string;
+  name: string;
+  cal: number;
+  p: number; // protein g
+  c: number; // carbs g
+  f: number; // fat g
+  fb: number; // fiber g
+}
+let watchSavedMeals: WatchSavedMealSummary[] = [];
+// Same rule as templates: never clear the watch's list with a push that
+// happens to land before the store has rehydrated.
+let savedMealsKnown = false;
+
 // Whether a watch is paired and our watch app is installed. ALL outbound watch
 // communication is gated on this. On an iPhone with no paired Apple Watch,
 // calling into WatchConnectivity (updateApplicationContext / transferUserInfo /
@@ -197,6 +214,7 @@ function pushContext(): void {
   // (or a pre-rehydration cold start) never ends a running workout.
   if (workoutStateKnown) Object.assign(ctx, workoutState);
   if (templatesKnown) ctx.workoutTemplates = watchTemplates;
+  if (savedMealsKnown) ctx.savedMeals = watchSavedMeals;
   try {
     updateApplicationContext(ctx);
   } catch {
@@ -244,6 +262,47 @@ export function setWatchTemplates(templates: WatchTemplateSummary[]): void {
   watchTemplates = templates;
   templatesKnown = true;
   pushContext();
+}
+
+// Mirror the user's saved meals so they can be logged from the wrist in one
+// tap. Pass [] to clear.
+export function setWatchSavedMeals(meals: WatchSavedMealSummary[]): void {
+  watchSavedMeals = meals;
+  savedMealsKnown = true;
+  pushContext();
+}
+
+// Subscribe to water logged from the wrist. `oz` is signed — the watch's minus
+// button sends -8 — and the store already floors the running total at zero.
+export function subscribeWatchAddWater(cb: (oz: number) => void): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = onWatchEvent('message', (message: any) => {
+    if (message?.type === 'addWater' && Number.isFinite(Number(message.oz))) {
+      cb(Number(message.oz));
+    }
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
+}
+
+// Subscribe to a saved meal logged from the wrist. Only the id crosses, so the
+// phone resolves the real items itself and the watch can never disagree with
+// the log about what was in a meal.
+export function subscribeWatchLogSavedMeal(cb: (mealId: string) => void): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = onWatchEvent('message', (message: any) => {
+    if (message?.type === 'logSavedMeal' && typeof message.mealId === 'string') {
+      cb(message.mealId);
+    }
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
 }
 
 // Subscribe to a "start workout" request from the watch's template picker.

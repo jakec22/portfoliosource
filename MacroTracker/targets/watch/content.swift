@@ -3,6 +3,7 @@ import Combine
 import WatchConnectivity
 import HealthKit
 import WatchKit
+import WidgetKit
 
 // Fallback palette, used until the phone pushes the active theme pack's colors
 // (see WatchPalette).
@@ -111,6 +112,69 @@ struct WatchTemplate: Identifiable {
     let exerciseCount: Int
 }
 
+// One of the day stack's stops. Also the vocabulary a complication deep-links
+// with, so a tap on the corner gauge lands on the reading it was showing
+// rather than always on stop one.
+enum DayStop: String, Hashable {
+    case calories, protein, carbs, fat, fiber, water, train
+
+    init?(deepLinkPath: String) {
+        guard let match = DayStop(rawValue: deepLinkPath) else { return nil }
+        self = match
+    }
+}
+
+// A meal the user has already built on the phone, pushed so it can be logged
+// from the wrist in one tap. Carries its totals rather than its items: the
+// watch only ever displays them and sends the id back, and the item list would
+// multiply the context payload for nothing.
+struct WatchSavedMeal: Identifiable {
+    let id: String
+    let name: String
+    let calories: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
+    let fiber: Int
+}
+
+// What the watch app leaves behind for its complication.
+//
+// The iOS widget reads the phone's App Group; a watchOS complication cannot
+// reach that container, and DayStats lives only in memory, so without this the
+// complication would have nothing to draw between launches. Written on every
+// context the phone pushes and on every wrist-side edit.
+//
+// Deliberately duplicated in targets/watch-widget/index.swift: the two are
+// separate compilation units with no shared file, so the struct travels by
+// being identical. Change one, change the other.
+struct WatchSnapshot: Codable {
+    var date: String
+    var caloriesConsumed: Int
+    var calorieGoal: Int
+    var protein: Int
+    var proteinGoal: Int
+    var carbs: Int
+    var carbsGoal: Int
+    var fat: Int
+    var fatGoal: Int
+    var fiber: Int
+    var fiberGoal: Int
+    var water: Int
+    var waterGoal: Int
+    var showWater: Bool
+    var accent: String
+    var danger: String
+    var proteinColor: String
+    var carbsColor: String
+    var fatColor: String
+    var fiberColor: String
+    var waterColor: String
+}
+
+let watchAppGroup = "group.com.jacobclover.macrotracker"
+let watchSnapshotKey = "watchDayStats"
+
 // Today's stats shown on the watch, fed live from the phone over
 // WatchConnectivity. Read-only: the phone is the source of truth and pushes the
 // latest snapshot via updateApplicationContext (see src/services/watch.ts).
@@ -165,7 +229,29 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var showWorkout = false // drives the full-screen workout cover
     @Published var exercises: [WatchExercise] = [] // active workout plan
     @Published var templates: [WatchTemplate] = [] // saved templates to start from
+    @Published var savedMeals: [WatchSavedMeal] = [] // one-tap meals from the phone
     @Published var palette = WatchPalette() // active pack's accents
+
+    // The same colours as `palette`, kept as the hex the phone sent so the
+    // snapshot can carry them to the complication. SwiftUI's Color has no
+    // reliable way back to a hex string, and the complication needs one.
+    private var paletteHex: [String: String] = [
+        "themeAccent": "#34C77B", "themeDanger": "#F4756D",
+        "themeProtein": "#E2683C", "themeCarbs": "#E0A32E",
+        "themeFat": "#D1699B", "themeFiber": "#79C993",
+        "themeWater": "#5A9FD4",
+    ]
+
+    private static let dayLabelFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEE d MMM"
+        return f
+    }()
+
+    /// The day the numbers on screen belong to. Always today: `zeroIfStale`
+    /// guarantees what is displayed is either today's totals or an empty day,
+    /// never yesterday's carried forward.
+    var dayLabel: String { Self.dayLabelFormatter.string(from: Date()) }
 
     var isOverCalories: Bool { calorieGoal > 0 && caloriesConsumed > calorieGoal }
     /// Unsigned, with `isOverCalories` carrying the direction — the old
@@ -210,6 +296,63 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         fat = 0
         fiber = 0
         water = 0
+        // The complication reads the same stale snapshot, so it has to be
+        // rewritten here too — otherwise the wrist is right and the face is
+        // still showing yesterday, which is the original complaint wearing a
+        // different hat.
+        persistSnapshot()
+    }
+
+    /// Add or remove water from the wrist.
+    ///
+    /// Optimistic, then sent: the phone owns the number and re-pushes the
+    /// reconciled total, but a tap that takes a second to move the bar reads
+    /// as a tap that missed. Same pattern as a set check-off, over the same
+    /// retrying transport.
+    func logWater(_ oz: Int) {
+        water = max(0, water + oz)
+        persistSnapshot()
+        sendReliable(["type": "addWater", "oz": oz])
+    }
+
+    /// Log a meal the phone already knows about, by id.
+    ///
+    /// Only the id travels: the phone holds the real items and writes the
+    /// entries, so the watch can never invent a food or disagree with the log
+    /// about what was in a meal.
+    func logSavedMeal(_ meal: WatchSavedMeal) {
+        caloriesConsumed += meal.calories
+        protein += meal.protein
+        carbs += meal.carbs
+        fat += meal.fat
+        fiber += meal.fiber
+        persistSnapshot()
+        sendReliable(["type": "logSavedMeal", "mealId": meal.id])
+    }
+
+    /// Leave the day where the complication can read it, and tell WidgetKit.
+    private func persistSnapshot() {
+        let snap = WatchSnapshot(
+            date: todayString(),
+            caloriesConsumed: caloriesConsumed, calorieGoal: calorieGoal,
+            protein: protein, proteinGoal: proteinGoal,
+            carbs: carbs, carbsGoal: carbsGoal,
+            fat: fat, fatGoal: fatGoal,
+            fiber: fiber, fiberGoal: fiberGoal,
+            water: water, waterGoal: waterGoal,
+            showWater: showWater,
+            accent: paletteHex["themeAccent"] ?? "#34C77B",
+            danger: paletteHex["themeDanger"] ?? "#F4756D",
+            proteinColor: paletteHex["themeProtein"] ?? "#E2683C",
+            carbsColor: paletteHex["themeCarbs"] ?? "#E0A32E",
+            fatColor: paletteHex["themeFat"] ?? "#D1699B",
+            fiberColor: paletteHex["themeFiber"] ?? "#79C993",
+            waterColor: paletteHex["themeWater"] ?? "#5A9FD4"
+        )
+        guard let data = try? JSONEncoder().encode(snap),
+              let store = UserDefaults(suiteName: watchAppGroup) else { return }
+        store.set(data, forKey: watchSnapshotKey)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     override init() {
@@ -269,9 +412,33 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             if ctx["calorieGoal"] != nil { self.hasData = true }
             self.zeroIfStale()
             self.palette = WatchPalette.from(ctx, current: self.palette)
+            for key in self.paletteHex.keys {
+                if let hex = ctx[key] as? String { self.paletteHex[key] = hex }
+            }
             self.handleWorkoutState(ctx)
             self.parsePlan(ctx)
             self.parseTemplates(ctx)
+            self.parseSavedMeals(ctx)
+            // Last, so the complication is written from the finished state
+            // rather than halfway through applying it.
+            self.persistSnapshot()
+        }
+    }
+
+    // Parse the phone's saved meals (absent key = leave the current list
+    // alone, same rule as the workout templates).
+    private func parseSavedMeals(_ ctx: [String: Any]) {
+        guard let raw = ctx["savedMeals"] as? [[String: Any]] else { return }
+        savedMeals = raw.map { m in
+            WatchSavedMeal(
+                id: m["id"] as? String ?? UUID().uuidString,
+                name: m["name"] as? String ?? "Meal",
+                calories: self.intVal(m["cal"]) ?? 0,
+                protein: self.intVal(m["p"]) ?? 0,
+                carbs: self.intVal(m["c"]) ?? 0,
+                fat: self.intVal(m["f"]) ?? 0,
+                fiber: self.intVal(m["fb"]) ?? 0
+            )
         }
     }
 
@@ -580,8 +747,133 @@ final class RestManager: ObservableObject {
     }
 }
 
+// One stop of the day stack.
+//
+// The whole screen is one number. That is the point: the old day screen put
+// five readings and a water bar on one 242pt panel, where none of them could
+// be read without looking properly, which is the one thing a wrist is for.
+// Here each reading gets the whole panel and the crown carries you between
+// them, and the day's audit — all of it at once — moves to the complication.
+//
+// The arc sits behind the numeral rather than around it, so the numeral is
+// free to be as large as the panel allows instead of being sized to fit a
+// ring's hole.
+struct StopCard<Action: View>: View {
+    let date: String
+    let value: String
+    /// Sits under the numeral: "CAL LEFT", "PROTEIN".
+    let label: String
+    /// Under that, quieter: "1,420 / 2,000", "57g to go".
+    let caption: String
+    let progress: Double
+    /// Non-zero only past the goal — the second lap, matching the phone.
+    let overProgress: Double
+    let isOver: Bool
+    let tint: Color
+    @ViewBuilder var action: () -> Action
+
+    /// DM Serif Display at a size the rest of the app never uses. Stepped by
+    /// character count rather than scaled by SwiftUI, so "128" and "1,420" are
+    /// each set at a size chosen for them instead of one size shrunk to fit
+    /// the longest case. minimumScaleFactor stays as the floor under a goal
+    /// nobody anticipated.
+    private var numeralSize: CGFloat {
+        switch value.count {
+        case 0...3: return 74
+        case 4: return 62
+        case 5: return 52
+        default: return 44
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Text(date)
+                .font(WatchType.semibold(9))
+                .tracking(0.9)
+                .textCase(.uppercase)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            ZStack {
+                Circle()
+                    .stroke(tint.opacity(0.16), lineWidth: 5)
+                Circle()
+                    .trim(from: 0, to: isOver ? 1 : progress)
+                    .stroke(tint.opacity(isOver ? 0.38 : 1),
+                            style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                if isOver {
+                    Circle()
+                        .trim(from: 0, to: overProgress)
+                        .stroke(tint, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
+
+                VStack(spacing: 1) {
+                    Text(value)
+                        .font(WatchType.display(numeralSize))
+                        .foregroundColor(tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    Text(label)
+                        .font(WatchType.semibold(9.5))
+                        .tracking(1.1)
+                        .textCase(.uppercase)
+                        .foregroundColor(.secondary)
+                    Text(caption)
+                        .font(WatchType.body(10))
+                        .foregroundColor(Color.white.opacity(0.42))
+                        .padding(.top, 5)
+                }
+                .padding(.horizontal, 10)
+            }
+            // Squares itself against whatever width the watch has, so one
+            // layout serves 40mm through 49mm without a size class.
+            //
+            // Capped at 150. Left uncapped it grew to fill the panel — about
+            // 178pt on a 45mm — and at that size the arc stops being a thing
+            // the numeral sits in front of and becomes a ring drawn around
+            // it, which is the arrangement this screen exists to get away
+            // from. 150 against a 198pt panel is the proportion the chosen
+            // composition had.
+            .aspectRatio(1, contentMode: .fit)
+            .frame(maxWidth: 150, maxHeight: 150)
+            .frame(maxHeight: .infinity)
+
+            action()
+        }
+        .padding(.horizontal, 4)
+    }
+}
+
+/// The pill every in-place action on the stack uses. One shape, one height,
+/// so Water's pair and Calories' single button read as the same control.
+struct StopButton: View {
+    let title: String
+    let prominent: Bool
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(WatchType.bold(12))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 2)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(prominent ? tint : Color.white.opacity(0.14))
+        .foregroundColor(prominent ? Color(red: 0.03, green: 0.08, blue: 0.05) : .white)
+    }
+}
+
 struct ContentView: View {
     @StateObject private var stats = DayStats.shared
+    /// Which stop the crown is on. Held here rather than left to the TabView
+    /// so a complication tap can land on the reading it was showing.
+    @State private var stop: DayStop = .calories
+    @State private var showMeals = false
 
     // The workout screen swaps in place rather than being presented.
     //
@@ -595,155 +887,172 @@ struct ContentView: View {
         Group {
             if stats.showWorkout {
                 WorkoutView()
+            } else if !stats.hasData {
+                unsyncedScreen
             } else {
-                dayScreen
+                dayStack
+            }
+        }
+        // Complication taps arrive as holymacro://stop/<name>.
+        .onOpenURL { url in
+            if let landing = DayStop(deepLinkPath: url.lastPathComponent) {
+                stats.showWorkout = false
+                stop = landing
             }
         }
     }
 
-    private var dayScreen: some View {
-        ScrollView {
-            // 10, not the 16 it was. Fiber made this five stacked blocks
-            // instead of four, and the gaps were the cheapest 24pt to find —
-            // cheaper than the ring, which is the one thing on this screen
-            // that has to be readable without looking properly.
-            VStack(spacing: 10) {
-                if !stats.hasData {
-                    VStack(spacing: 6) {
-                        Image(systemName: "iphone.and.arrow.forward")
-                            .font(.title3)
-                            .foregroundColor(stats.palette.accent)
-                        Text("Open Holy Macro on your iPhone to sync.")
-                            .font(WatchType.body(13))
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 8)
-                } else {
-                    calorieRing
-
-                    // Macros as bars, matching the phone and the widget. Four
-                    // small rings under a larger calorie ring read as five
-                    // competing circles on a 40mm screen; bars let the calorie
-                    // ring stay the one focal point and give the numbers room.
-                    //
-                    // Fiber is here because it is on the phone: four goals on
-                    // one screen and three on the other meant the wrist quietly
-                    // disagreed with the app about what the day's targets were.
-                    VStack(spacing: 6) {
-                        MacroBar(label: "Protein", value: stats.protein, goal: stats.proteinGoal,
-                                 color: stats.palette.protein, over: stats.palette.danger)
-                        MacroBar(label: "Carbs", value: stats.carbs, goal: stats.carbsGoal,
-                                 color: stats.palette.carbs, over: stats.palette.danger)
-                        MacroBar(label: "Fat", value: stats.fat, goal: stats.fatGoal,
-                                 color: stats.palette.fat, over: stats.palette.danger)
-                        MacroBar(label: "Fiber", value: stats.fiber, goal: stats.fiberGoal,
-                                 color: stats.palette.fiber, over: stats.palette.danger)
-                    }
-
-                    // Water bar — hidden when the phone's tracker is off.
-                    if stats.showWater {
-                        VStack(spacing: 4) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text("Water")
-                                    .font(WatchType.semibold(11))
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text("\(stats.water)")
-                                    .font(WatchType.bold(11))
-                                + Text(" / \(stats.waterGoal) oz")
-                                    .font(WatchType.body(10))
-                                    .foregroundColor(.secondary)
-                            }
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    Capsule().fill(stats.palette.water.opacity(0.22))
-                                    Capsule()
-                                        .fill(stats.palette.water)
-                                        .frame(width: max(6, geo.size.width * stats.waterProgress))
-                                }
-                            }
-                            .frame(height: 6)
-                        }
-                    }
-                }
-
-                // Start a native on-wrist workout (live HR + calories).
-                Button {
-                    stats.showWorkout = true
-                } label: {
-                    Label("Start Workout", systemImage: "figure.run")
-                        .font(WatchType.semibold(13))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(stats.palette.accent)
-                .padding(.top, 4)
-            }
-            .padding(.horizontal)
-            .frame(maxWidth: .infinity)
+    private var unsyncedScreen: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "iphone.and.arrow.forward")
+                .font(.title3)
+                .foregroundColor(stats.palette.accent)
+            Text("Open Holy Macro on your iPhone to sync.")
+                .font(WatchType.body(13))
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
         }
-        // ignoresSafeArea so the ground reaches under the clock and the bottom
-        // curve rather than leaving black bands around a tinted middle.
+        .padding(.horizontal)
         .background(stats.palette.ground.ignoresSafeArea())
-        // Every control SwiftUI draws for us — Stepper's ± buttons, toggles,
-        // the crown indicator — otherwise falls back to the target's static
-        // $accent from expo-target.config.js, which no theme sync can reach.
-        // Set here rather than per-control so a control added later is themed
-        // by default instead of quietly shipping the asset-catalog color.
         .tint(stats.palette.accent)
     }
 
-    /// The day's one hero: calories left, or over.
+    /// Seven stops, or six with the phone's water tracker switched off.
     ///
-    /// 92pt rather than the 112pt it was. The ring was sized before fiber
-    /// joined the macros, and on a 41mm screen (242pt tall) the old ring plus
-    /// four bars plus water plus the button did not fit — the fourth bar simply
-    /// fell off the first screenful. 92pt still leaves the numeral the largest
-    /// thing on the wrist by a wide margin.
-    ///
-    /// Over goal draws a second lap: the completed first lap dims to 38% and a
-    /// solid arc tracks the overage, which is the phone's ring exactly. What it
-    /// replaces was worse than merely plain — the ring pinned full and the
-    /// numeral read "0 cal left", because remaining was clamped at zero. The
-    /// one moment the screen most needs to say something, it said nothing.
-    private var calorieRing: some View {
-        let over = stats.isOverCalories
-        let tint = over ? stats.palette.danger : stats.palette.accent
-        return ZStack {
-            Circle()
-                .stroke(tint.opacity(0.2), lineWidth: 9)
-            // First lap. Full and dimmed once the goal is passed, so the
-            // second lap on top of it reads as the part that matters.
-            Circle()
-                .trim(from: 0, to: over ? 1 : stats.calorieProgress)
-                .stroke(tint.opacity(over ? 0.38 : 1),
-                        style: StrokeStyle(lineWidth: 9, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            if over {
-                Circle()
-                    .trim(from: 0, to: stats.calorieOverProgress)
-                    .stroke(tint, style: StrokeStyle(lineWidth: 9, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+    /// `.verticalPage` is the watch's own idiom for a stack of readings — it
+    /// is what the system Workout app pages with — and it brings the page
+    /// indicator and the crown binding with it, so neither is hand-rolled.
+    private var dayStack: some View {
+        TabView(selection: $stop) {
+            calorieStop.tag(DayStop.calories)
+
+            macroStop(.protein, "Protein", stats.protein, stats.proteinGoal,
+                      stats.palette.protein).tag(DayStop.protein)
+            macroStop(.carbs, "Carbs", stats.carbs, stats.carbsGoal,
+                      stats.palette.carbs).tag(DayStop.carbs)
+            macroStop(.fat, "Fat", stats.fat, stats.fatGoal,
+                      stats.palette.fat).tag(DayStop.fat)
+            macroStop(.fiber, "Fiber", stats.fiber, stats.fiberGoal,
+                      stats.palette.fiber).tag(DayStop.fiber)
+
+            if stats.showWater {
+                waterStop.tag(DayStop.water)
             }
-            VStack(spacing: 2) {
-                // The serif, at the one size on the watch where it earns its
-                // keep. Every label stays on Manrope: DM Serif Display's thin
-                // strokes disappear at 10–11pt on a wrist.
-                Text(grouped(stats.caloriesRemaining))
-                    .font(WatchType.display(30))
-                    .foregroundColor(tint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(over ? "CAL OVER" : "CAL LEFT")
-                    .font(WatchType.semibold(10))
-                    .tracking(0.7)
-                    .foregroundColor(.secondary)
-            }
-            // Inside the 9pt stroke, so a four-digit figure never sits on it.
-            .padding(.horizontal, 12)
+            trainStop.tag(DayStop.train)
         }
-        .frame(width: 92, height: 92)
+        .tabViewStyle(.verticalPage)
+        .background(stats.palette.ground.ignoresSafeArea())
+        // Every control SwiftUI draws for us — the page indicator, Stepper's
+        // ± buttons, the crown indicator — otherwise falls back to the
+        // target's static $accent from expo-target.config.js, which no theme
+        // sync can reach.
+        .tint(stats.palette.accent)
+        .sheet(isPresented: $showMeals) {
+            SavedMealList(stats: stats)
+        }
+    }
+
+    private var calorieStop: some View {
+        StopCard(
+            date: stats.dayLabel,
+            value: grouped(stats.caloriesRemaining),
+            label: stats.isOverCalories ? "cal over" : "cal left",
+            caption: "\(grouped(stats.caloriesConsumed)) / \(grouped(stats.calorieGoal))",
+            progress: stats.calorieProgress,
+            overProgress: stats.calorieOverProgress,
+            isOver: stats.isOverCalories,
+            tint: stats.isOverCalories ? stats.palette.danger : stats.palette.accent
+        ) {
+            // Calories is where a meal lands hardest, so this is the stop
+            // that carries it rather than repeating a button on all five.
+            StopButton(title: "Log Meal", prominent: false,
+                       tint: stats.palette.accent) { showMeals = true }
+                .accessibilityLabel("Log a saved meal")
+        }
+    }
+
+    private func macroStop(
+        _ id: DayStop, _ name: String, _ value: Int, _ goal: Int, _ color: Color
+    ) -> some View {
+        let over = goal > 0 && value > goal
+        let left = abs(goal - value)
+        return StopCard(
+            date: stats.dayLabel,
+            value: "\(value)",
+            label: name,
+            caption: goal > 0
+                ? (over ? "\(left)g over \(goal)g" : "\(left)g to go")
+                : "no goal set",
+            progress: stats.ratio(value, goal),
+            overProgress: over ? stats.ratio(value - goal, goal) : 0,
+            isOver: over,
+            tint: over ? stats.palette.danger : color
+        ) {
+            // Nothing to do with a macro on its own — these stops are pure
+            // readings, and a button repeated five times is noise, not reach.
+            EmptyView()
+        }
+    }
+
+    private var waterStop: some View {
+        StopCard(
+            date: stats.dayLabel,
+            value: "\(stats.water)",
+            label: "oz water",
+            // Not "40 / 64 oz" — the numeral above already says 40, and a
+            // caption that repeats it spends the one line that could answer
+            // "how much more". The macro stops say "to go"; so does this.
+            caption: stats.waterGoal > 0
+                ? (stats.water >= stats.waterGoal
+                   ? "goal met · \(stats.waterGoal) oz"
+                   : "\(stats.waterGoal - stats.water) oz to go")
+                : "no goal set",
+            progress: stats.waterProgress,
+            overProgress: 0,
+            isOver: false,
+            tint: stats.palette.water
+        ) {
+            HStack(spacing: 6) {
+                StopButton(title: "−8", prominent: false,
+                           tint: stats.palette.water) { stats.logWater(-8) }
+                    .accessibilityLabel("Remove 8 ounces of water")
+                StopButton(title: "+8 oz", prominent: true,
+                           tint: stats.palette.water) { stats.logWater(8) }
+                    .accessibilityLabel("Add 8 ounces of water")
+            }
+        }
+    }
+
+    private var trainStop: some View {
+        VStack(spacing: 0) {
+            Text(stats.dayLabel)
+                .font(WatchType.semibold(9))
+                .tracking(0.9)
+                .textCase(.uppercase)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
+            Image(systemName: "figure.run")
+                .font(.system(size: 34))
+                .foregroundColor(stats.palette.accent)
+            Text("Train")
+                .font(WatchType.display(30))
+                .foregroundColor(.white)
+                .padding(.top, 6)
+            Text(stats.templates.isEmpty
+                 ? "Quick start a session"
+                 : "\(stats.templates.count) saved template\(stats.templates.count == 1 ? "" : "s")")
+                .font(WatchType.body(10))
+                .foregroundColor(Color.white.opacity(0.42))
+                .padding(.top, 3)
+            Spacer()
+
+            StopButton(title: "Start Workout", prominent: true,
+                       tint: stats.palette.accent) { stats.showWorkout = true }
+                .accessibilityLabel("Start a workout")
+        }
+        .padding(.horizontal, 4)
     }
 
     private static let groupingFormatter: NumberFormatter = {
@@ -758,47 +1067,51 @@ struct ContentView: View {
     }
 }
 
-// A small colored progress ring with the consumed grams in the center and the
-// macro name below.
-// One macro as a labelled bar: name and value on one line, a filled track
-// underneath. Mirrors MacroBar.tsx on the phone and the widget's rows.
-struct MacroBar: View {
-    let label: String
-    let value: Int
-    let goal: Int
-    let color: Color
-    // The pack's own over-goal color. System .red belongs to no pack — it read
-    // as a stray on Modern, whose danger is a magenta.
-    let over: Color
-
-    private var progress: Double {
-        goal > 0 ? min(1, Double(value) / Double(goal)) : 0
-    }
-    private var isOver: Bool { goal > 0 && value > goal }
+/// The saved meals the phone has pushed, logged with one tap.
+///
+/// A sheet rather than a stop of its own: picking a meal is a self-contained
+/// sub-task with a dismiss, which is what watchOS presents sheets for, and an
+/// eighth stop would have been a list wedged inside a pager.
+struct SavedMealList: View {
+    @ObservedObject var stats: DayStats
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(label)
-                    .font(WatchType.semibold(11))
-                Spacer()
-                Text("\(value)")
-                    .font(WatchType.bold(11))
-                    .foregroundColor(isOver ? over : .primary)
-                + Text(" / \(goal)g")
-                    .font(WatchType.body(10))
-                    .foregroundColor(.secondary)
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(color.opacity(0.22))
-                    Capsule()
-                        .fill(isOver ? over : color)
-                        .frame(width: max(2, geo.size.width * progress))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                if stats.savedMeals.isEmpty {
+                    Text("No saved meals. Build them on your iPhone and they'll appear here.")
+                        .font(WatchType.body(12))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .padding(.top, 6)
+                } else {
+                    ForEach(stats.savedMeals) { meal in
+                        Button {
+                            stats.logSavedMeal(meal)
+                            dismiss()
+                        } label: {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(meal.name)
+                                    .font(WatchType.semibold(13))
+                                    .foregroundColor(.white)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                Text("\(meal.calories) cal · \(meal.protein)g protein")
+                                    .font(WatchType.body(10))
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(stats.palette.accent)
+                    }
                 }
             }
-            .frame(height: 5)
+            .padding(.horizontal, 2)
         }
+        .background(stats.palette.ground.ignoresSafeArea())
+        .tint(stats.palette.accent)
     }
 }
 
