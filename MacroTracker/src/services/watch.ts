@@ -60,6 +60,11 @@ function startWatchApp(args: { activityType: number }): void {
 // Today's stats mirrored to the Apple Watch glance. Keys must match what the
 // watch's WCSession delegate reads (see targets/watch/content.swift).
 export interface WatchContext {
+  // The day these numbers are for, YYYY-MM-DD. The watch discards totals
+  // that are not for its own today — the widget has always done this
+  // (zeroedIfStale in targets/widget/index.swift) and the watch did not, so
+  // it kept showing yesterday until the phone happened to push again.
+  date: string;
   caloriesConsumed: number;
   calorieGoal: number;
   protein: number;

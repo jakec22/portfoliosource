@@ -2,8 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
+import { useToday } from '../hooks/useToday';
 import { useSnackbar } from '../store/useSnackbar';
-import { todayString, getPastDays, formatDuration, parseDate } from '../utils/date';
+import { getPastDays, formatDuration, parseDate } from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
 import { MacroBar } from '../components/MacroBar';
 import { GoalsUpdatedCard } from '../components/GoalsUpdatedCard';
@@ -40,7 +41,7 @@ const WEEK = 7;
 export function HomeScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const today = todayString();
+  const today = useToday();
 
   const goals = useStore((s) => s.goals);
   const allLogs = useStore((s) => s.logs);

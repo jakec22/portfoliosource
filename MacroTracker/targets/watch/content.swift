@@ -129,6 +129,10 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     // which doesn't send the key, keeps showing water as it always has.
     @Published var showWater = true
     @Published var hasData = false
+    // The day the nutrition numbers are for, as sent by the phone. Empty for
+    // a context from a build that predates the key, which is treated as
+    // current so an older phone keeps working.
+    private var statsDate = ""
     @Published var showWorkout = false // drives the full-screen workout cover
     @Published var exercises: [WatchExercise] = [] // active workout plan
     @Published var templates: [WatchTemplate] = [] // saved templates to start from
@@ -140,6 +144,33 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
 
     func ratio(_ value: Int, _ goal: Int) -> Double {
         goal > 0 ? min(1, Double(value) / Double(goal)) : 0
+    }
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private func todayString() -> String { Self.dayFormatter.string(from: Date()) }
+
+    /// Yesterday's numbers are worse than no numbers.
+    ///
+    /// The phone pushes a context when the totals change, so between midnight
+    /// and the next thing logged there is no push at all — overnight plus a
+    /// morning — and the watch sat there showing yesterday as if it were
+    /// today. The widget has always guarded this (zeroedIfStale in
+    /// targets/widget/index.swift); the watch did not.
+    ///
+    /// Goals are kept: those do not belong to a day. Only what was consumed
+    /// is zeroed, which is exactly what is true at the start of a new day.
+    func zeroIfStale() {
+        guard !statsDate.isEmpty, statsDate != todayString() else { return }
+        caloriesConsumed = 0
+        protein = 0
+        carbs = 0
+        fat = 0
+        water = 0
     }
 
     override init() {
@@ -180,6 +211,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     private func apply(_ ctx: [String: Any]) {
         guard !ctx.isEmpty else { return }
         DispatchQueue.main.async {
+            if let v = ctx["date"] as? String { self.statsDate = v }
             if let v = self.intVal(ctx["caloriesConsumed"]) { self.caloriesConsumed = v }
             if let v = self.intVal(ctx["calorieGoal"]) { self.calorieGoal = v }
             if let v = self.intVal(ctx["protein"]) { self.protein = v }
@@ -194,6 +226,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             // Calorie/macro keys may be absent on a workout-only push; only flip
             // hasData once we've actually received nutrition numbers.
             if ctx["calorieGoal"] != nil { self.hasData = true }
+            self.zeroIfStale()
             self.palette = WatchPalette.from(ctx, current: self.palette)
             self.handleWorkoutState(ctx)
             self.parsePlan(ctx)

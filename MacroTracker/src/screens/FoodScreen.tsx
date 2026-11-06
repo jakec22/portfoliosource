@@ -9,11 +9,11 @@ import {
   ActionSheetIOS,
   Platform,
   Alert,
-  AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros } from '../store/useStore';
 import { todayString, displayDate, formatDate } from '../utils/date';
+import { useToday } from '../hooks/useToday';
 import { MealSection } from '../components/MealSection';
 import { MealType } from '../types';
 import { useTheme } from '../theme/useTheme';
@@ -43,44 +43,28 @@ const ratio = (value: number, goal: number) => (goal > 0 ? Math.min(value / goal
 export function FoodScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
-  const [selectedDate, setSelectedDate] = useState(todayString());
+  const today = useToday();
+  const [selectedDate, setSelectedDate] = useState(today);
 
-  // Notice midnight.
+  // Notice midnight. `selectedDate` is state on a tab screen that stays
+  // mounted for the life of the app, so without this it holds whatever day
+  // the screen first appeared and a snack logged at 00:05 lands on yesterday.
   //
-  // This is a tab screen, so it stays mounted for the life of the app and
-  // `selectedDate` held whatever day it was when the screen first appeared.
-  // Open the app at 23:50 and log a snack at 00:05 and the entry went to
-  // yesterday — the one case a calorie tracker has to get right.
-  //
-  // `shownAsToday` is the day that `selectedDate` means "today" for. When the
-  // real day moves past it, a date still sitting on the old today follows;
-  // a day the user stepped back to deliberately stays where they put it.
+  // `shownAsToday` is the day `selectedDate` means "today" for: when the real
+  // day moves past it, a date still sitting on the old today follows, while a
+  // day the user stepped back to deliberately stays where they put it.
   const shownAsToday = useRef(selectedDate);
   useEffect(() => {
-    function rollForward() {
-      const now = todayString();
-      if (now === shownAsToday.current) return;
-      setSelectedDate((d) => (d === shownAsToday.current ? now : d));
-      shownAsToday.current = now;
-    }
-    // Focus covers moving between tabs; AppState covers the app being
-    // backgrounded overnight and reopened on this screen, where the screen
-    // never loses focus and no navigation event fires.
-    const unsubscribeFocus = navigation.addListener('focus', rollForward);
-    const appStateSub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') rollForward();
-    });
-    return () => {
-      unsubscribeFocus();
-      appStateSub.remove();
-    };
-  }, [navigation]);
+    if (today === shownAsToday.current) return;
+    setSelectedDate((d) => (d === shownAsToday.current ? today : d));
+    shownAsToday.current = today;
+  }, [today]);
 
   const goals = useStore((s) => s.goals);
   const dateEntries = useStore((s) => s.logs[selectedDate]);
   const totals = useMemo(() => sumMacros(dateEntries ?? []), [dateEntries]);
 
-  const isToday = selectedDate === todayString();
+  const isToday = selectedDate === today;
   const remaining = Math.round(goals.calories - totals.calories);
   const over = remaining < 0;
 

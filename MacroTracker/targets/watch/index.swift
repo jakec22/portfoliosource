@@ -30,10 +30,21 @@ class WorkoutAppDelegate: NSObject, WKApplicationDelegate {
 @main
 struct watchEntry: App {
     @WKApplicationDelegateAdaptor private var appDelegate: WorkoutAppDelegate
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+        }
+        // Drop yesterday's totals the moment the app comes forward.
+        //
+        // The phone only pushes a context when the numbers change, so there
+        // is no push between midnight and the next thing logged. Checking
+        // only on delivery would leave the watch showing yesterday to anyone
+        // who raises their wrist before logging breakfast — which is the
+        // whole complaint.
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { DayStats.shared.zeroIfStale() }
         }
     }
 }

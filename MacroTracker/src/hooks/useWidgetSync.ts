@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStore, sumMacros } from '../store/useStore';
-import { todayString } from '../utils/date';
+import { useToday } from './useToday';
 import { updateMacroWidget } from '../services/widget';
 
 // Mirrors today's calories and macros to the home screen widget whenever they
@@ -10,8 +10,9 @@ export function useWidgetSync(): void {
   const goals = useStore((s) => s.goals);
   const themeMode = useStore((s) => s.themeMode);
 
+  const today = useToday();
+
   useEffect(() => {
-    const today = todayString();
     const totals = sumMacros(logs[today] ?? []);
     updateMacroWidget(
       {
@@ -27,5 +28,5 @@ export function useWidgetSync(): void {
     );
     // themeMode is a dependency because the widget renders with the resolved
     // palette pushed here — switching packs has to repaint it.
-  }, [logs, goals, themeMode]);
+  }, [today, logs, goals, themeMode]);
 }
