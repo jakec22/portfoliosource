@@ -43,3 +43,24 @@ yarn-error.*
 /ios
 /android
 supabase/.temp/
+
+# The same rule, one level down: @bacons/apple-targets writes these into each
+# targets/<name>/ folder from that target's expo-target.config.js on every
+# prebuild. Committing them doesn't make them the source of truth — it just
+# means nothing ever re-derives them, so they go stale and ship.
+#
+# They did. The watch target carried a committed $accent of rgb(0,.545,.545),
+# a teal, long after the config declared #34C77B, and a 1024 app icon that was
+# still the old chevron rather than the ichthys. Both shipped. They also
+# collided with every pull, because a local prebuild rewrites them.
+#
+# Info.plist is the exception and stays tracked: targets/watch/Info.plist is
+# hand-edited (it registers UIAppFonts for the app's faces), and the plugin
+# only writes that file when it is absent — so an ignored one would come back
+# generated, without the fonts. The targets that do not hand-edit theirs are
+# listed individually below rather than with a wildcard, so adding a target
+# has to make this choice deliberately.
+targets/*/Assets.xcassets/
+targets/*/generated.entitlements
+targets/widget/Info.plist
+targets/watch-widget/Info.plist
