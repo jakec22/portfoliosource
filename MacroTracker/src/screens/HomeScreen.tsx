@@ -21,6 +21,8 @@ import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, tabular, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
+import { ConsistencyRing } from '../components/ConsistencyRing';
+import { consistencyStats } from '../utils/trainingSplit';
 
 interface Props {
   navigation: any;
@@ -93,6 +95,11 @@ export function HomeScreen({ navigation }: Props) {
   // Active Energy from HealthKit — enriched by a watch when one is worn, and
   // null (hidden) with no native module, no permission or no data, so it never
   // shows a misleading zero.
+  // This week against a weekly target. Same numbers the Exercise tab leads
+  // with — the component was written to be that tab's answer to Home's
+  // calorie ring, and Home never had the training equivalent.
+  const consistency = useMemo(() => consistencyStats(workoutHistory), [workoutHistory]);
+
   const [activeEnergy, setActiveEnergy] = useState<number | null>(null);
   // Burned, Duration, Volume, Sets and Avg HR can all be present at once, and
   // five across a phone is one more than the row's type size can carry.
@@ -203,6 +210,21 @@ export function HomeScreen({ navigation }: Props) {
             <Icon name="workout" size="sm" color={c.gray700} />
             <Text style={styles.cardTitleInline}>Training</Text>
           </View>
+
+          {/* The card's anchor, and the reason it no longer reads as empty on
+              the days you don't train — which is most of them. A single day's
+              training is often nothing; a week's is always something.
+
+              Hidden until there is a first session, matching the Exercise
+              tab: "0 of 4" and "0 sessions all-time" is a discouraging thing
+              to hand someone who has not started, and the rest state below
+              already offers them the way in. */}
+          {consistency.totalSessions > 0 && (
+            <>
+              <ConsistencyRing stats={consistency} />
+              <View style={styles.trainingDivider} />
+            </>
+          )}
 
           {/* Burned leads the stats row rather than sitting in the header as a
               13pt caption, which is where it was and where it read as a
@@ -472,6 +494,9 @@ const makeStyles = (c: Theme) =>
     },
     todayCard: { paddingVertical: space.xl },
     todayDivider: { height: 1, backgroundColor: c.border, marginVertical: space.lg },
+    // Same rule as the Today card's, so the two cards read as one system:
+    // anchor, divider, detail.
+    trainingDivider: { height: 1, backgroundColor: c.border, marginVertical: space.lg },
     macroList: { gap: space.md },
 
     cardTitle: { ...type.bodyStrong(c), color: c.gray700 },
