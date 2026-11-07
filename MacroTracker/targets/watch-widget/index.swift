@@ -16,6 +16,9 @@ import SwiftUI
 //   rectangular — the full audit: calories plus all four macros
 //   inline      — one line of text, for faces that only offer one
 //
+// The app itself is one scrolling screen, so none of these deep-links: a tap
+// opens the app, which is already showing everything.
+//
 // Everything is set in the system face on purpose. DM Serif Display carries
 // the hero numerals inside the app, but a complication is 20-40pt of glass
 // read in passing: SF is what stays legible there, it is what every other
@@ -176,11 +179,10 @@ struct DayComplicationView: View {
             default:                 rectangular
             }
         }
-        // Deep-links into the stop the complication was showing, so a tap on
-        // the macro audit lands on protein rather than on stop one.
-        .widgetURL(URL(string: family == .accessoryRectangular
-                       ? "holymacro://stop/protein"
-                       : "holymacro://stop/calories"))
+        // No widgetURL. These used to deep-link into one stop of a crown-paged
+        // stack; the app is a single screen again, so a tap opens it at the
+        // only place there is to open, which is what a complication does by
+        // default.
         .containerBackground(for: .widget) { Color.clear }
     }
 

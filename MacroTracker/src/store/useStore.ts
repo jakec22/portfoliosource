@@ -43,12 +43,7 @@ const ZERO_MACROS: MacroNutrients = {
   fiber: 0,
 };
 
-// Takes the two fields it actually reads rather than a whole FoodEntry, so a
-// saved meal's `{ food, servings }` items can be totalled with the same
-// function the day's log uses instead of a second copy of this arithmetic.
-export function sumMacros(
-  entries: Array<Pick<FoodEntry, 'food' | 'servings'>>
-): MacroNutrients {
+export function sumMacros(entries: FoodEntry[]): MacroNutrients {
   return entries.reduce((acc, entry) => {
     const { macros } = entry.food;
     const s = entry.servings;
