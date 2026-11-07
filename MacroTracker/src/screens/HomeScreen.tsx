@@ -22,7 +22,8 @@ import type { Theme } from '../theme';
 import { radius, space, tabular, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { ConsistencyRing } from '../components/ConsistencyRing';
-import { consistencyStats } from '../utils/trainingSplit';
+import { BodyHeatMap, BODY_CATEGORIES } from '../components/BodyHeatMap';
+import { consistencyStats, trainingSplit } from '../utils/trainingSplit';
 
 interface Props {
   navigation: any;
@@ -99,6 +100,19 @@ export function HomeScreen({ navigation }: Props) {
   // with — the component was written to be that tab's answer to Home's
   // calorie ring, and Home never had the training equivalent.
   const consistency = useMemo(() => consistencyStats(workoutHistory), [workoutHistory]);
+
+  // Seven days, not the Exercise tab's thirty: Home is asking what this week
+  // looks like, and a month-long window smooths over exactly the gap a rest
+  // day wants to know about.
+  const weekSplit = useMemo(() => trainingSplit(workoutHistory, 7, c), [workoutHistory, c]);
+
+  // Regions with no volume this week. Drives the rest-day prompt, so that a
+  // day off suggests something instead of only reporting that nothing has
+  // happened.
+  const untrainedThisWeek = useMemo(() => {
+    const trained = new Set(weekSplit.filter((s) => s.volume > 0).map((s) => s.category));
+    return BODY_CATEGORIES.filter((cat) => !trained.has(cat));
+  }, [weekSplit]);
 
   const [activeEnergy, setActiveEnergy] = useState<number | null>(null);
   // Burned, Duration, Volume, Sets and Avg HR can all be present at once, and
@@ -222,6 +236,18 @@ export function HomeScreen({ navigation }: Props) {
           {consistency.totalSessions > 0 && (
             <>
               <ConsistencyRing stats={consistency} />
+
+              {/* Where the week's volume went. Withheld when nothing has been
+                  lifted in seven days: every region would render at the same
+                  empty grey, which looks like a broken figure rather than a
+                  rest week. */}
+              {weekSplit.length > 0 && (
+                <View style={styles.coverage}>
+                  <Text style={styles.coverageLabel}>Coverage this week</Text>
+                  <BodyHeatMap slices={weekSplit} days={7} compact />
+                </View>
+              )}
+
               <View style={styles.trainingDivider} />
             </>
           )}
@@ -236,6 +262,12 @@ export function HomeScreen({ navigation }: Props) {
               from the health store, not something the workout produced, so it
               is just as true on a day with no workout logged — and on exactly
               that day the old placement hid it completely. */}
+          {/* Names the half below the divider, the way "Coverage this week"
+              names the half above it. Without it the card runs week numbers
+              into day numbers with nothing saying which is which. Shown only
+              once there is a week block to be distinguished from. */}
+          {consistency.totalSessions > 0 && <Text style={styles.todayLabel}>Today</Text>}
+
           {(dayWorkoutStats || activeEnergy != null) && (
             <View style={styles.workoutStatsRow}>
               {activeEnergy != null && (
@@ -312,7 +344,19 @@ export function HomeScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('Exercise')}
               activeOpacity={0.7}
             >
-              <Text style={styles.restText}>Nothing logged yet today</Text>
+              <View style={styles.restCopy}>
+                <Text style={styles.restText}>Nothing logged yet today</Text>
+                {/* A rest day that only reports emptiness wastes the one
+                    moment the card has the user's attention and a genuine
+                    suggestion to make. The week's untrained regions are
+                    already computed for the figure above, so the prompt and
+                    the figure can never disagree. */}
+                {untrainedThisWeek.length > 0 && (
+                  <Text style={styles.restHint} numberOfLines={2}>
+                    {listRegions(untrainedThisWeek)} untrained this week
+                  </Text>
+                )}
+              </View>
               <Text style={styles.restAction}>Start a workout</Text>
               <Icon name="forward" size="sm" color={c.primary} />
             </TouchableOpacity>
@@ -408,6 +452,15 @@ export function HomeScreen({ navigation }: Props) {
   );
 }
 
+// "Legs", "Legs and Back", "Legs, Back and Core" — and nothing longer, since
+// a rest-day prompt naming five regions is a wall, not a suggestion.
+function listRegions(regions: readonly string[]): string {
+  const shown = regions.slice(0, 3);
+  if (shown.length === 1) return shown[0];
+  const rest = shown.slice(0, -1).join(', ');
+  return `${rest} and ${shown[shown.length - 1]}`;
+}
+
 function WorkoutStat({
   label,
   value,
@@ -497,6 +550,14 @@ const makeStyles = (c: Theme) =>
     // Same rule as the Today card's, so the two cards read as one system:
     // anchor, divider, detail.
     trainingDivider: { height: 1, backgroundColor: c.border, marginVertical: space.lg },
+    todayLabel: { ...type.overline(c), color: c.textFaint, marginBottom: space.md },
+    coverage: { marginTop: space.lg },
+    coverageLabel: {
+      ...type.overline(c),
+      color: c.textFaint,
+      textAlign: 'center',
+      marginBottom: space.sm,
+    },
     macroList: { gap: space.md },
 
     cardTitle: { ...type.bodyStrong(c), color: c.gray700 },
@@ -510,7 +571,9 @@ const makeStyles = (c: Theme) =>
 
     workoutStatsRow: { flexDirection: 'row', marginBottom: space.md },
     restRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-    restText: { ...type.body(c), color: c.textMuted, flex: 1 },
+    restCopy: { flex: 1, gap: space.xxs },
+    restText: { ...type.body(c), color: c.textMuted },
+    restHint: { ...type.caption(c), color: c.textFaint },
     restAction: { ...type.captionStrong(c), color: c.primary },
 
     waterHeader: {

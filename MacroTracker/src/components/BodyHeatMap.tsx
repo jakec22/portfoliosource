@@ -10,13 +10,26 @@ interface Props {
   slices: SplitSlice[];
   /** Window the split covers, for the caption. */
   days: number;
+  /**
+   * Home's variant: smaller figures, centred, no ranked list.
+   *
+   * The ranking answers "how much went where", which is depth and belongs to
+   * the Exercise tab. Home only needs the glance the figure gives — which
+   * regions are lit and which are not — and at full size with the list beside
+   * it this is taller than the calorie ring, which is the wrong weight for a
+   * card that also has to carry the day.
+   */
+  compact?: boolean;
 }
 
 // Regions the figure can actually show. Categories outside this set (Cardio,
 // Full Body, Other) have no single place on the body, so they're surfaced as a
 // note under the figure rather than silently dropped.
-const BODY_CATEGORIES = ['Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Legs'] as const;
-type BodyCategory = (typeof BODY_CATEGORIES)[number];
+//
+// Exported because Home phrases its rest-day prompt from the same set — the
+// gap the figure shows and the gap the prompt names have to agree.
+export const BODY_CATEGORIES = ['Chest', 'Back', 'Shoulders', 'Arms', 'Core', 'Legs'] as const;
+export type BodyCategory = (typeof BODY_CATEGORIES)[number];
 
 const VB_W = 104;
 const VB_H = 208;
@@ -31,7 +44,7 @@ function alphaHex(a: number): string {
 // Training volume as a body map: each muscle group is tinted by how much of
 // the window's volume went to it, so neglected areas read at a glance in a way
 // a donut's legend never does.
-export function BodyHeatMap({ slices, days }: Props) {
+export function BodyHeatMap({ slices, days, compact = false }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -62,10 +75,10 @@ export function BodyHeatMap({ slices, days }: Props) {
 
   return (
     <View>
-      <View style={styles.figures}>
+      <View style={[styles.figures, compact && styles.figuresCompact]}>
         {/* ── Front ── */}
         <View style={styles.figureWrap}>
-          <Svg width="100%" height={168} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+          <Svg width="100%" height={compact ? 132 : 168} viewBox={`0 0 ${VB_W} ${VB_H}`}>
             <G>
               <Circle cx={52} cy={17} r={11} fill={neutral} />
               <Rect x={47} y={27} width={10} height={7} fill={neutral} />
@@ -97,7 +110,7 @@ export function BodyHeatMap({ slices, days }: Props) {
 
         {/* ── Back ── */}
         <View style={styles.figureWrap}>
-          <Svg width="100%" height={168} viewBox={`0 0 ${VB_W} ${VB_H}`}>
+          <Svg width="100%" height={compact ? 132 : 168} viewBox={`0 0 ${VB_W} ${VB_H}`}>
             <G>
               <Circle cx={52} cy={17} r={11} fill={neutral} />
               <Rect x={47} y={27} width={10} height={7} fill={neutral} />
@@ -129,7 +142,9 @@ export function BodyHeatMap({ slices, days }: Props) {
         </View>
 
         {/* Ranked list beside the figures — the figure shows where, this says
-            how much, so neither has to carry both jobs. */}
+            how much, so neither has to carry both jobs. Home drops it; see
+            the `compact` note on Props. */}
+        {!compact && (
         <View style={styles.rankList}>
           {ranked.map((r) => (
             <View key={r.cat} style={styles.rankRow}>
@@ -148,7 +163,17 @@ export function BodyHeatMap({ slices, days }: Props) {
             </Text>
           )}
         </View>
+        )}
       </View>
+
+      {/* Compact keeps the untrained line — it is the one actionable thing on
+          the figure — but centred under it rather than hanging off a list
+          that is no longer there. */}
+      {compact && untrained.length > 0 && (
+        <Text style={[styles.untrained, styles.untrainedCentered]}>
+          Untrained: {untrained.join(', ')}
+        </Text>
+      )}
 
       <Text style={styles.caption}>
         Share of the last {days} days' volume
@@ -162,6 +187,7 @@ export function BodyHeatMap({ slices, days }: Props) {
 const makeStyles = (c: Theme) =>
   StyleSheet.create({
     figures: { flexDirection: 'row', alignItems: 'flex-start', gap: space.xs },
+    figuresCompact: { justifyContent: 'center', gap: space.lg },
     figureWrap: { width: 72, alignItems: 'center' },
     figureLabel: {
       ...type.micro(c),
@@ -186,6 +212,7 @@ const makeStyles = (c: Theme) =>
       color: c.textMuted,
       fontVariant: ['tabular-nums'],
     },
+    untrainedCentered: { textAlign: 'center', marginTop: space.xs },
     untrained: {
       ...type.micro(c),
       fontFamily: c.fontBody,
