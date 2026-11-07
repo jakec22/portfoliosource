@@ -135,6 +135,8 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
   const logBodyWeight = useStore((s) => s.logBodyWeight);
   const deleteBodyWeightEntry = useStore((s) => s.deleteBodyWeightEntry);
+  const weeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
+  const setWeeklyWorkoutGoal = useStore((s) => s.setWeeklyWorkoutGoal);
   const waterGoal = useStore((s) => s.waterGoal);
   const setWaterGoal = useStore((s) => s.setWaterGoal);
   const waterIncrement = useStore((s) => s.waterIncrement);
@@ -507,6 +509,37 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           <Text style={[styles.settingHint, { marginTop: space.sm }]}>
             Used for the rest countdown during a workout. Adjust in 15-second steps
             (you can still tap +30s or Skip mid-workout).
+          </Text>
+
+          {/* Also asked by the goal wizard. Here as well because changing one
+              number should not mean re-running a six-step flow — and because
+              the wizard is reached from a button on this screen that nothing
+              obliges anyone to press. */}
+          <View style={[styles.hydrationRow, { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.border }]}>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              hitSlop={2}
+              onPress={() => setWeeklyWorkoutGoal(weeklyWorkoutGoal - 1)}
+            >
+              <Text style={styles.hydrationBtnText}>−</Text>
+            </TouchableOpacity>
+            <View style={styles.hydrationCenter}>
+              <Text style={styles.hydrationLabel}>Weekly Workout Goal</Text>
+              <Text style={styles.hydrationValue}>
+                {weeklyWorkoutGoal} {weeklyWorkoutGoal === 1 ? 'day' : 'days'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.hydrationBtn}
+              hitSlop={2}
+              onPress={() => setWeeklyWorkoutGoal(weeklyWorkoutGoal + 1)}
+            >
+              <Text style={styles.hydrationBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.settingHint, { marginTop: space.sm }]}>
+            Sessions a week the consistency ring on Home fills toward. It does not
+            affect your calorie or macro targets.
           </Text>
         </View>
 
