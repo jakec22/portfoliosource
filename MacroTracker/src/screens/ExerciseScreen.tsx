@@ -56,6 +56,7 @@ export function ExerciseScreen({ navigation }: Props) {
 
   // Visual training summary: how consistent the last week was, and what the
   // volume was actually spent on.
+  const weeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
   const consistency = useMemo(() => consistencyStats(history), [history]);
   const split = useMemo(() => trainingSplit(history, SPLIT_DAYS, c), [history, c]);
   const calendar = useMemo(() => trainingCalendar(history, CALENDAR_WEEKS), [history]);
@@ -287,7 +288,7 @@ export function ExerciseScreen({ navigation }: Props) {
             </View>
 
             <View style={styles.chartCard}>
-              <ConsistencyRing stats={consistency} />
+              <ConsistencyRing stats={consistency} target={weeklyWorkoutGoal} />
             </View>
 
             {split.length > 0 && (

@@ -187,6 +187,15 @@ export interface AppState {
   logs: Record<string, FoodEntry[]>; // date -> entries
   waterIntake: Record<string, number>; // date -> fluid ounces
   waterGoal: number; // daily target in fluid ounces
+  /**
+   * Sessions per week the consistency rings on Home and Exercise fill
+   * toward. Set in the goal wizard beside calories and macros, clamped to
+   * 1–14, and cloud-synced (see migration 0004).
+   *
+   * It is a commitment, not an input to any calculation: it does not touch
+   * TDEE, and training more than planned does not raise the calorie goal.
+   */
+  weeklyWorkoutGoal: number;
   waterIncrement: number; // fl oz added per water droplet tap
   showWaterTracker: boolean;
   themeMode: ThemeMode; // active theme pack (editorial/sportTech)
@@ -245,6 +254,7 @@ export interface AppState {
   addWater: (date: string, oz: number) => void;
   setWater: (date: string, oz: number) => void;
   setWaterGoal: (oz: number) => void;
+  setWeeklyWorkoutGoal: (n: number) => void;
   setWaterIncrement: (oz: number) => void;
   setShowWaterTracker: (show: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;

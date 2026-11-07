@@ -209,6 +209,7 @@ export async function syncOnLogin(userId: string): Promise<void> {
           ? state.goalsBasisWeightLbs
           : settings.goals_basis_weight_lbs ?? undefined,
       waterGoal: settings?.water_goal ?? state.waterGoal,
+      weeklyWorkoutGoal: settings?.weekly_workout_goal ?? state.weeklyWorkoutGoal,
       waterIncrement: settings?.water_increment ?? state.waterIncrement,
       showWaterTracker: settings?.show_water_tracker ?? state.showWaterTracker,
       // Guard against a pre-removal 'classic' value still sitting in a

@@ -55,6 +55,7 @@ export interface SettingsSnapshot {
   goalsAutoUpdate: boolean;
   goalsBasisWeightLbs?: number;
   waterGoal: number;
+  weeklyWorkoutGoal: number;
   waterIncrement: number;
   showWaterTracker: boolean;
   themeMode: ThemeMode;
@@ -88,6 +89,7 @@ export function settingsSnapshot(s: AppState): SettingsSnapshot {
     goalsAutoUpdate: s.goalsAutoUpdate,
     goalsBasisWeightLbs: s.goalsBasisWeightLbs,
     waterGoal: s.waterGoal,
+    weeklyWorkoutGoal: s.weeklyWorkoutGoal,
     waterIncrement: s.waterIncrement,
     showWaterTracker: s.showWaterTracker,
     themeMode: s.themeMode,
@@ -153,6 +155,10 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     goals_auto_update: s.goalsAutoUpdate,
     goals_basis_weight_lbs: s.goalsBasisWeightLbs ?? null,
     water_goal: s.waterGoal,
+    // Needs migration 0004. Until that column exists this one field fails the
+    // whole upsert, taking goals, templates and water with it — see the note
+    // at the top of 0004_weekly_workout_goal.sql.
+    weekly_workout_goal: s.weeklyWorkoutGoal,
     water_increment: s.waterIncrement,
     show_water_tracker: s.showWaterTracker,
     theme_mode: s.themeMode,

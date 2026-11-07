@@ -38,7 +38,18 @@ interface Props {
 
 // The wizard steps in order. The "pace" step is dropped when the goal is
 // "maintain" (there's no deficit/surplus to choose).
-type StepKey = 'goal' | 'basics' | 'body' | 'activity' | 'pace' | 'review';
+type StepKey = 'goal' | 'basics' | 'body' | 'activity' | 'training' | 'pace' | 'review';
+
+// Training frequency the consistency ring fills toward. Stops at 6 because a
+// seventh is a target nobody should be encouraged to set in a wizard; the
+// store accepts up to 14 for anyone who means it.
+const WEEKLY_WORKOUT_OPTIONS = [
+  { n: 2, description: 'Keeping a habit going' },
+  { n: 3, description: 'A full-body split, or easing in' },
+  { n: 4, description: 'Upper/lower twice over' },
+  { n: 5, description: 'A push/pull/legs rotation' },
+  { n: 6, description: 'Training most days' },
+] as const;
 
 // Lose/Maintain/Gain accent — mirrors the app's own down/steady/up semantics
 // (info/primary/warning) rather than a fixed palette, so it follows theme.
@@ -55,6 +66,11 @@ export function GoalWizardScreen({ navigation }: Props) {
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
   const bodyWeightLbs = useStore((s) => s.bodyWeightLbs);
   const setProfile = useStore((s) => s.setProfile);
+  const storedWeeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
+  const setWeeklyWorkoutGoal = useStore((s) => s.setWeeklyWorkoutGoal);
+  // Seeded from the stored value so re-running the wizard shows what you
+  // already chose rather than resetting you to the default.
+  const [weeklyWorkouts, setWeeklyWorkouts] = useState(storedWeeklyWorkoutGoal);
   const applyGoalPlan = useStore((s) => s.applyGoalPlan);
   const setBodyWeight = useStore((s) => s.setBodyWeight);
   const logBodyWeight = useStore((s) => s.logBodyWeight);
@@ -93,7 +109,10 @@ export function GoalWizardScreen({ navigation }: Props) {
 
   // Which steps are visible depends on the goal (maintain has no pace step).
   const steps: StepKey[] = useMemo(() => {
-    const base: StepKey[] = ['goal', 'basics', 'body', 'activity'];
+    // 'training' sits after 'activity' because both are about movement, but
+    // it is deliberately its own screen: activity feeds TDEE, this does not,
+    // and sharing a screen would imply otherwise.
+    const base: StepKey[] = ['goal', 'basics', 'body', 'activity', 'training'];
     if (goalType !== 'maintain') base.push('pace');
     base.push('review');
     return base;
@@ -139,6 +158,8 @@ export function GoalWizardScreen({ navigation }: Props) {
         return currentWeightKg() >= 30 && currentWeightKg() <= 300 &&
           currentHeightCm() >= 100 && currentHeightCm() <= 250;
       case 'activity':
+        return true;
+      case 'training':
         return true;
       case 'pace':
         return true;
@@ -205,6 +226,12 @@ export function GoalWizardScreen({ navigation }: Props) {
     // Records the weight these targets were built on, so later weigh-ins
     // can tell how far the user has drifted from them.
     applyGoalPlan(plan.goals, wLbs);
+
+    // Deliberately not part of plan.goals: this is a commitment, not an
+    // input to the Mifflin-St Jeor maths above. Training more than planned
+    // does not raise the calorie target, and the wizard should not imply it
+    // does by bundling the two.
+    setWeeklyWorkoutGoal(weeklyWorkouts);
 
     Alert.alert(
       'Goals set',
@@ -415,6 +442,37 @@ export function GoalWizardScreen({ navigation }: Props) {
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.optLabel, active && { color: c.primaryDark }]}>{a.label}</Text>
                       <Text style={styles.optDesc}>{a.description}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+
+          {step === 'training' && (
+            <>
+              <Text style={styles.title}>How often will you train?</Text>
+              <Text style={styles.subtitle}>
+                Sessions a week to aim for. This sets the ring on your home
+                screen — it doesn't change your calories.
+              </Text>
+              {WEEKLY_WORKOUT_OPTIONS.map((o) => {
+                const active = o.n === weeklyWorkouts;
+                return (
+                  <TouchableOpacity
+                    key={o.n}
+                    style={[styles.optRow, active && styles.optRowActive]}
+                    onPress={() => setWeeklyWorkouts(o.n)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.radio, active && { borderColor: c.primary }]}>
+                      {active && <View style={[styles.radioDot, { backgroundColor: c.primary }]} />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.optLabel, active && { color: c.primaryDark }]}>
+                        {o.n} days a week
+                      </Text>
+                      <Text style={styles.optDesc}>{o.description}</Text>
                     </View>
                   </TouchableOpacity>
                 );

@@ -99,6 +99,7 @@ export function HomeScreen({ navigation }: Props) {
   // This week against a weekly target. Same numbers the Exercise tab leads
   // with — the component was written to be that tab's answer to Home's
   // calorie ring, and Home never had the training equivalent.
+  const weeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
   const consistency = useMemo(() => consistencyStats(workoutHistory), [workoutHistory]);
 
   // Seven days, not the Exercise tab's thirty: Home is asking what this week
@@ -229,7 +230,7 @@ export function HomeScreen({ navigation }: Props) {
               already offers them the way in. */}
           {consistency.totalSessions > 0 && (
             <>
-              <ConsistencyRing stats={consistency} />
+              <ConsistencyRing stats={consistency} target={weeklyWorkoutGoal} />
 
               {/* Where the week's volume went. Withheld when nothing has been
                   lifted in seven days: every region would render at the same

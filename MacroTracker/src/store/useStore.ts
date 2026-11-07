@@ -71,6 +71,10 @@ export const useStore = create<AppState>()(
       logs: {},
       waterIntake: {},
       waterGoal: 64, // default ~8 cups
+      // Sessions per week the consistency rings fill toward. 4 is what both
+      // rings were hardcoded to before this was settable, so an existing
+      // user's ring does not move when they update.
+      weeklyWorkoutGoal: 4,
       waterIncrement: 8, // fl oz per droplet tap
       showWaterTracker: true,
       themeMode: 'editorial',
@@ -226,6 +230,14 @@ export const useStore = create<AppState>()(
             [date]: Math.max(0, Math.round(oz)),
           },
         }));
+        syncSettings();
+      },
+
+      setWeeklyWorkoutGoal: (n) => {
+        // Clamped to the same 1–14 the Supabase check constraint enforces, so
+        // the app can never write a row the database will reject — and never
+        // a zero, which the ring would divide by.
+        set({ weeklyWorkoutGoal: Math.max(1, Math.min(14, Math.round(n))) });
         syncSettings();
       },
 
@@ -743,6 +755,7 @@ export const useStore = create<AppState>()(
       clearLocalData: () => {
         set({
           goals: DEFAULT_GOALS,
+          weeklyWorkoutGoal: 4,
           logs: {},
           waterIntake: {},
           waterGoal: 64,
