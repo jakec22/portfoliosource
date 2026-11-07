@@ -115,12 +115,6 @@ export function HomeScreen({ navigation }: Props) {
   }, [weekSplit]);
 
   const [activeEnergy, setActiveEnergy] = useState<number | null>(null);
-  // Burned, Duration, Volume, Sets and Avg HR can all be present at once, and
-  // five across a phone is one more than the row's type size can carry.
-  const statCount =
-    (activeEnergy != null ? 1 : 0) +
-    (dayWorkoutStats ? 3 + (dayWorkoutStats.hr ? 1 : 0) : 0);
-  const statsAreCrowded = statCount > 4;
   const [hkAvailable] = useState(() => activeEnergyAvailable());
   useEffect(() => {
     if (!hkAvailable) return;
@@ -275,7 +269,6 @@ export function HomeScreen({ navigation }: Props) {
                   label="Burned"
                   value={Math.round(activeEnergy).toLocaleString()}
                   unit="kcal"
-                  compact={statsAreCrowded}
                   c={c}
                 />
               )}
@@ -284,7 +277,6 @@ export function HomeScreen({ navigation }: Props) {
                   <WorkoutStat
                     label="Duration"
                     value={formatDuration(dayWorkoutStats.totalDurationMs)}
-                    compact={statsAreCrowded}
                     c={c}
                   />
                   <WorkoutStat
@@ -295,13 +287,6 @@ export function HomeScreen({ navigation }: Props) {
                         : String(Math.round(dayWorkoutStats.totalVolume))
                     }
                     unit="lb"
-                    compact={statsAreCrowded}
-                    c={c}
-                  />
-                  <WorkoutStat
-                    label="Sets"
-                    value={`${dayWorkoutStats.doneSets}/${dayWorkoutStats.totalSets}`}
-                    compact={statsAreCrowded}
                     c={c}
                   />
                   {dayWorkoutStats.hr && (
@@ -309,7 +294,6 @@ export function HomeScreen({ navigation }: Props) {
                       label="Avg HR"
                       value={String(dayWorkoutStats.hr.avg)}
                       unit="bpm"
-                      compact={statsAreCrowded}
                       c={c}
                     />
                   )}
@@ -465,14 +449,11 @@ function WorkoutStat({
   label,
   value,
   unit,
-  compact,
   c,
 }: {
   label: string;
   value: string;
   unit?: string;
-  /** Set when five stats share the row; see statValueCompact. */
-  compact?: boolean;
   c: Theme;
 }) {
   const s = useMemo(() => makeStatStyles(c), [c]);
@@ -480,7 +461,7 @@ function WorkoutStat({
     <View style={s.stat}>
       <View style={s.statValueRow}>
         <Text
-          style={[s.statValue, compact && s.statValueCompact]}
+          style={s.statValue}
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.75}
@@ -501,12 +482,6 @@ const makeStatStyles = (c: Theme) =>
     stat: { flex: 1, alignItems: 'center' },
     statValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
     statValue: { ...type.subhead(c), ...tabular, color: c.text },
-    // Five stats share 310pt on a 390pt phone — about 62pt each — and an
-    // hour-plus workout's "1:02:30" measures ~56pt at 18pt, which left so
-    // little between columns that it ran into the Volume figure beside it.
-    // A gap does not fix that: the ink is what is too wide. So the row drops
-    // a step on the type scale when it is that full, and only then.
-    statValueCompact: { ...type.body(c), ...tabular, color: c.text },
     statUnit: { ...type.micro(c), color: c.textFaint },
     statLabel: { ...type.micro(c), color: c.textMuted, marginTop: space.xxs },
   });
