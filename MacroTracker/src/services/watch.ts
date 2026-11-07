@@ -48,6 +48,59 @@ function onWatchEvent(event: string, cb: (payload: any) => void): () => void {
   return events.on(event, cb);
 }
 
+/**
+ * How long a queued command from the watch stays worth acting on.
+ *
+ * `transferUserInfo` holds a command until this app next runs, which can be
+ * minutes or hours. Most of what the watch sends is only meaningful close to
+ * when it was sent — starting a workout above all — so anything older than
+ * this is dropped rather than replayed into a phantom session. Matches the
+ * window the watch already applies to a workout arriving by context.
+ */
+const COMMAND_TTL_MS = 5 * 60 * 1000;
+
+/** False only when the watch stamped the command and it has since gone stale. */
+function isFresh(message: any): boolean {
+  const sentAt = Number(message?.sentAt);
+  // An older watch build sends no stamp; treat those as live rather than
+  // silently ignoring everything it sends.
+  if (!Number.isFinite(sentAt)) return true;
+  return Date.now() - sentAt <= COMMAND_TTL_MS;
+}
+
+/**
+ * Subscribe to a command from the watch, however it travelled.
+ *
+ * The watch sends with `sendMessage` when this app is reachable and queues
+ * with `transferUserInfo` when it is not (see sendReliable in
+ * targets/watch/content.swift). Listening only to 'message', as this did,
+ * meant every command sent while the phone was backgrounded or closed was
+ * never seen — which is what made starting a workout from the wrist appear to
+ * do nothing.
+ *
+ * 'user-info' delivers an array of `{ id, timestamp, userInfo }`, and the
+ * binding also replays the queue missed while the app was not running, so
+ * both channels have to feed the same handler.
+ */
+function onWatchCommand(cb: (message: any) => void): () => void {
+  const offMessage = onWatchEvent('message', cb);
+  const offQueued = onWatchEvent('user-info', (items: any) => {
+    const list = Array.isArray(items) ? items : [items];
+    for (const item of list) {
+      const payload = item?.userInfo ?? item;
+      if (payload) cb(payload);
+    }
+  });
+  return () => {
+    try {
+      offMessage();
+    } catch {}
+    try {
+      offQueued();
+    } catch {}
+  };
+}
+
 function startWatchApp(args: { activityType: number }): void {
   if (Platform.OS !== 'ios') return;
   try {
@@ -250,8 +303,10 @@ export function setWatchTemplates(templates: WatchTemplateSummary[]): void {
 // templateId is '' for a blank quick-start. Returns an unsubscribe function.
 export function subscribeWatchStartWorkout(cb: (templateId: string) => void): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = onWatchEvent('message', (message: any) => {
-    if (message?.type === 'startTemplate') {
+  const unsubscribe = onWatchCommand((message: any) => {
+    // Stale-guarded: a queued start delivered long after the fact would open
+    // a workout the user has forgotten about.
+    if (message?.type === 'startTemplate' && isFresh(message)) {
       cb(typeof message.templateId === 'string' ? message.templateId : '');
     }
   });
@@ -368,7 +423,7 @@ export function stopWatchRest(): void {
  */
 export function subscribeWatchPlanRequest(): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = onWatchEvent('message', (message: any) => {
+  const unsubscribe = onWatchCommand((message: any) => {
     if (message?.type === 'requestPlan') pushContext();
   });
   return () => {
@@ -384,7 +439,7 @@ export function subscribeWatchSetToggle(
   cb: (exerciseId: string, setId: string, completed: boolean) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = onWatchEvent('message', (message: any) => {
+  const unsubscribe = onWatchCommand((message: any) => {
     if (
       message?.type === 'toggleSet' &&
       typeof message.exerciseId === 'string' &&
@@ -412,7 +467,7 @@ export function subscribeWatchSetEdit(
   ) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = onWatchEvent('message', (message: any) => {
+  const unsubscribe = onWatchCommand((message: any) => {
     if (
       message?.type === 'updateSet' &&
       typeof message.exerciseId === 'string' &&
@@ -440,8 +495,12 @@ export function subscribeWatchWorkoutFinish(
   cb: (completeAll: boolean) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
-  const unsubscribe = onWatchEvent('message', (message: any) => {
-    if (message?.type === 'finishWorkout') cb(!!message.completeAll);
+  const unsubscribe = onWatchCommand((message: any) => {
+    // Stale-guarded for the same reason as the start: finishing a workout is
+    // destructive, and a queued one could land against a different session.
+    if (message?.type === 'finishWorkout' && isFresh(message)) {
+      cb(!!message.completeAll);
+    }
   });
   return () => {
     try {
@@ -472,6 +531,12 @@ export function resetWorkoutHrBuffer(): void {
 
 // Subscribe to live heart-rate samples streamed from the watch during a
 // workout. Returns an unsubscribe function.
+//
+// Deliberately the only watch listener still on 'message' alone rather than
+// onWatchCommand: this is a live stream, the watch sends it with a plain
+// sendMessage, and a sample that misses because the phone was unreachable is
+// correctly lost. Queueing it would replay a backlog of stale beats into a
+// workout that has already moved on, or ended.
 export function subscribeWatchHeartRate(
   cb: (bpm: number, timestamp: number) => void
 ): () => void {

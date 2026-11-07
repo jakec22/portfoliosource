@@ -445,36 +445,51 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         ])
     }
 
-    // Watch→phone set updates. Uses sendMessage (the proven path, same as HR
-    // streaming); transferUserInfo received events are unreliable on the RN side.
+    // Watch→phone set updates.
     private func sendSetMessage(_ message: [String: Any]) {
         sendReliable(message)
     }
 
-    // sendMessage silently drops a command if the phone isn't reachable at that
-    // exact instant (screen off, momentarily out of Bluetooth range) — there's no
-    // queued fallback wired up on the phone's WatchConnectivity binding, so a
-    // one-shot send can lose a set check-off or a finished workout entirely.
-    // Retry with backoff instead of firing once and hoping; give up once the
-    // session deactivates or after a handful of attempts.
-    private func sendReliable(_ message: [String: Any], attempt: Int = 0) {
+    /// Send a command to the phone so that it actually arrives.
+    ///
+    /// `sendMessage` only delivers while the counterpart app is *reachable*,
+    /// which on iOS means roughly "in the foreground". This used to answer an
+    /// unreachable phone by retrying five times over about 31 seconds and then
+    /// giving up, which is why starting a workout from the wrist did nothing
+    /// unless the phone app happened to be open at that moment: the phone was
+    /// in a pocket, every attempt missed, and the command was dropped without
+    /// a trace. Set check-offs and Complete Workout had the same hole.
+    ///
+    /// `transferUserInfo` is the fix. The OS queues it, it survives both apps
+    /// being closed, it is delivered FIFO, and the phone's binding replays
+    /// whatever was missed when the app next runs. A previous comment here
+    /// claimed that channel was unreliable on the React Native side; it was
+    /// not — nothing on the phone had ever subscribed to it, so nothing was
+    /// ever received. That subscription now exists (onWatchCommand in
+    /// src/services/watch.ts) and both channels feed the same handlers.
+    ///
+    /// Every command carries `sentAt`, because a queued command can arrive
+    /// long after it stopped meaning anything — a "start workout" delivered an
+    /// hour late must not open a phantom session. The phone drops stale ones.
+    ///
+    /// Heart rate deliberately does not come through here: it streams with a
+    /// plain `sendMessage` in workout.swift, where dropping a sample during a
+    /// blip is correct and queueing hundreds of them would not be.
+    private func sendReliable(_ payload: [String: Any]) {
         let session = WCSession.default
         guard session.activationState == .activated else { return }
+        var message = payload
+        message["sentAt"] = Date().timeIntervalSince1970 * 1000
+
         guard session.isReachable else {
-            retryReliableSend(message, attempt: attempt)
+            session.transferUserInfo(message)
             return
         }
-        session.sendMessage(message, replyHandler: nil, errorHandler: { [weak self] _ in
-            self?.retryReliableSend(message, attempt: attempt)
+        session.sendMessage(message, replyHandler: nil, errorHandler: { _ in
+            // Reachable an instant ago, not any more. Queue rather than retry:
+            // the queue outlives the app, a retry ladder does not.
+            session.transferUserInfo(message)
         })
-    }
-
-    private func retryReliableSend(_ message: [String: Any], attempt: Int) {
-        guard attempt < 5 else { return } // ~1+2+4+8+16s of retrying, then give up
-        let delay = pow(2.0, Double(attempt))
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            self?.sendReliable(message, attempt: attempt + 1)
-        }
     }
 
     // Complete the whole workout from the wrist: end the on-wrist session (shows
