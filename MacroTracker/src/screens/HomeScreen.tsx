@@ -94,6 +94,12 @@ export function HomeScreen({ navigation }: Props) {
   // null (hidden) with no native module, no permission or no data, so it never
   // shows a misleading zero.
   const [activeEnergy, setActiveEnergy] = useState<number | null>(null);
+  // Burned, Duration, Volume, Sets and Avg HR can all be present at once, and
+  // five across a phone is one more than the row's type size can carry.
+  const statCount =
+    (activeEnergy != null ? 1 : 0) +
+    (dayWorkoutStats ? 3 + (dayWorkoutStats.hr ? 1 : 0) : 0);
+  const statsAreCrowded = statCount > 4;
   const [hkAvailable] = useState(() => activeEnergyAvailable());
   useEffect(() => {
     if (!hkAvailable) return;
@@ -196,33 +202,70 @@ export function HomeScreen({ navigation }: Props) {
           <View style={styles.cardTitleRow}>
             <Icon name="workout" size="sm" color={c.gray700} />
             <Text style={styles.cardTitleInline}>Training</Text>
-            {activeEnergy != null && (
-              <>
-                <View style={{ flex: 1 }} />
-                <Text style={styles.energyInline}>{activeEnergy} kcal burned</Text>
-              </>
-            )}
           </View>
+
+          {/* Burned leads the stats row rather than sitting in the header as a
+              13pt caption, which is where it was and where it read as a
+              footnote to the card's title instead of as one of the day's
+              numbers.
+
+              It is also the reason this row no longer lives inside the
+              `dayWorkoutStats` branch: active energy is a whole-day figure
+              from the health store, not something the workout produced, so it
+              is just as true on a day with no workout logged — and on exactly
+              that day the old placement hid it completely. */}
+          {(dayWorkoutStats || activeEnergy != null) && (
+            <View style={styles.workoutStatsRow}>
+              {activeEnergy != null && (
+                <WorkoutStat
+                  label="Burned"
+                  value={Math.round(activeEnergy).toLocaleString()}
+                  unit="kcal"
+                  compact={statsAreCrowded}
+                  c={c}
+                />
+              )}
+              {dayWorkoutStats && (
+                <>
+                  <WorkoutStat
+                    label="Duration"
+                    value={formatDuration(dayWorkoutStats.totalDurationMs)}
+                    compact={statsAreCrowded}
+                    c={c}
+                  />
+                  <WorkoutStat
+                    label="Volume"
+                    value={
+                      dayWorkoutStats.totalVolume >= 1000
+                        ? `${(dayWorkoutStats.totalVolume / 1000).toFixed(1)}k`
+                        : String(Math.round(dayWorkoutStats.totalVolume))
+                    }
+                    unit="lb"
+                    compact={statsAreCrowded}
+                    c={c}
+                  />
+                  <WorkoutStat
+                    label="Sets"
+                    value={`${dayWorkoutStats.doneSets}/${dayWorkoutStats.totalSets}`}
+                    compact={statsAreCrowded}
+                    c={c}
+                  />
+                  {dayWorkoutStats.hr && (
+                    <WorkoutStat
+                      label="Avg HR"
+                      value={String(dayWorkoutStats.hr.avg)}
+                      unit="bpm"
+                      compact={statsAreCrowded}
+                      c={c}
+                    />
+                  )}
+                </>
+              )}
+            </View>
+          )}
 
           {dayWorkoutStats ? (
             <>
-              <View style={styles.workoutStatsRow}>
-                <WorkoutStat label="Duration" value={formatDuration(dayWorkoutStats.totalDurationMs)} c={c} />
-                <WorkoutStat
-                  label="Volume"
-                  value={
-                    dayWorkoutStats.totalVolume >= 1000
-                      ? `${(dayWorkoutStats.totalVolume / 1000).toFixed(1)}k`
-                      : String(Math.round(dayWorkoutStats.totalVolume))
-                  }
-                  unit="lb"
-                  c={c}
-                />
-                <WorkoutStat label="Sets" value={`${dayWorkoutStats.doneSets}/${dayWorkoutStats.totalSets}`} c={c} />
-                {dayWorkoutStats.hr && (
-                  <WorkoutStat label="Avg HR" value={String(dayWorkoutStats.hr.avg)} unit="bpm" c={c} />
-                )}
-              </View>
               {dayWorkouts.map((w) => (
                 <WorkoutHistoryItem
                   key={w.id}
@@ -347,21 +390,33 @@ function WorkoutStat({
   label,
   value,
   unit,
+  compact,
   c,
 }: {
   label: string;
   value: string;
   unit?: string;
+  /** Set when five stats share the row; see statValueCompact. */
+  compact?: boolean;
   c: Theme;
 }) {
   const s = useMemo(() => makeStatStyles(c), [c]);
   return (
     <View style={s.stat}>
       <View style={s.statValueRow}>
-        <Text style={s.statValue}>{value}</Text>
+        <Text
+          style={[s.statValue, compact && s.statValueCompact]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
+          {value}
+        </Text>
         {unit && <Text style={s.statUnit}>{unit}</Text>}
       </View>
-      <Text style={s.statLabel}>{label}</Text>
+      <Text style={s.statLabel} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -371,6 +426,12 @@ const makeStatStyles = (c: Theme) =>
     stat: { flex: 1, alignItems: 'center' },
     statValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
     statValue: { ...type.subhead(c), ...tabular, color: c.text },
+    // Five stats share 310pt on a 390pt phone — about 62pt each — and an
+    // hour-plus workout's "1:02:30" measures ~56pt at 18pt, which left so
+    // little between columns that it ran into the Volume figure beside it.
+    // A gap does not fix that: the ink is what is too wide. So the row drops
+    // a step on the type scale when it is that full, and only then.
+    statValueCompact: { ...type.body(c), ...tabular, color: c.text },
     statUnit: { ...type.micro(c), color: c.textFaint },
     statLabel: { ...type.micro(c), color: c.textMuted, marginTop: space.xxs },
   });
@@ -421,7 +482,6 @@ const makeStyles = (c: Theme) =>
       marginBottom: space.lg,
     },
     cardTitleInline: { ...type.bodyStrong(c), color: c.gray700 },
-    energyInline: { ...type.caption(c), ...tabular, color: c.textMuted },
 
     workoutStatsRow: { flexDirection: 'row', marginBottom: space.md },
     restRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
