@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useStore, sumMacros } from '../store/useStore';
+import { useStore, sumMacros, DEFAULT_GOALS } from '../store/useStore';
 import { useToday } from '../hooks/useToday';
 import { useSnackbar } from '../store/useSnackbar';
 import { getPastDays, formatDuration, parseDate } from '../utils/date';
@@ -22,6 +22,7 @@ import type { Theme } from '../theme';
 import { radius, space, tabular, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { ConsistencyRing } from '../components/ConsistencyRing';
+import { SetUpGoalsCard } from '../components/SetUpGoalsCard';
 import { BodyHeatMap, BODY_CATEGORIES } from '../components/BodyHeatMap';
 import { consistencyStats, trainingSplit } from '../utils/trainingSplit';
 
@@ -100,6 +101,20 @@ export function HomeScreen({ navigation }: Props) {
   // with — the component was written to be that tab's answer to Home's
   // calorie ring, and Home never had the training equivalent.
   const weeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
+  const profile = useStore((s) => s.profile);
+  const goalsPromptDismissed = useStore((s) => s.goalsPromptDismissed);
+  const dismissGoalsPrompt = useStore((s) => s.dismissGoalsPrompt);
+
+  // Only when the user has genuinely never set a target: no wizard profile,
+  // and every goal still exactly the shipped default. Hand-typing goals in
+  // the Calculator leaves no profile behind, so testing `profile` alone would
+  // tell someone their own numbers are not theirs.
+  const goalsAreUntouched =
+    !profile &&
+    !goalsPromptDismissed &&
+    (Object.keys(DEFAULT_GOALS) as (keyof typeof DEFAULT_GOALS)[]).every(
+      (k) => goals[k] === DEFAULT_GOALS[k]
+    );
   const consistency = useMemo(() => consistencyStats(workoutHistory), [workoutHistory]);
 
   // Seven days, not the Exercise tab's thirty: Home is asking what this week
@@ -188,6 +203,13 @@ export function HomeScreen({ navigation }: Props) {
             day: 'numeric',
           })}
         </Text>
+
+        {goalsAreUntouched && (
+          <SetUpGoalsCard
+            onStart={() => navigation.navigate('GoalWizard')}
+            onDismiss={dismissGoalsPrompt}
+          />
+        )}
 
         {goalsUpdateNotice && (
           <GoalsUpdatedCard

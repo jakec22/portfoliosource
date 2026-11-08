@@ -196,6 +196,14 @@ export interface AppState {
    * TDEE, and training more than planned does not raise the calorie goal.
    */
   weeklyWorkoutGoal: number;
+  /**
+   * Whether the "your targets are still the defaults" card on Home has been
+   * waved away. Deliberately NOT cloud-synced: it is device UI state, not
+   * user data, and syncing it would cost a fifth Supabase migration for one
+   * boolean. The card's real off-switch is running the wizard, which sets
+   * `profile` — and that does sync, so it clears the card everywhere.
+   */
+  goalsPromptDismissed: boolean;
   waterIncrement: number; // fl oz added per water droplet tap
   showWaterTracker: boolean;
   themeMode: ThemeMode; // active theme pack (editorial/sportTech)
@@ -255,6 +263,7 @@ export interface AppState {
   setWater: (date: string, oz: number) => void;
   setWaterGoal: (oz: number) => void;
   setWeeklyWorkoutGoal: (n: number) => void;
+  dismissGoalsPrompt: () => void;
   setWaterIncrement: (oz: number) => void;
   setShowWaterTracker: (show: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;

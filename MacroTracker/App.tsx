@@ -75,6 +75,16 @@ function HomeStack() {
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="KeyInsights" component={KeyInsightsScreen as any} />
       <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
+      {/* Registered here as well as in ProfileStack, because Home's "set up
+          goals" card pushes it. This app registers a shared screen in every
+          stack that reaches it rather than leaning on React Navigation
+          finding the name in a sibling navigator — KeyInsights sits in four
+          stacks for the same reason. */}
+      <Stack.Screen
+        name="GoalWizard"
+        component={GoalWizardScreen as any}
+        options={{ presentation: 'modal' }}
+      />
     </Stack.Navigator>
   );
 }

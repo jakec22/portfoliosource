@@ -27,7 +27,10 @@ import {
 import { startWatchWorkout, endWatchWorkout } from '../services/watch';
 import { downsampleHeartRate } from '../services/heartRate';
 
-const DEFAULT_GOALS: DailyGoals = {
+// Exported so Home can tell "never set any goals" apart from "set them by
+// hand in the Calculator" — the nudge must not tell the second user that
+// their own numbers are not theirs.
+export const DEFAULT_GOALS: DailyGoals = {
   calories: 2000,
   protein: 150,
   carbs: 200,
@@ -75,6 +78,7 @@ export const useStore = create<AppState>()(
       // rings were hardcoded to before this was settable, so an existing
       // user's ring does not move when they update.
       weeklyWorkoutGoal: 4,
+      goalsPromptDismissed: false,
       waterIncrement: 8, // fl oz per droplet tap
       showWaterTracker: true,
       themeMode: 'editorial',
@@ -136,6 +140,9 @@ export const useStore = create<AppState>()(
       },
 
       dismissGoalsUpdateNotice: () => set({ goalsUpdateNotice: undefined }),
+
+      // No syncSettings(): see the note on goalsPromptDismissed in AppState.
+      dismissGoalsPrompt: () => set({ goalsPromptDismissed: true }),
 
       // Remembers a name typed at the rack so the picker has it next time.
       // Case-insensitive, because "hack squat" and "Hack Squat" are the same
@@ -756,6 +763,7 @@ export const useStore = create<AppState>()(
         set({
           goals: DEFAULT_GOALS,
           weeklyWorkoutGoal: 4,
+          goalsPromptDismissed: false,
           logs: {},
           waterIntake: {},
           waterGoal: 64,
