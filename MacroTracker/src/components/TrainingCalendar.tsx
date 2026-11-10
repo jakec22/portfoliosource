@@ -9,7 +9,11 @@ interface Props {
   calendar: CalendarData;
 }
 
-const DAY_LABELS = ['M', '', 'W', '', 'F', '', ''];
+// Rows are Sunday → Saturday. Labelled on Mon/Wed/Fri rather than
+// Sun/Tue/Thu: with one letter per label those three are the only ones that
+// are not ambiguous, where S could be either end of the week and T could be
+// either middle of it.
+const DAY_LABELS = ['', 'M', '', 'W', '', 'F', ''];
 
 // Cell size and row gap. 12 columns at this pitch fit a phone's card width.
 const CELL = 14;

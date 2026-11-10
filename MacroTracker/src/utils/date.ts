@@ -10,6 +10,23 @@ export function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * `n` calendar days from `ms`, at local midnight.
+ *
+ * Not `ms + n * 86400000`: a day is not always 86,400,000 ms. Across a DST
+ * boundary that arithmetic lands an hour off, which is enough to name the
+ * wrong day — stepping back to Sunday from Wed 4 Nov 2026 in New York gives
+ * Sunday 01:00, and a session logged at that Sunday's midnight then sorts
+ * *before* the start of its own week. setDate handles the offset and rolls
+ * months and years on its own.
+ */
+export function addDays(ms: number, n: number): number {
+  const d = new Date(ms);
+  d.setDate(d.getDate() + n);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
 export function parseDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number);
   return new Date(y, m - 1, d);

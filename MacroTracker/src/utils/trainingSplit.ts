@@ -1,6 +1,6 @@
 import { EXERCISE_CATALOG } from './exerciseList';
 import { normalizeExerciseName } from './exerciseHistory';
-import { formatDate, parseDate, todayString } from './date';
+import { addDays, formatDate, parseDate, todayString } from './date';
 import type { Theme } from '../theme';
 import type { WorkoutSession } from '../types';
 
@@ -151,10 +151,24 @@ export function trainingSplit(
     }));
 }
 
+/**
+ * Midnight on the Sunday that starts the week containing `ms`.
+ *
+ * One definition of "a week", used by the consistency ring and by the
+ * calendar grid. They disagreed before this existed: the ring counted a
+ * rolling trailing seven days while the grid drew Monday-to-Sunday columns,
+ * so on any day but Sunday the two said different things about the same
+ * training on the same screen.
+ */
+export function weekStartMs(ms: number): number {
+  // getDay() is already 0 = Sunday, which is the week start we want.
+  return addDays(ms, -new Date(ms).getDay());
+}
+
 export interface ConsistencyStats {
-  /** Workouts completed in the last 7 days. */
+  /** Workouts completed since Sunday, this calendar week. */
   thisWeek: number;
-  /** Consecutive weeks (back from this one) with at least one workout. */
+  /** Consecutive calendar weeks (back from this one) with at least one workout. */
   weekStreak: number;
   totalSessions: number;
 }
@@ -163,21 +177,30 @@ export interface ConsistencyStats {
 export function consistencyStats(history: WorkoutSession[]): ConsistencyStats {
   const done = history.filter((s) => s.completedAt != null);
   const todayMs = parseDate(todayString()).getTime();
+  const thisWeekStart = weekStartMs(todayMs);
 
+  // Sunday to today, not the trailing seven days. The rolling window meant
+  // the ring could fall without anyone missing a session: train Mon-Wed and
+  // the next Monday your Monday aged out, so "3 of 4" became "2 of 4" during
+  // a week you had trained every one of. A calendar week also gives the goal
+  // a real reset, which is what "1 to go this week" was already implying.
   let thisWeek = 0;
   for (const s of done) {
-    const daysAgo = Math.floor((todayMs - parseDate(s.date).getTime()) / 86400000);
-    if (daysAgo >= 0 && daysAgo < 7) thisWeek += 1;
+    const dayMs = parseDate(s.date).getTime();
+    if (dayMs >= thisWeekStart && dayMs <= todayMs) thisWeek += 1;
   }
 
   // Walk back week by week; the streak ends at the first empty week. The
   // current week doesn't break it when it's still empty — you haven't missed
   // it yet, it just hasn't happened.
-  const weekHasWorkout = (weeksAgo: number): boolean =>
-    done.some((s) => {
-      const daysAgo = Math.floor((todayMs - parseDate(s.date).getTime()) / 86400000);
-      return daysAgo >= weeksAgo * 7 && daysAgo < (weeksAgo + 1) * 7;
+  const weekHasWorkout = (weeksAgo: number): boolean => {
+    const start = addDays(thisWeekStart, -weeksAgo * 7);
+    const end = addDays(start, 7);
+    return done.some((s) => {
+      const dayMs = parseDate(s.date).getTime();
+      return dayMs >= start && dayMs < end;
     });
+  };
 
   let weekStreak = 0;
   for (let w = weekHasWorkout(0) ? 0 : 1; w < 260; w++) {
@@ -198,7 +221,7 @@ export interface CalendarDay {
 }
 
 export interface TrainingCalendar {
-  /** Columns, oldest → newest. Each is a Mon→Sun week. */
+  /** Columns, oldest → newest. Each is a Sun→Sat week. */
   weeks: CalendarDay[][];
   sessions: number;
   /** Longest run of consecutive untrained days inside the window. */
@@ -217,9 +240,9 @@ export function trainingCalendar(history: WorkoutSession[], weeks = 12): Trainin
   let sessions = 0;
 
   const todayMs = parseDate(todayString()).getTime();
-  // Monday of the current week, so the grid always ends on a whole week.
-  const todayDow = (new Date(todayMs).getDay() + 6) % 7; // 0 = Monday
-  const startMs = todayMs - (todayDow + (weeks - 1) * 7) * 86400000;
+  // Sunday of the current week, so the grid always ends on a whole week and
+  // its columns line up with the weeks the consistency ring counts.
+  const startMs = addDays(weekStartMs(todayMs), -(weeks - 1) * 7);
 
   for (const s of history) {
     if (s.completedAt == null) continue;
@@ -247,7 +270,7 @@ export function trainingCalendar(history: WorkoutSession[], weeks = 12): Trainin
   for (let w = 0; w < weeks; w++) {
     const week: CalendarDay[] = [];
     for (let d = 0; d < 7; d++) {
-      const ms = startMs + (w * 7 + d) * 86400000;
+      const ms = addDays(startMs, w * 7 + d);
       const date = formatDate(new Date(ms));
       const volume = volumeByDate.get(date) ?? 0;
       const future = ms > todayMs;
