@@ -669,8 +669,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   amountInput: {
     ...type.body(c),
     fontFamily: c.fontBodySemi,
-    width: 64,
-    height: 34,
+    // minWidth / minHeight, not width / height: the text inside scales with
+    // the reader's size setting, and a fixed box crops it instead of growing.
+    // The label beside it is flex:1, so it gives up the room.
+    minWidth: 64,
+    minHeight: 34,
     borderWidth: 1.5,
     borderColor: c.border,
     borderRadius: radius.control,

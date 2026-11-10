@@ -301,6 +301,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                     onPress={() => reorderWorkoutExercise(ex.id, 'up')}
                     disabled={exIdx === 0}
                     style={styles.reorderBtn}
+                    hitSlop={8}
                   >
                     <Icon name="arrowUp" size="sm" color={exIdx === 0 ? c.textFaint : c.gray700} />
                   </TouchableOpacity>
@@ -308,6 +309,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                     onPress={() => reorderWorkoutExercise(ex.id, 'down')}
                     disabled={exIdx === workout.exercises.length - 1}
                     style={styles.reorderBtn}
+                    hitSlop={8}
                   >
                     <Icon
                       name="arrowDown"
@@ -384,6 +386,10 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       style={styles.colSet}
                       onPress={() => pickSetType(ex.id, set.id)}
                       activeOpacity={0.7}
+                      // 40×28 drawn; the bubble is meant to be small. hitSlop
+                      // takes the reach to 44×44 without widening the column
+                      // or growing the row.
+                      hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
                     >
                       {(() => {
                         const badge = setBadgeInfo(set.type, i, styles);
@@ -448,6 +454,8 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       style={styles.colCheck}
                       onPress={() => toggleWorkoutSet(ex.id, set.id)}
                       activeOpacity={0.7}
+                      // 64 wide already; the 38pt box is 3pt short each side.
+                      hitSlop={{ top: 3, bottom: 3 }}
                     >
                       <View style={[styles.checkbox, set.completed && styles.checkboxOn]}>
                         {set.completed && <Icon name="check" size="xs" color={c.onPrimary} />}

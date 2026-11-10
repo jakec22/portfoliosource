@@ -90,6 +90,14 @@ Constraints:
   return.
 - Watch functionality is iOS-only; the Android port deliberately ships without
   it, and without the home-screen widget.
+- **iPhone only.** `ios.supportsTablet` is false. Nothing in the layout adapts
+  to width — there are no size classes anywhere — so on iPad every card spanned
+  the full 834pt with the text stranded at one end. The product is built for
+  one-handed use mid-set, which is not an iPad posture, so iPad gets Apple's
+  scaled-iPhone compatibility window instead of a stretched layout pretending
+  to be designed for it. Portrait-locking an iPad app would also have needed
+  `UIRequiresFullScreen`. Reversing this means real iPad work — a sidebar in
+  place of the tab bar, split view on the list screens — not a flag.
 - Accessibility is a known, accepted gap: there are no accessibility labels or
   roles on any control, and a number of tap targets sit under 44pt. The owner
   has deferred this; it is recorded, not resolved.

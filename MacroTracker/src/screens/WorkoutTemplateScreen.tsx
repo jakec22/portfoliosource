@@ -210,7 +210,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                   placeholder={`Exercise ${idx + 1}`}
                   placeholderTextColor={c.textFaint}
                 />
-                <TouchableOpacity onPress={() => setPickerExId(e.id)} style={styles.exListBtn}>
+                <TouchableOpacity onPress={() => setPickerExId(e.id)} style={styles.exListBtn} hitSlop={8}>
                   <Text style={styles.exListBtnText}>List</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => removeExercise(e.id)} style={styles.exRemove}>
