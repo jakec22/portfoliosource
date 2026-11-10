@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  ActiveRecovery,
   AppState,
   DailyGoals,
   Food,
@@ -25,7 +26,7 @@ import {
   deleteWorkoutRemote,
   settingsSnapshot,
 } from '../services/sync';
-import { startWatchWorkout, endWatchWorkout } from '../services/watch';
+import { startWatchWorkout, startWatchRecovery, endWatchWorkout } from '../services/watch';
 import { downsampleHeartRate } from '../services/heartRate';
 
 // Exported so Home can tell "never set any goals" apart from "set them by
@@ -113,6 +114,7 @@ export const useStore = create<AppState>()(
       savedMeals: [],
       workoutTemplates: [],
       activeWorkout: null,
+      activeRecovery: null,
       workoutHistory: [],
 
       // Typing goals in by hand is a deliberate override, so it clears the
@@ -154,33 +156,109 @@ export const useStore = create<AppState>()(
       },
 
       /**
-       * Save a finished sauna or plunge.
+       * Begin a sauna or plunge.
        *
-       * Deliberately not routed through startWorkout/finishWorkout. A
-       * recovery session has no sets to check off and no watch session to
-       * run, and borrowing `activeWorkout` for it would mean a sauna and a
-       * lift could not be in progress at once — which is wrong, since the
-       * ordinary case is one straight after the other. So it is built
-       * finished and appended, the way a completed workout would be.
+       * Deliberately kept out of activeWorkout. A recovery session has no
+       * sets to check off, and borrowing that slot would mean a sauna and a
+       * lift could not both be in progress — which is wrong, since the
+       * ordinary case is one straight after the other.
        *
-       * Dated from startedAt rather than today, so a plunge begun before
-       * midnight lands on the day it was begun.
+       * The watch session, though, is shared: only one HKWorkoutSession can
+       * run on a wrist at a time, so startWatchWorkout is the same call a
+       * lift makes, carrying RECOVERY_HK as the activity type. That session
+       * is what makes heart rate worth having here — off-workout the watch
+       * samples every few minutes, which over a three-minute plunge is one
+       * reading if you are lucky.
        */
-      logRecoverySession: (kind, startedAt, endedAt) => {
-        const type = recoveryType(kind);
+      startRecovery: (kind, preset) => {
+        // One HKWorkoutSession per wrist: starting this would silently take
+        // the watch away from whatever is already running.
+        const state0 = get();
+        if (state0.activeWorkout || state0.activeRecovery) return null;
+        const now = Date.now();
+        const recovery: ActiveRecovery = {
+          id: `r-${now}-${Math.random()}`,
+          kind,
+          targetSeconds: preset.targetSeconds,
+          mode: preset.mode,
+          startedAt: now,
+        };
+        set((state) => ({
+          activeRecovery: recovery,
+          recoveryPresets: { ...state.recoveryPresets, [kind]: preset },
+        }));
+        syncSettings();
+        startWatchRecovery(recovery.id, kind, preset.targetSeconds, preset.mode);
+        return recovery;
+      },
+
+      /**
+       * Record a recovery the watch ran on its own.
+       *
+       * The counterpart to finishRecovery, for the session this phone never
+       * saw begin: its start was queued while the phone was unreachable and
+       * dropped on arrival for being stale, which is what happens to any
+       * sauna longer than the command TTL. The watch's finish carries
+       * everything needed, so the session is built from that rather than
+       * lost. Idempotent on the start timestamp, since transferUserInfo can
+       * deliver the same payload twice.
+       */
+      logWatchRecovery: (kind, startedAt, heldSeconds) => {
+        const existing = get().workoutHistory.find(
+          (w) => w.startedAt === startedAt && w.activityType === RECOVERY_HK
+        );
+        if (existing) return existing.id;
         const session: WorkoutSession = {
           id: `r-${startedAt}-${Math.random()}`,
-          name: type.label,
+          name: recoveryType(kind).label,
           activityType: RECOVERY_HK,
           date: formatDate(new Date(startedAt)),
           startedAt,
-          completedAt: endedAt,
+          completedAt: startedAt + Math.max(0, Math.round(heldSeconds)) * 1000,
           exercises: [],
         };
         set((state) => ({
           workoutHistory: [session, ...state.workoutHistory].slice(0, 100),
         }));
         void pushWorkout(session);
+        return session.id;
+      },
+
+      cancelRecovery: () => {
+        if (!get().activeRecovery) return;
+        endWatchWorkout();
+        set({ activeRecovery: null });
+      },
+
+      /**
+       * Save the running recovery as a finished session.
+       *
+       * Dated from startedAt rather than today, so a plunge begun before
+       * midnight lands on the day it was begun. The held time is what was
+       * really done — the caller passes the elapsed it was displaying, and
+       * the target never stands in for it.
+       */
+      finishRecovery: (heldSeconds) => {
+        const active = get().activeRecovery;
+        if (!active) return null;
+        endWatchWorkout();
+        const held =
+          heldSeconds != null ? heldSeconds : (Date.now() - active.startedAt) / 1000;
+        const session: WorkoutSession = {
+          id: active.id,
+          name: recoveryType(active.kind).label,
+          activityType: RECOVERY_HK,
+          date: formatDate(new Date(active.startedAt)),
+          startedAt: active.startedAt,
+          completedAt: active.startedAt + Math.max(0, Math.round(held)) * 1000,
+          exercises: [],
+        };
+        set((state) => ({
+          activeRecovery: null,
+          workoutHistory: [session, ...state.workoutHistory].slice(0, 100),
+        }));
+        void pushWorkout(session);
+        return session.id;
       },
 
       // Remembers a name typed at the rack so the picker has it next time.
@@ -827,6 +905,7 @@ export const useStore = create<AppState>()(
           savedMeals: [],
           workoutTemplates: [],
           activeWorkout: null,
+          activeRecovery: null,
           workoutHistory: [],
         });
       },

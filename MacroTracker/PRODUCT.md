@@ -54,9 +54,11 @@ concentrated session, with the phone or the watch, where the app is operated
 with sweaty hands and divided attention and a mis-tap costs real data.
 
 A watchOS companion runs the live workout — heart rate streaming, set logging —
-and a workout can be started from either phone or watch. Apple Health / Health
-Connect supply heart rate and active energy. An iOS home-screen widget shows
-the day's progress.
+and a workout can be started from either phone or watch. The same is true of a
+sauna or cold plunge, which run as a retention timer rather than a set list:
+both sides can start one, and either can end it. Apple Health / Health Connect
+supply heart rate and active energy. An iOS home-screen widget shows the day's
+progress.
 
 ## Capabilities and Constraints
 
@@ -80,8 +82,10 @@ Confirmed, shipping:
 
 Constraints:
 
-- The app **reads** from Apple Health and never writes to it. Copy and design
-  must not imply otherwise.
+- The **phone** reads from Apple Health and never writes to it. Copy and design
+  must not imply otherwise. The one thing that writes is the watch's own
+  HKWorkoutSession, which is how a live session works at all — lifts and
+  recovery sessions alike land in Fitness, recovery as "Other".
 - `BodyHeatMap` replaced an earlier training-split donut; the donut must not
   return.
 - Watch functionality is iOS-only; the Android port deliberately ships without

@@ -136,6 +136,25 @@ export interface RecoveryPreset {
   mode: TimerMode;
 }
 
+/**
+ * A sauna or plunge that is running right now.
+ *
+ * This lives in the store rather than in the timer screen's state because
+ * three things outside that screen need it: the watch, which runs the
+ * HKWorkoutSession that makes continuous heart rate possible; the heart-rate
+ * buffer, which has to start clean and keep filling while the screen is
+ * unmounted; and the user's own phone, which may well be in a locker for the
+ * next fifteen minutes. Its `id` is minted at the start, not at the save, so
+ * the heart-rate samples have something to attach to.
+ */
+export interface ActiveRecovery {
+  id: string;
+  kind: RecoveryKind;
+  targetSeconds: number;
+  mode: TimerMode;
+  startedAt: number;
+}
+
 export interface WorkoutSession {
   id: string;
   name: string;
@@ -255,6 +274,7 @@ export interface AppState {
   savedMeals: SavedMeal[]; // named meal templates for quick re-logging
   workoutTemplates: WorkoutTemplate[];
   activeWorkout: WorkoutSession | null;
+  activeRecovery: ActiveRecovery | null;
   workoutHistory: WorkoutSession[]; // completed sessions, newest first
   setGoals: (goals: DailyGoals) => void;
   // Applies goals derived from the wizard (or an automatic rebuild) and
@@ -281,7 +301,32 @@ export interface AppState {
   setWeeklyWorkoutGoal: (n: number) => void;
   dismissGoalsPrompt: () => void;
   setRecoveryPreset: (kind: RecoveryKind, preset: RecoveryPreset) => void;
-  logRecoverySession: (kind: RecoveryKind, startedAt: number, endedAt: number) => void;
+  /**
+   * Begin a sauna or plunge, remember the target as the preset, and ask the
+   * watch for a session so heart rate is sampled continuously rather than
+   * every few minutes. Returns the record, whose id the caller needs to
+   * attach heart rate to afterwards — or null when a workout or another
+   * recovery is already running, since a wrist holds one HKWorkoutSession.
+   */
+  startRecovery: (kind: RecoveryKind, preset: RecoveryPreset) => ActiveRecovery | null;
+  /** Abandon the running recovery without saving it. */
+  cancelRecovery: () => void;
+  /**
+   * Record a recovery the watch ran start to finish on its own, for when its
+   * start never reached this phone. Returns the saved session's id, or the
+   * existing one if this finish has already been delivered.
+   */
+  logWatchRecovery: (
+    kind: RecoveryKind,
+    startedAt: number,
+    heldSeconds: number
+  ) => string;
+  /**
+   * Save the running recovery as a session. `heldSeconds` is what the user
+   * actually held; omitted, it is measured from the start. Returns the saved
+   * session's id, or null if nothing was running.
+   */
+  finishRecovery: (heldSeconds?: number) => string | null;
   setWaterIncrement: (oz: number) => void;
   setShowWaterTracker: (show: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;

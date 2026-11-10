@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { useSnackbar } from '../store/useSnackbar';
 import { WorkoutTemplate } from '../types';
-import { DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
+import { DEFAULT_WORKOUT_HK, recoveryType } from '../utils/workoutTypes';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { progressHighlights } from '../utils/exerciseHistory';
 import { consistencyStats, trainingCalendar, trainingSplit } from '../utils/trainingSplit';
@@ -42,6 +42,7 @@ export function ExerciseScreen({ navigation }: Props) {
   const styles = useMemo(() => makeStyles(c), [c]);
   const templates = useStore((s) => s.workoutTemplates);
   const activeWorkout = useStore((s) => s.activeWorkout);
+  const activeRecovery = useStore((s) => s.activeRecovery);
   const history = useStore((s) => s.workoutHistory);
   const startWorkout = useStore((s) => s.startWorkout);
   const deleteTemplate = useStore((s) => s.deleteTemplate);
@@ -82,10 +83,24 @@ export function ExerciseScreen({ navigation }: Props) {
       navigation.navigate('ActiveWorkout');
       return;
     }
+    // A sauna already holds the watch's session; take the user back to it
+    // rather than opening a sheet whose every option would be refused.
+    if (activeRecovery) {
+      navigation.navigate('RecoveryTimer', { kind: activeRecovery.kind });
+      return;
+    }
     setStartSheet(true);
   }
 
   function handleStartTemplate(t: WorkoutTemplate) {
+    if (activeRecovery) {
+      Alert.alert(
+        `${recoveryType(activeRecovery.kind).label} in progress`,
+        'Finish it first — your watch can only track one session at a time.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     if (activeWorkout) {
       Alert.alert(
         'Workout in progress',
@@ -182,6 +197,26 @@ export function ExerciseScreen({ navigation }: Props) {
             <View>
               <Text style={styles.resumeTitle}>Workout in progress</Text>
               <Text style={styles.resumeSub}>{activeWorkout.name} · tap to resume</Text>
+            </View>
+            <Icon name="forward" size="md" color={c.primary} />
+          </TouchableOpacity>
+        )}
+
+        {/* A sauna outlives this screen — it runs on the watch with the phone
+            in a locker — so it needs a way back in, same as a workout. */}
+        {activeRecovery && (
+          <TouchableOpacity
+            style={styles.resumeBanner}
+            onPress={() =>
+              navigation.navigate('RecoveryTimer', { kind: activeRecovery.kind })
+            }
+            activeOpacity={0.85}
+          >
+            <View>
+              <Text style={styles.resumeTitle}>
+                {recoveryType(activeRecovery.kind).label} in progress
+              </Text>
+              <Text style={styles.resumeSub}>Tap to see the timer</Text>
             </View>
             <Icon name="forward" size="md" color={c.primary} />
           </TouchableOpacity>

@@ -104,6 +104,17 @@ struct WatchExercise: Identifiable {
     var sets: [WatchSet]
 }
 
+/// A sauna / cold plunge the watch can start on its own, with the target the
+/// user last set on the phone.
+struct WatchRecovery: Identifiable {
+    let id: String   // the RecoveryKind: "sauna" | "plunge"
+    let name: String
+    let target: Int  // seconds
+    let mode: String // "down" | "up"
+
+    var symbol: String { id == "plunge" ? "snowflake" : "thermometer.sun.fill" }
+}
+
 // A saved workout template the user can start from the wrist.
 struct WatchTemplate: Identifiable {
     let id: String
@@ -210,6 +221,22 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     @Published var showWorkout = false // drives the full-screen workout cover
     @Published var exercises: [WatchExercise] = [] // active workout plan
     @Published var templates: [WatchTemplate] = [] // saved templates to start from
+    @Published var recoveries: [WatchRecovery] = [] // sauna / plunge, startable here
+    // The running recovery, mirrored from the phone (or set locally when this
+    // watch started it). Empty kind means the live session is a lift, which is
+    // what WorkoutView branches on.
+    @Published var recoveryKind = ""
+    @Published var recoveryTarget = 0
+    @Published var recoveryMode = "down"
+    // When this watch began the session, in ms epoch. Travels with the finish
+    // so the phone can record a session it never heard start — see
+    // finishRecoveryFromWatch.
+    private var recoveryStartedAt: Double = 0
+    var isRecovery: Bool { !recoveryKind.isEmpty }
+    var recoveryLabel: String {
+        recoveries.first { $0.id == recoveryKind }?.name
+            ?? (recoveryKind == "plunge" ? "Cold Plunge" : "Sauna")
+    }
     @Published var palette = WatchPalette() // active pack's accents
 
     // The same colours as `palette`, kept as the hex the phone sent so the
@@ -360,6 +387,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             self.handleWorkoutState(ctx)
             self.parsePlan(ctx)
             self.parseTemplates(ctx)
+            self.parseRecoveries(ctx)
             // Last, so the complication is written from the finished state
             // rather than halfway through applying it.
             self.persistSnapshot()
@@ -376,6 +404,21 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
                 name: t["name"] as? String ?? "Workout",
                 activityType: self.intVal(t["at"]) ?? 0,
                 exerciseCount: self.intVal(t["n"]) ?? 0
+            )
+        }
+    }
+
+    // Parse the sauna / plunge entries offered on the start screen (absent key
+    // = leave the current list untouched).
+    private func parseRecoveries(_ ctx: [String: Any]) {
+        guard let raw = ctx["recoveryPresets"] as? [[String: Any]] else { return }
+        recoveries = raw.compactMap { (r: [String: Any]) -> WatchRecovery? in
+            guard let kind = r["k"] as? String, !kind.isEmpty else { return nil }
+            return WatchRecovery(
+                id: kind,
+                name: r["name"] as? String ?? "Recovery",
+                target: self.intVal(r["t"]) ?? 0,
+                mode: r["m"] as? String ?? "down"
             )
         }
     }
@@ -543,6 +586,63 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         sendReliable(["type": "startTemplate", "templateId": template?.id ?? ""])
     }
 
+    /// Start a sauna or plunge from the wrist.
+    ///
+    /// HKWorkoutActivityTypeOther, the same type the phone sends, so the two
+    /// routes produce one kind of session in Apple Health. Water lock goes on
+    /// for a plunge: a wet wrist registers taps of its own, and the one
+    /// control on the screen ends the session.
+    func startRecovery(_ recovery: WatchRecovery) {
+        guard !WorkoutManager.shared.isActive else { return }
+        recoveryKind = recovery.id
+        recoveryTarget = recovery.target
+        recoveryMode = recovery.mode
+        recoveryStartedAt = Date().timeIntervalSince1970 * 1000
+        WorkoutManager.shared.start(activityType: .other)
+        showWorkout = true
+        if recovery.id == "plunge" {
+            WKInterfaceDevice.current().enableWaterLock()
+        }
+        sendReliable(["type": "startRecovery", "kind": recovery.id])
+    }
+
+    /// End the running recovery and tell the phone about it.
+    ///
+    /// The payload carries the whole session — kind, start, held — not just
+    /// the duration, because the phone may never have learned it began. A
+    /// start sent from here is queued when the phone is unreachable, which
+    /// for a phone in a locker is the normal case, and the phone drops a
+    /// queued start older than five minutes rather than open a timer for
+    /// something long finished. A fifteen-minute sauna is exactly that. So
+    /// the finish has to stand on its own.
+    ///
+    /// The watch's own elapsed is the held time: this side is the one that
+    /// was actually there.
+    func finishRecoveryFromWatch(save: Bool) {
+        let held = WorkoutManager.shared.elapsed
+        let kind = recoveryKind
+        let startedAt = recoveryStartedAt > 0
+            ? recoveryStartedAt
+            : Date().timeIntervalSince1970 * 1000 - held * 1000
+        WorkoutManager.shared.end()
+        // Clear the recap the workout path would otherwise show: it reports
+        // sets and volume, which a sauna has none of.
+        WorkoutManager.shared.reset()
+        recoveryKind = ""
+        recoveryStartedAt = 0
+        showWorkout = false
+        // `save: false` is a discard, not a zero-second session — without the
+        // flag the phone would faithfully record that you sat in the sauna for
+        // no time at all.
+        sendReliable([
+            "type": "finishRecovery",
+            "kind": kind,
+            "startedAt": startedAt,
+            "held": held,
+            "save": save,
+        ])
+    }
+
     // Auto-start / end the on-wrist workout based on the phone's workout state.
     private func handleWorkoutState(_ ctx: [String: Any]) {
         // No workout signal in this context — e.g. a glance-only update, or the
@@ -555,6 +655,17 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         let workoutId = ctx["workoutId"] as? String ?? ""
         let startedAt = (ctx["workoutStartedAt"] as? NSNumber)?.doubleValue ?? 0
 
+        // Read before the start below, so WorkoutView shows the recovery timer
+        // on its first frame rather than a set list that flips a moment later.
+        if let kind = ctx["recoveryKind"] as? String {
+            self.recoveryKind = kind
+            if let t = self.intVal(ctx["recoveryTarget"]), t > 0 { self.recoveryTarget = t }
+            if let m = ctx["recoveryMode"] as? String, !m.isEmpty { self.recoveryMode = m }
+            // Adopt the phone's start for a session it began, so a Stop & Save
+            // from this side reports the same window the phone is showing.
+            self.recoveryStartedAt = (kind.isEmpty || startedAt <= 0) ? 0 : startedAt
+        }
+
         if active, !workoutId.isEmpty, workoutId != lastHandledWorkoutId {
             // Only start for a recently-begun workout, so a stale context after
             // a relaunch doesn't kick off a phantom session.
@@ -566,6 +677,8 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             }
         } else if !active, !lastHandledWorkoutId.isEmpty {
             lastHandledWorkoutId = ""
+            self.recoveryKind = ""
+            self.recoveryStartedAt = 0
             if WorkoutManager.shared.isActive {
                 WorkoutManager.shared.end()
             }
@@ -610,6 +723,8 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
                     self.showWorkout = true
                 case "endWorkout":
                     WorkoutManager.shared.end()
+                    self.recoveryKind = ""
+                    self.recoveryStartedAt = 0
                     self.showWorkout = false
                 default:
                     break
@@ -954,11 +1069,16 @@ struct WorkoutView: View {
     @ObservedObject private var stats = DayStats.shared
     @ObservedObject private var rest = RestManager.shared
     @State private var showFinishPrompt = false
+    @State private var showDiscardPrompt = false
     @State private var editingSet: SetRef?
 
     var body: some View {
         Group {
-            if workout.isActive {
+            if workout.isActive && stats.isRecovery {
+                // One page, not two: a sauna has no sets, so the swipe would
+                // only ever land on "No exercises in this workout".
+                ScrollView { recoveryScreen.padding() }
+            } else if workout.isActive {
                 // Swipe between the live metrics and the exercise/set list.
                 TabView {
                     ScrollView { liveScreen.padding() }
@@ -992,6 +1112,86 @@ struct WorkoutView: View {
             Button("OK", role: .cancel) { workout.startError = nil }
         } message: {
             Text(workout.startError ?? "")
+        }
+    }
+
+    /// The sauna / plunge screen.
+    ///
+    /// Everything a workout shows that a sauna cannot answer is gone: no
+    /// sets, no volume, and no calorie figure — HealthKit will happily report
+    /// active energy from a heart rate that is elevated by heat rather than
+    /// by work, and a number you have to disbelieve is worse than no number.
+    /// What is left is the time, the heart rate, and how to stop.
+    private var recoveryScreen: some View {
+        let target = TimeInterval(stats.recoveryTarget)
+        let elapsed = workout.elapsed
+        let over = target > 0 && elapsed > target
+        let down = stats.recoveryMode == "down"
+        let tint = over ? stats.palette.zoneMid : stats.palette.accent
+
+        return VStack(spacing: 8) {
+            Text(stats.recoveryLabel)
+                .font(WatchType.semibold(11))
+                .tracking(0.7)
+                .foregroundColor(stats.palette.accent)
+
+            // Same reasoning as the workout clock: a serif face has no tabular
+            // figures, so a once-a-second numeral would jitter sideways.
+            Text(down
+                 ? (over ? "+" : "") + timeString(abs(target - elapsed))
+                 : timeString(elapsed))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundColor(tint)
+                .monospacedDigit()
+
+            Text(down
+                 ? (over ? "past target" : "remaining")
+                 : (target > 0 ? "of \(timeString(target))" : "elapsed"))
+                .font(WatchType.body(11))
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 4) {
+                Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
+                    .font(.title2).fontWeight(.bold)
+                    .foregroundColor(workout.heartRate > 0
+                                     ? hrZoneColor(workout.heartRate, stats.palette)
+                                     : .secondary)
+                Text("bpm").font(WatchType.semibold(11)).foregroundColor(.secondary)
+            }
+            .padding(.top, 2)
+
+            if workout.hrUnavailable {
+                Text("No heart rate yet. Check Health access for Holy Macro in Watch settings.")
+                    .font(WatchType.body(11))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 4)
+            }
+
+            Button {
+                stats.finishRecoveryFromWatch(save: true)
+            } label: {
+                Text("Stop & Save")
+                    .font(WatchType.semibold(13))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(stats.palette.accent)
+            .padding(.top, 4)
+
+            Button("Discard") { showDiscardPrompt = true }
+                .font(WatchType.body(13))
+                .foregroundColor(stats.palette.danger)
+        }
+        .confirmationDialog(
+            "Discard this \(stats.recoveryLabel.lowercased())?",
+            isPresented: $showDiscardPrompt,
+            titleVisibility: .visible
+        ) {
+            Button("Discard", role: .destructive) {
+                stats.finishRecoveryFromWatch(save: false)
+            }
+            Button("Keep going", role: .cancel) {}
         }
     }
 
@@ -1205,6 +1405,35 @@ struct WorkoutView: View {
             Text("Start Workout")
                 .font(WatchType.display(18))
                 .foregroundColor(stats.palette.accent)
+
+            // Sauna and plunge sit at the top, side by side, because a list
+            // this long scrolls: below the templates and Quick Start they
+            // were off the bottom of a 45mm screen before the second one was
+            // reached. Two to a row costs one row to say both. They stay
+            // visually quieter than the lifting options — this screen is
+            // opened to train far more often than to sit in the heat — and
+            // the target is left to the timer itself, which shows it the
+            // moment it opens.
+            if !stats.recoveries.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(stats.recoveries) { r in
+                        Button {
+                            stats.startRecovery(r)
+                        } label: {
+                            VStack(spacing: 2) {
+                                Image(systemName: r.symbol)
+                                Text(r.name)
+                                    .font(WatchType.semibold(11))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.secondary)
+                    }
+                }
+            }
 
             // Saved templates from the phone — tap one to start it.
             if stats.templates.isEmpty {

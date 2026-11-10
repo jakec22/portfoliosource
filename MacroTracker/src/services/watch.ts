@@ -1,6 +1,7 @@
 import { Platform, AppState } from 'react-native';
 import type { HeartRateSample } from '../types';
 import type { WatchPalette } from '../utils/watchPalette';
+import { RECOVERY_HK } from '../utils/workoutTypes';
 
 /**
  * WatchConnectivity, loaded on demand.
@@ -184,6 +185,25 @@ export interface WatchTemplateSummary {
   n: number; // exercise count
 }
 let watchTemplates: WatchTemplateSummary[] = [];
+
+// Sauna / plunge entries for the watch's start screen, with the target the
+// user last set so starting from the wrist uses the same number the phone
+// would have. Short keys, as with templates.
+export interface WatchRecoveryPreset {
+  k: string; // RecoveryKind
+  name: string;
+  t: number; // target seconds
+  m: string; // TimerMode
+}
+let watchRecovery: WatchRecoveryPreset[] = [];
+let recoveryKnown = false;
+// The running recovery, mirrored so the watch can draw its own timer against
+// the same start, target and direction the phone is showing.
+let recoveryState = {
+  recoveryKind: '',
+  recoveryTarget: 0,
+  recoveryMode: '',
+};
 // Only advertise templates once we've actually set them, so a pre-rehydration
 // glance push doesn't momentarily clear the watch's list.
 let templatesKnown = false;
@@ -249,7 +269,12 @@ function pushContext(): void {
   // treats a missing workoutActive key as "no change", so a glance-only push
   // (or a pre-rehydration cold start) never ends a running workout.
   if (workoutStateKnown) Object.assign(ctx, workoutState);
+  // Rides with the workout lifecycle rather than beside it: the watch reads
+  // these only when workoutActive is also present, and an empty recoveryKind
+  // is what tells it the session is a lift.
+  if (workoutStateKnown) Object.assign(ctx, recoveryState);
   if (templatesKnown) ctx.workoutTemplates = watchTemplates;
+  if (recoveryKnown) ctx.recoveryPresets = watchRecovery;
   try {
     updateApplicationContext(ctx);
   } catch {
@@ -317,11 +342,86 @@ export function subscribeWatchStartWorkout(cb: (templateId: string) => void): ()
   };
 }
 
+/**
+ * Subscribe to a sauna / plunge started from the watch's own start screen.
+ *
+ * Stale-guarded like the template start above: this one arrives by
+ * transferUserInfo when the phone is unreachable — which, for a phone in a
+ * locker, is the normal case — and a queued start delivered an hour later
+ * would open a timer for a sauna that finished long ago.
+ */
+export function subscribeWatchStartRecovery(
+  cb: (kind: string) => void
+): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = onWatchCommand((message: any) => {
+    if (message?.type === 'startRecovery' && isFresh(message)) {
+      const kind = typeof message.kind === 'string' ? message.kind : '';
+      if (kind) cb(kind);
+    }
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
+}
+
+export interface WatchRecoveryFinish {
+  kind: string;
+  startedAt: number;
+  heldSeconds: number;
+  save: boolean;
+}
+
+/**
+ * Subscribe to a recovery finished on the wrist.
+ *
+ * Deliberately not stale-guarded, unlike the starts: a finish delivered late
+ * is still a finish that happened, and dropping it would lose the session.
+ * The payload describes the whole session rather than just its length,
+ * because the phone may never have heard it begin — a start queued from the
+ * watch while the phone sat in a locker is dropped on arrival for being
+ * older than the command TTL, which is the ordinary outcome for anything
+ * longer than five minutes.
+ */
+export function subscribeWatchRecoveryFinish(
+  cb: (finish: WatchRecoveryFinish) => void
+): () => void {
+  if (Platform.OS !== 'ios') return () => {};
+  const unsubscribe = onWatchCommand((message: any) => {
+    if (message?.type === 'finishRecovery') {
+      const held = typeof message.held === 'number' ? message.held : 0;
+      const startedAt =
+        typeof message.startedAt === 'number' && message.startedAt > 0
+          ? message.startedAt
+          : Date.now() - Math.max(0, held) * 1000;
+      cb({
+        kind: typeof message.kind === 'string' ? message.kind : '',
+        startedAt,
+        heldSeconds: Math.max(0, held),
+        // Absent means save: an older watch build has no discard button.
+        save: message.save !== false,
+      });
+    }
+  });
+  return () => {
+    try {
+      unsubscribe();
+    } catch {}
+  };
+}
+
 // Mark a workout active in the context so the watch starts its on-wrist session
 // (live HR/calories) when it next becomes active. Also fire a sendMessage for
 // the case where the watch app is already reachable (instant start).
 export function startWatchWorkout(workoutId: string, activityType = 0): void {
   if (Platform.OS !== 'ios') return;
+  // A lift clears any recovery framing left over from a previous session, so
+  // the watch doesn't draw a sauna timer over a set list.
+  if (activityType !== RECOVERY_HK) {
+    recoveryState = { recoveryKind: '', recoveryTarget: 0, recoveryMode: '' };
+  }
   workoutState = {
     workoutActive: true,
     workoutId,
@@ -347,9 +447,42 @@ export function startWatchWorkout(workoutId: string, activityType = 0): void {
   } catch {}
 }
 
+/**
+ * Start a sauna or plunge on the wrist.
+ *
+ * The same channel a lift uses — one HKWorkoutSession per wrist, so there is
+ * nothing to gain from a parallel one — with the kind, target and direction
+ * alongside so the watch can draw the timer rather than a set list. The
+ * activity type is RECOVERY_HK either way, which is what Apple Health will
+ * file it under.
+ */
+export function startWatchRecovery(
+  recoveryId: string,
+  kind: string,
+  targetSeconds: number,
+  mode: string
+): void {
+  if (Platform.OS !== 'ios') return;
+  recoveryState = {
+    recoveryKind: kind,
+    recoveryTarget: Math.round(targetSeconds),
+    recoveryMode: mode,
+  };
+  startWatchWorkout(recoveryId, RECOVERY_HK);
+}
+
+// Mirror the user's remembered sauna / plunge targets so they can be started
+// from the watch's own start screen.
+export function setWatchRecoveryPresets(presets: WatchRecoveryPreset[]): void {
+  watchRecovery = presets;
+  recoveryKnown = true;
+  pushContext();
+}
+
 // Clear the active workout (when the phone workout finishes/cancels).
 export function endWatchWorkout(): void {
   if (Platform.OS !== 'ios') return;
+  recoveryState = { recoveryKind: '', recoveryTarget: 0, recoveryMode: '' };
   workoutState = {
     workoutActive: false,
     workoutId: '',

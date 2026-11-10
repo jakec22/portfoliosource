@@ -10,13 +10,25 @@ import {
   subscribeWatchStartWorkout,
   subscribeWatchPlanRequest,
   subscribeWatchHeartRate,
+  subscribeWatchStartRecovery,
+  subscribeWatchRecoveryFinish,
+  setWatchRecoveryPresets,
   addWorkoutHrSample,
   getWorkoutHrSamples,
   resetWorkoutHrBuffer,
 } from '../services/watch';
 import { getHeartRateMonitor } from '../services/heartRate';
 import { navigateToWorkoutSummary } from '../services/navigation';
-import { DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
+import {
+  beginRecovery,
+  endRecovery,
+  logWatchRecovery,
+} from '../services/recoverySession';
+import {
+  DEFAULT_WORKOUT_HK,
+  RECOVERY_TYPES,
+  type RecoveryKind,
+} from '../utils/workoutTypes';
 
 // Mirrors the active workout's exercises + sets to the watch so it can show
 // and check off them. Re-pushes whenever the workout changes; clears when
@@ -27,6 +39,8 @@ import { DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 // screen (e.g. the user backed out to the resume banner).
 export function useWatchWorkout(): void {
   const activeWorkout = useStore((s) => s.activeWorkout);
+  const activeRecovery = useStore((s) => s.activeRecovery);
+  const recoveryPresets = useStore((s) => s.recoveryPresets);
   const workoutTemplates = useStore((s) => s.workoutTemplates);
   const setWorkoutSetCompleted = useStore((s) => s.setWorkoutSetCompleted);
   const updateWorkoutSet = useStore((s) => s.updateWorkoutSet);
@@ -37,18 +51,75 @@ export function useWatchWorkout(): void {
 
   const workoutId = activeWorkout?.id;
   const startedAt = activeWorkout?.startedAt;
+  // A sauna or plunge streams heart rate on exactly the same channel, and is
+  // in fact the case that depends on it most: the phone is usually in a
+  // locker, so the live stream is often all there is until the batch query at
+  // the end. Buffering keys on whichever session is running.
+  const recoveryId = activeRecovery?.id;
+  const captureId = workoutId ?? recoveryId;
 
-  // Buffer the heart-rate samples the watch streams during the workout into a
-  // module-level store, so they can be attached to the saved session even if
-  // the finish arrives from the watch while the ActiveWorkout screen isn't
-  // mounted. Reset the buffer at the start of each workout.
+  // Buffer the heart-rate samples the watch streams into a module-level store,
+  // so they can be attached to the saved session even if the finish arrives
+  // from the watch while no screen is mounted. The buffer is reset at the
+  // start of each workout here; a recovery resets it in beginRecovery, which
+  // is the only path that starts one.
   useEffect(() => {
-    if (!workoutId) return;
-    resetWorkoutHrBuffer();
+    if (!captureId) return;
+    if (captureId === workoutId) resetWorkoutHrBuffer();
     return subscribeWatchHeartRate((bpm, timestamp) => {
       addWorkoutHrSample({ bpm, timestamp });
     });
-  }, [workoutId]);
+  }, [captureId, workoutId]);
+
+  // Mirror the remembered sauna / plunge targets so the watch's start screen
+  // can offer them with the same numbers the phone would use.
+  useEffect(() => {
+    setWatchRecoveryPresets(
+      RECOVERY_TYPES.map((r) => ({
+        k: r.kind,
+        name: r.label,
+        t: recoveryPresets[r.kind]?.targetSeconds ?? r.defaultTargetSeconds,
+        m: recoveryPresets[r.kind]?.mode ?? r.defaultMode,
+      }))
+    );
+  }, [recoveryPresets]);
+
+  // Start a sauna or plunge the watch kicked off. The store refuses if
+  // anything else is running, and beginRecovery clears the heart-rate buffer.
+  useEffect(() => {
+    return subscribeWatchStartRecovery((kind) => {
+      const type = RECOVERY_TYPES.find((r) => r.kind === kind);
+      if (!type) return;
+      const state = useStore.getState();
+      if (state.activeWorkout || state.activeRecovery) return;
+      const preset = state.recoveryPresets[kind as RecoveryKind];
+      beginRecovery(kind as RecoveryKind, {
+        targetSeconds: preset?.targetSeconds ?? type.defaultTargetSeconds,
+        mode: preset?.mode ?? type.defaultMode,
+      });
+    });
+  }, []);
+
+  // Save a recovery finished on the wrist. The watch sends its own elapsed,
+  // which is the honest number — it is the side that was actually there.
+  useEffect(() => {
+    return subscribeWatchRecoveryFinish(({ kind, startedAt, heldSeconds, save }) => {
+      const state = useStore.getState();
+      if (state.activeRecovery) {
+        if (save) void endRecovery(heldSeconds);
+        else state.cancelRecovery();
+        return;
+      }
+      // A session this phone never heard start, because the start was queued
+      // and arrived stale. Build it from the finish, which carries the whole
+      // thing. Below ten seconds is a mis-tap, the same threshold the phone's
+      // own stop uses.
+      if (!save || heldSeconds < 10) return;
+      const type = RECOVERY_TYPES.find((r) => r.kind === kind);
+      if (!type) return;
+      void logWatchRecovery(type.kind, startedAt, heldSeconds);
+    });
+  }, []);
 
   // Re-send the context when the watch says it's in a workout with no plan.
   useEffect(() => subscribeWatchPlanRequest(), []);
@@ -85,7 +156,9 @@ export function useWatchWorkout(): void {
   useEffect(() => {
     return subscribeWatchStartWorkout((templateId) => {
       const state = useStore.getState();
-      if (state.activeWorkout) return;
+      // A running sauna owns the wrist's session too, so it blocks a lift the
+      // same way another lift would.
+      if (state.activeWorkout || state.activeRecovery) return;
       const template = templateId
         ? state.workoutTemplates.find((t) => t.id === templateId)
         : undefined;

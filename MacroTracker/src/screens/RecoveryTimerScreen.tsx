@@ -15,6 +15,8 @@ import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, tabular, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
+import { beginRecovery, endRecovery } from '../services/recoverySession';
+import { subscribeWatchHeartRate } from '../services/watch';
 import { recoveryType, type RecoveryKind, type TimerMode } from '../utils/workoutTypes';
 
 interface Props {
@@ -47,6 +49,13 @@ function clock(totalSeconds: number): string {
  * phone down for, is the normal case rather than the edge case — so counting
  * ticks would drift low by however long the screen was off.
  *
+ * The running session lives in the store, not here. A sauna outlasts this
+ * screen: the phone goes in a locker, the app is backgrounded for fifteen
+ * minutes and may be killed, and the watch — which is running the
+ * HKWorkoutSession that makes continuous heart rate possible — can start and
+ * finish the whole thing by itself. Local state would lose every one of
+ * those.
+ *
  * Both directions measure the same thing and save the same number: the time
  * actually held. Down counts toward zero from the target and keeps going
  * negative past it; up counts from zero with the target as a mark to pass.
@@ -56,22 +65,36 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
-  const kind: RecoveryKind = route.params?.kind ?? 'sauna';
+  const activeRecovery = useStore((s) => s.activeRecovery);
+  const cancelRecovery = useStore((s) => s.cancelRecovery);
+  const activeWorkout = useStore((s) => s.activeWorkout);
+
+  // A recovery started on the wrist decides which kind this screen is showing;
+  // the route param only chooses it when nothing is running yet.
+  const kind: RecoveryKind = activeRecovery?.kind ?? route.params?.kind ?? 'sauna';
   const meta = recoveryType(kind);
 
   const preset = useStore((s) => s.recoveryPresets[kind]);
-  const setRecoveryPreset = useStore((s) => s.setRecoveryPreset);
-  const logRecoverySession = useStore((s) => s.logRecoverySession);
 
   const [targetSeconds, setTargetSeconds] = useState(
     preset?.targetSeconds ?? meta.defaultTargetSeconds
   );
   const [mode, setMode] = useState<TimerMode>(preset?.mode ?? meta.defaultMode);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const running = startedAt != null;
+  const [liveBpm, setLiveBpm] = useState(0);
+
+  const running = activeRecovery != null;
+  const startedAt = activeRecovery?.startedAt ?? null;
+  // While running, the session's own target and direction win over the local
+  // stepper — they may have been set on the watch.
+  const shownTarget = activeRecovery?.targetSeconds ?? targetSeconds;
+  const shownMode = activeRecovery?.mode ?? mode;
+
   // So the target buzz fires once rather than on every tick past it.
   const reachedRef = useRef(false);
+  // Set while this screen is the one ending the session, so the effect below
+  // doesn't also treat its own save as a finish that happened elsewhere.
+  const endingRef = useRef(false);
 
   // Derive from the clock, not from a counter. Also recomputed when the app
   // comes back to the foreground, which is when the interval has been frozen.
@@ -89,14 +112,36 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
     };
   }, [startedAt]);
 
+  // Live heart rate streamed from the watch, when it's reachable. Display
+  // only — the samples that get saved are buffered centrally and attached by
+  // endRecovery, which prefers a batch query of the health store.
+  useEffect(() => {
+    if (!running) return;
+    return subscribeWatchHeartRate((bpm) => setLiveBpm(bpm));
+  }, [running]);
+
   // One buzz when the target is reached, whichever direction is showing.
   useEffect(() => {
     if (!running || reachedRef.current) return;
-    if (elapsed >= targetSeconds) {
+    if (elapsed >= shownTarget) {
       reachedRef.current = true;
       Vibration.vibrate(400);
     }
-  }, [elapsed, running, targetSeconds]);
+  }, [elapsed, running, shownTarget]);
+
+  // The watch can save or discard the session itself. When it does, the store
+  // clears under this screen and there is nothing left to show.
+  //
+  // Guarded on having seen a session: the screen also mounts with nothing
+  // running, which is the ordinary way in, and must not pop itself then.
+  const sawSession = useRef(false);
+  useEffect(() => {
+    if (running) {
+      sawSession.current = true;
+      return;
+    }
+    if (sawSession.current && !endingRef.current) navigation.goBack();
+  }, [running, navigation]);
 
   const adjust = useCallback(
     (direction: 1 | -1) => {
@@ -109,19 +154,34 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
   );
 
   function handleStart() {
-    setRecoveryPreset(kind, { targetSeconds, mode });
+    if (activeWorkout) {
+      Alert.alert(
+        'Workout in progress',
+        'Finish or cancel your workout first — your watch can only track one session at a time.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     reachedRef.current = false;
     setElapsed(0);
-    setStartedAt(Date.now());
+    setLiveBpm(0);
+    beginRecovery(kind, { targetSeconds, mode });
   }
 
-  function save(began: number, heldSeconds: number) {
-    logRecoverySession(kind, began, began + Math.round(heldSeconds) * 1000);
+  async function save(heldSeconds: number) {
+    endingRef.current = true;
+    await endRecovery(heldSeconds);
+    navigation.goBack();
+  }
+
+  function discard() {
+    endingRef.current = true;
+    cancelRecovery();
     navigation.goBack();
   }
 
   function handleStop() {
-    if (startedAt == null) return;
+    if (!running) return;
     const held = elapsed;
     // Under ten seconds is a mis-tap, not a session.
     if (held < 10) {
@@ -130,12 +190,12 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
         `Only ${clock(held)} — too short to save.`,
         [
           { text: 'Keep going', style: 'cancel' },
-          { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+          { text: 'Discard', style: 'destructive', onPress: discard },
         ]
       );
       return;
     }
-    save(startedAt, held);
+    void save(held);
   }
 
   function handleLeave() {
@@ -143,27 +203,26 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
       navigation.goBack();
       return;
     }
+    // Leaving the screen does not stop the session: the watch is still
+    // holding it, and the phone going in a locker is the normal case. Backing
+    // out is offered as a third option precisely so it stays running.
     Alert.alert(`${meta.label} in progress`, 'Stop and save it, or discard it?', [
-      { text: 'Keep going', style: 'cancel' },
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: () => navigation.goBack(),
-      },
-      { text: 'Save', onPress: () => startedAt != null && save(startedAt, elapsed) },
+      { text: 'Leave running', style: 'cancel', onPress: () => navigation.goBack() },
+      { text: 'Discard', style: 'destructive', onPress: discard },
+      { text: 'Save', onPress: () => void save(elapsed) },
     ]);
   }
 
   // Down shows what is left and goes negative past the target; up shows what
   // has been held. The ring fills the same way in both.
-  const remaining = targetSeconds - elapsed;
-  const overshot = elapsed > targetSeconds;
+  const remaining = shownTarget - elapsed;
+  const overshot = elapsed > shownTarget;
   const display = running
-    ? mode === 'down'
+    ? shownMode === 'down'
       ? `${overshot ? '+' : ''}${clock(Math.abs(remaining))}`
       : clock(elapsed)
     : clock(targetSeconds);
-  const progress = Math.min(targetSeconds > 0 ? elapsed / targetSeconds : 0, 1);
+  const progress = Math.min(shownTarget > 0 ? elapsed / shownTarget : 0, 1);
 
   const radius_ = (RING - STROKE) / 2;
   const circumference = 2 * Math.PI * radius_;
@@ -209,14 +268,24 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
             <Text style={styles.clockLabel}>
               {!running
                 ? 'target'
-                : mode === 'down'
+                : shownMode === 'down'
                   ? overshot
                     ? 'past target'
                     : 'remaining'
-                  : `of ${clock(targetSeconds)}`}
+                  : `of ${clock(shownTarget)}`}
             </Text>
           </View>
         </View>
+
+        {running && (
+          <View style={styles.hrRow}>
+            <Icon name="heart" size="sm" color={liveBpm > 0 ? c.danger : c.textFaint} />
+            <Text style={[styles.hrValue, liveBpm === 0 && { color: c.textFaint }]}>
+              {liveBpm > 0 ? Math.round(liveBpm) : '--'}
+            </Text>
+            <Text style={styles.hrUnit}>bpm</Text>
+          </View>
+        )}
 
         {!running && (
           <>
@@ -284,6 +353,10 @@ const makeStyles = (c: Theme) =>
     ringCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
     clock: { ...type.hero(c), ...tabular, color: c.text },
     clockLabel: { ...type.overline(c), color: c.textFaint, marginTop: space.xs },
+
+    hrRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+    hrValue: { ...type.subhead(c), fontFamily: c.fontBodyBold, ...tabular, color: c.text },
+    hrUnit: { ...type.caption(c), fontFamily: c.fontBody, color: c.textFaint },
 
     stepperRow: { flexDirection: 'row', alignItems: 'center', gap: space.xl },
     stepperLabel: { ...type.caption(c), color: c.textMuted, minWidth: 48, textAlign: 'center' },
