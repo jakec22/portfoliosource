@@ -31,7 +31,12 @@ const GLYPH = {
   barcode: 'barcode-scan',
 
   // Training
-  workout: 'dumbbell',
+  //
+  // A figure mid-lift rather than a dumbbell. The dumbbell's two bells and
+  // thin bar collapse into a smudge at 16pt, where this holds its shape, and
+  // a person doing the thing sets training apart from the equipment-free
+  // recovery marks it now sits beside.
+  workout: 'weight-lifter',
   heart: 'heart',
   streak: 'fire',
   bodyWeight: 'scale-bathroom',
