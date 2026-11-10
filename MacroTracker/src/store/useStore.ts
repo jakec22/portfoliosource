@@ -23,49 +23,14 @@ import {
   deleteEntryRemote,
   pushSettings,
   pushWorkout,
+  pushBodyWeight,
+  deleteBodyWeightRemote,
   deleteWorkoutRemote,
   settingsSnapshot,
+  type SettingsField,
 } from '../services/sync';
 import { startWatchWorkout, startWatchRecovery, endWatchWorkout } from '../services/watch';
 import { downsampleHeartRate } from '../services/heartRate';
-
-/**
- * How much day-by-day history stays on the device.
- *
- * Eighteen months covers every comparison the app actually makes — the
- * furthest back anything reads is the 12-week training calendar — and leaves
- * room to scroll well past that in History. It is not a deletion: completed
- * days are already in Supabase, and this only trims what every single write
- * has to re-serialize locally.
- */
-const KEEP_DAYS = 548;
-
-/**
- * Drop `logs` and `waterIntake` entries older than KEEP_DAYS.
- *
- * Both are keyed by YYYY-MM-DD, which sorts lexicographically, so the cutoff
- * is a string comparison. Returns only the keys that changed, or an empty
- * object when nothing is over the line — so a rehydrate on a young account
- * does no work and allocates nothing.
- */
-function prunedDayRecords(state: {
-  logs?: Record<string, unknown>;
-  waterIntake?: Record<string, unknown>;
-}): { logs?: Record<string, unknown>; waterIntake?: Record<string, unknown> } {
-  const cutoff = formatDate(new Date(Date.now() - KEEP_DAYS * 86400000));
-  const out: { logs?: Record<string, unknown>; waterIntake?: Record<string, unknown> } = {};
-  for (const key of ['logs', 'waterIntake'] as const) {
-    const map = state[key];
-    if (!map) continue;
-    const dates = Object.keys(map);
-    const stale = dates.filter((d) => d < cutoff);
-    if (stale.length === 0) continue;
-    const kept: Record<string, unknown> = {};
-    for (const d of dates) if (d >= cutoff) kept[d] = map[d];
-    out[key] = kept;
-  }
-  return out;
-}
 
 // Exported so Home can tell "never set any goals" apart from "set them by
 // hand in the Calculator" — the nudge must not tell the second user that
@@ -105,8 +70,17 @@ export const useStore = create<AppState>()(
     (set, get) => {
       // Snapshot of the cloud-synced "settings" fields, pushed after any
       // change to one of them. Fire-and-forget; no-op until a user is signed in.
-      const syncSettings = () => {
-        void pushSettings(settingsSnapshot(get()));
+      /**
+       * Upload the settings fields an action just changed.
+       *
+       * Name them. Calling this bare still sends all twenty columns, which is
+       * what the old behaviour was everywhere — and it meant adjusting the
+       * water goal also uploaded the saved meals, the custom foods and every
+       * workout template. The one legitimate bare call is hydrate's, which
+       * deliberately rewrites the whole row so a partial cloud copy heals.
+       */
+      const syncSettings = (...fields: SettingsField[]) => {
+        void pushSettings(settingsSnapshot(get()), fields.length ? fields : undefined);
       };
 
       return {
@@ -160,7 +134,7 @@ export const useStore = create<AppState>()(
       // stops a later weigh-in from silently replacing them.
       setGoals: (goals) => {
         set({ goals, goalsBasisWeightLbs: undefined, goalsUpdateNotice: undefined });
-        syncSettings();
+        syncSettings('goals', 'goalsBasisWeightLbs', 'goalsAutoUpdate');
       },
 
       // Goals computed from the profile (wizard run, or an automatic rebuild).
@@ -173,12 +147,12 @@ export const useStore = create<AppState>()(
           // Applying a plan explicitly supersedes it.
           goalsUpdateNotice: undefined,
         });
-        syncSettings();
+        syncSettings('goals', 'goalsBasisWeightLbs', 'goalsAutoUpdate', 'profile');
       },
 
       setGoalsAutoUpdate: (enabled) => {
         set({ goalsAutoUpdate: enabled });
-        syncSettings();
+        syncSettings('goalsAutoUpdate');
       },
 
       dismissGoalsUpdateNotice: () => set({ goalsUpdateNotice: undefined }),
@@ -190,7 +164,7 @@ export const useStore = create<AppState>()(
         set((state) => ({
           recoveryPresets: { ...state.recoveryPresets, [kind]: preset },
         }));
-        syncSettings();
+        syncSettings('recoveryPresets');
       },
 
       /**
@@ -225,7 +199,7 @@ export const useStore = create<AppState>()(
           activeRecovery: recovery,
           recoveryPresets: { ...state.recoveryPresets, [kind]: preset },
         }));
-        syncSettings();
+        syncSettings('recoveryPresets');
         startWatchRecovery(recovery.id, kind, preset.targetSeconds, preset.mode);
         return recovery;
       },
@@ -310,7 +284,7 @@ export const useStore = create<AppState>()(
           if (state.customExercises.some((n) => n.toLowerCase() === key)) return state;
           return { customExercises: [...state.customExercises, trimmed].sort() };
         });
-        syncSettings();
+        syncSettings('customExercises');
       },
 
       removeCustomExercise: (name: string) => {
@@ -318,7 +292,7 @@ export const useStore = create<AppState>()(
         set((state) => ({
           customExercises: state.customExercises.filter((n) => n.toLowerCase() !== key),
         }));
-        syncSettings();
+        syncSettings('customExercises');
       },
 
       addRecentFood: (food) => {
@@ -328,7 +302,7 @@ export const useStore = create<AppState>()(
             ...state.recentFoods.filter((f) => f.id !== food.id),
           ].slice(0, 20),
         }));
-        syncSettings();
+        syncSettings('recentFoods');
       },
 
       addEntry: (entry) => {
@@ -343,7 +317,7 @@ export const useStore = create<AppState>()(
           };
         });
         void pushEntry(entry);
-        syncSettings(); // recentFoods changed too
+        syncSettings('recentFoods');
       },
 
       removeEntry: (date, entryId) => {
@@ -382,7 +356,7 @@ export const useStore = create<AppState>()(
             [date]: Math.max(0, (state.waterIntake[date] ?? 0) + oz),
           },
         }));
-        syncSettings();
+        syncSettings('waterIntake');
       },
 
       setWater: (date, oz) => {
@@ -392,7 +366,7 @@ export const useStore = create<AppState>()(
             [date]: Math.max(0, Math.round(oz)),
           },
         }));
-        syncSettings();
+        syncSettings('waterIntake');
       },
 
       setWeeklyWorkoutGoal: (n) => {
@@ -400,32 +374,32 @@ export const useStore = create<AppState>()(
         // the app can never write a row the database will reject — and never
         // a zero, which the ring would divide by.
         set({ weeklyWorkoutGoal: Math.max(1, Math.min(14, Math.round(n))) });
-        syncSettings();
+        syncSettings('weeklyWorkoutGoal');
       },
 
       setWaterGoal: (oz) => {
         set({ waterGoal: Math.max(8, Math.round(oz)) });
-        syncSettings();
+        syncSettings('waterGoal');
       },
 
       setWaterIncrement: (oz) => {
         set({ waterIncrement: Math.min(40, Math.max(1, Math.round(oz))) });
-        syncSettings();
+        syncSettings('waterIncrement');
       },
 
       setShowWaterTracker: (show) => {
         set({ showWaterTracker: show });
-        syncSettings();
+        syncSettings('showWaterTracker');
       },
 
       setThemeMode: (mode) => {
         set({ themeMode: mode });
-        syncSettings();
+        syncSettings('themeMode');
       },
 
       setAutoRestTimer: (on) => {
         set({ autoRestTimer: on });
-        syncSettings();
+        syncSettings('autoRestTimer');
       },
 
       // Reminder prefs are device-local (not part of the cloud settings
@@ -436,17 +410,17 @@ export const useStore = create<AppState>()(
 
       setDefaultRestSeconds: (seconds) => {
         set({ defaultRestSeconds: Math.min(600, Math.max(15, Math.round(seconds))) });
-        syncSettings();
+        syncSettings('defaultRestSeconds');
       },
 
       setBodyWeight: (lbs) => {
         set({ bodyWeightLbs: Math.round(lbs) });
-        syncSettings();
+        syncSettings('bodyWeightLbs');
       },
 
       setProfile: (profile) => {
         set({ profile });
-        syncSettings();
+        syncSettings('profile');
       },
 
       logBodyWeight: (lbs, date) => {
@@ -460,6 +434,8 @@ export const useStore = create<AppState>()(
             .sort((a, b) =>
               a.date === b.date ? b.loggedAt - a.loggedAt : a.date < b.date ? 1 : -1
             )
+            // Caps this device's copy, not the record: every weigh-in is its
+            // own row in the cloud, so the 1001st does not evict the first.
             .slice(0, 1000);
           // Keep the scalar "current weight" in step with the latest reading.
           const next: Partial<AppState> = {
@@ -497,7 +473,10 @@ export const useStore = create<AppState>()(
           }
           return next as Partial<AppState>;
         });
-        syncSettings();
+        // The entry goes to its own table; the settings row only carries the
+        // scalar "current weight" and whatever the goal rebuild changed.
+        void pushBodyWeight(entry);
+        syncSettings('bodyWeightLbs', 'goals', 'goalsBasisWeightLbs', 'profile');
       },
 
       deleteBodyWeightEntry: (loggedAt) => {
@@ -508,7 +487,8 @@ export const useStore = create<AppState>()(
             bodyWeightLbs: log.length ? Math.round(log[0].lbs) : state.bodyWeightLbs,
           };
         });
-        syncSettings();
+        void deleteBodyWeightRemote(loggedAt);
+        syncSettings('bodyWeightLbs');
       },
 
       // ----- Nutrition shortcuts -----
@@ -522,12 +502,12 @@ export const useStore = create<AppState>()(
               : [food, ...state.favoriteFoods],
           };
         });
-        syncSettings();
+        syncSettings('favoriteFoods');
       },
 
       addCustomFood: (food: Food) => {
         set((state) => ({ customFoods: [food, ...state.customFoods] }));
-        syncSettings();
+        syncSettings('customFoods');
       },
 
       deleteCustomFood: (id: string) => {
@@ -535,22 +515,22 @@ export const useStore = create<AppState>()(
           customFoods: state.customFoods.filter((f) => f.id !== id),
           favoriteFoods: state.favoriteFoods.filter((f) => f.id !== id),
         }));
-        syncSettings();
+        syncSettings('customFoods', 'favoriteFoods');
       },
 
       saveMeal: (meal: SavedMeal) => {
         set((state) => ({ savedMeals: [meal, ...state.savedMeals] }));
-        syncSettings();
+        syncSettings('savedMeals');
       },
 
       deleteSavedMeal: (id: string) => {
         set((state) => ({ savedMeals: state.savedMeals.filter((m) => m.id !== id) }));
-        syncSettings();
+        syncSettings('savedMeals');
       },
 
       restoreSavedMeal: (meal) => {
         set((state) => ({ savedMeals: [meal, ...state.savedMeals] }));
-        syncSettings();
+        syncSettings('savedMeals');
       },
 
       copyMealFromDate: (fromDate: string, toDate: string, meal: MealType): number => {
@@ -584,19 +564,19 @@ export const useStore = create<AppState>()(
               : [...state.workoutTemplates, template],
           };
         });
-        syncSettings(); // templates ride along in the settings snapshot
+        syncSettings('workoutTemplates');
       },
 
       deleteTemplate: (id) => {
         set((state) => ({
           workoutTemplates: state.workoutTemplates.filter((t) => t.id !== id),
         }));
-        syncSettings();
+        syncSettings('workoutTemplates');
       },
 
       restoreTemplate: (tpl) => {
         set((state) => ({ workoutTemplates: [tpl, ...state.workoutTemplates] }));
-        syncSettings();
+        syncSettings('workoutTemplates');
       },
 
       startWorkout: (template, activityType) => {
@@ -965,25 +945,6 @@ export const useStore = create<AppState>()(
       name: 'macro-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
       version: 13,
-      /**
-       * Prune on every cold start, not only at the v13 migration.
-       *
-       * A migration runs once; eighteen months after it, the store would be
-       * back where it started. This is the same shallow merge persist does by
-       * default, with the cutoff applied on the way through — so the pruning
-       * happens before the store is ever read, and costs nothing once an
-       * account is inside the window.
-       */
-      merge: (persisted, current) => {
-        const p = (persisted ?? {}) as Partial<AppState>;
-        return { ...current, ...p, ...prunedDayRecords(p) } as AppState;
-      },
-      // v1 switched water from milliliters to fluid ounces; reset stored
-      // water so old ml values aren't misread as oz. Food logs/goals kept.
-      // v2 moved template exercises from target{Sets,Reps,Weight} scalars to
-      // an explicit per-set list; expand the old scalars into a sets array.
-      // v3 introduced a dated body-weight log; seed it from the old single
-      // bodyWeightLbs scalar so existing weight isn't lost.
       migrate: (persisted: any, version) => {
         let state = persisted;
         if (version < 1 && state) {
@@ -1100,29 +1061,28 @@ export const useStore = create<AppState>()(
         if (version < 12 && state && !Array.isArray(state.customExercises)) {
           state = { ...state, customExercises: [] };
         }
-        // v13 shrinks what the store carries, measured rather than guessed.
+        // v13 re-downsamples stored heart rate to the lower cap.
         //
         // zustand/persist stringifies the whole store on every state change —
-        // every water tap, every food entry — and at two years of daily use
-        // that was 2.4 MB and ~13 ms of main-thread work per mutation on a
-        // desktop CPU, so several times that on a phone. Two things dominated
-        // it: heart-rate samples at 39% and food logs at 58%.
+        // every water tap, every food entry. Heart-rate samples were 39% of
+        // it and the largest single thing in there, because the 100-workout
+        // cap was never the constraint: 200 points per workout was.
         //
-        // Both are handled here. The samples are re-downsampled to the new,
-        // lower cap; the logs are pruned to the window below. Together they
-        // roughly halve the write cost at every horizon tested.
-        if (version < 13 && state) {
-          if (Array.isArray(state.workoutHistory)) {
-            state = {
-              ...state,
-              workoutHistory: state.workoutHistory.map((w: any) =>
-                Array.isArray(w?.heartRateSamples)
-                  ? { ...w, heartRateSamples: downsampleHeartRate(w.heartRateSamples) }
-                  : w
-              ),
-            };
-          }
-          state = { ...state, ...prunedDayRecords(state) };
+        // A matching prune of old food logs was written and then removed. It
+        // did nothing: every launch re-downloads all food entries from the
+        // cloud and puts them straight back, so the store refilled to the
+        // same size. Worse, water intake is stored as one whole block rather
+        // than row by row, so a pruned copy uploaded over the full one would
+        // have destroyed everything past the cutoff in the cloud as well.
+        if (version < 13 && state && Array.isArray(state.workoutHistory)) {
+          state = {
+            ...state,
+            workoutHistory: state.workoutHistory.map((w: any) =>
+              Array.isArray(w?.heartRateSamples)
+                ? { ...w, heartRateSamples: downsampleHeartRate(w.heartRateSamples) }
+                : w
+            ),
+          };
         }
         return state;
       },

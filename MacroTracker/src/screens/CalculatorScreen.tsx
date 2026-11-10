@@ -247,7 +247,25 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   function handleSignOut() {
     Alert.alert('Sign Out', 'Your data stays synced to the cloud.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        // Wipe this device's copy on the way out.
+        //
+        // Without it the next account to sign in here inherits the last
+        // one's data: hydrate looks for entries the cloud does not have,
+        // finds the previous user's, and uploads them under the new user's
+        // id. Two people sharing a phone — or one person and a test account
+        // — ended up with each other's meals, and there was no way to take
+        // them back out.
+        //
+        // Safe because signing out is only offered to a signed-in account,
+        // whose data is already in the cloud and comes back on next sign-in.
+        onPress: async () => {
+          await signOut();
+          clearLocalData();
+        },
+      },
     ]);
   }
 

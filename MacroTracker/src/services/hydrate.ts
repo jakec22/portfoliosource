@@ -9,8 +9,9 @@ import {
   pushWorkouts,
   reportSyncError,
   settingsSnapshot,
+  pushBodyWeights,
 } from './sync';
-import type { FoodEntry, WorkoutSession } from '../types';
+import type { BodyWeightEntry, FoodEntry, WorkoutSession } from '../types';
 
 // Guard against re-running a full sync for the same user on repeated
 // auth events (token refresh, etc.) within one JS session.
@@ -105,16 +106,21 @@ export async function syncOnLogin(userId: string): Promise<void> {
       { data: settings },
       { data: rows, error },
       { data: workoutRows, error: workoutErr },
+      { data: weightRows, error: weightErr },
     ] = await Promise.all([
       supabase.from('user_settings').select('*').eq('user_id', userId).maybeSingle(),
       supabase.from('food_entries').select('*').eq('user_id', userId),
       supabase.from('workouts').select('*').eq('user_id', userId),
+      supabase.from('body_weight').select('*').eq('user_id', userId),
     ]);
     if (error) {
       reportSyncError('login fetch', error.message);
     }
     if (workoutErr) {
       reportSyncError('login workout fetch', workoutErr.message);
+    }
+    if (weightErr) {
+      reportSyncError('login weight fetch', weightErr.message);
     }
     // Reached the network successfully — start the cooldown so a relaunch a
     // few minutes from now doesn't redo this fetch. A thrown error (offline,
@@ -170,6 +176,30 @@ export async function syncOnLogin(userId: string): Promise<void> {
       (logs[e.date] ??= []).push(e);
     }
 
+    // Body weight: merge the same three ways everything else does, plus one
+    // more — the old jsonb column on user_settings, read once so a device
+    // upgrading to the per-row table does not appear to lose its history.
+    // 0006_body_weight.sql leaves that column in place for exactly this.
+    const cloudWeights: BodyWeightEntry[] = (weightRows ?? []).map((r: any) => ({
+      date: String(r.date),
+      lbs: Number(r.lbs),
+      loggedAt: Number(r.logged_at),
+    }));
+    const legacyWeights: BodyWeightEntry[] = Array.isArray(settings?.body_weight_log)
+      ? settings.body_weight_log
+      : [];
+    const seenWeights = new Set(cloudWeights.map((e) => e.loggedAt));
+    const localWeights = useStore.getState().bodyWeightLog;
+    const weightsToPush: BodyWeightEntry[] = [];
+    for (const e of [...localWeights, ...legacyWeights]) {
+      if (seenWeights.has(e.loggedAt)) continue;
+      seenWeights.add(e.loggedAt);
+      weightsToPush.push(e);
+    }
+    const mergedWeightLog = [...cloudWeights, ...weightsToPush]
+      .sort((a, b) => (a.date === b.date ? b.loggedAt - a.loggedAt : a.date < b.date ? 1 : -1))
+      .slice(0, 1000);
+
     // Workouts: merge local and cloud bidirectionally.
     // Local sessions not yet in the cloud are pushed up — this handles the
     // one-time transition for users who had workouts before sync was added,
@@ -182,11 +212,12 @@ export async function syncOnLogin(userId: string): Promise<void> {
 
     // One unsuspended window for everything this device holds that the cloud
     // doesn't, rather than toggling the guard once per kind.
-    if (localOnly.length > 0 || localOnlyEntries.length > 0) {
+    if (localOnly.length > 0 || localOnlyEntries.length > 0 || weightsToPush.length > 0) {
       setSuspended(false);
       await Promise.all([
         localOnly.length > 0 ? pushWorkouts(localOnly) : null,
         localOnlyEntries.length > 0 ? pushEntries(localOnlyEntries) : null,
+        weightsToPush.length > 0 ? pushBodyWeights(weightsToPush) : null,
       ]);
       setSuspended(true);
     }
@@ -243,9 +274,7 @@ export async function syncOnLogin(userId: string): Promise<void> {
       savedMeals: settings?.saved_meals?.length
         ? settings.saved_meals
         : state.savedMeals,
-      bodyWeightLog: settings?.body_weight_log?.length
-        ? settings.body_weight_log
-        : state.bodyWeightLog,
+      bodyWeightLog: mergedWeightLog,
       workoutTemplates: settings?.workout_templates?.length
         ? settings.workout_templates
         : state.workoutTemplates,
