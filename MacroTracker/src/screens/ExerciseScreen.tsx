@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,12 @@ import {
   StatusBar,
   Alert,
   Share,
-  Platform,
-  ActionSheetIOS,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { useSnackbar } from '../store/useSnackbar';
 import { WorkoutTemplate } from '../types';
-import { DEFAULT_WORKOUT_HK, RECOVERY_TYPES, WORKOUT_TYPES } from '../utils/workoutTypes';
+import { DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { progressHighlights } from '../utils/exerciseHistory';
 import { consistencyStats, trainingCalendar, trainingSplit } from '../utils/trainingSplit';
@@ -28,6 +26,7 @@ import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
+import { StartSessionSheet, type StartChoice } from '../components/StartSessionSheet';
 
 interface Props {
   navigation: any;
@@ -62,42 +61,20 @@ export function ExerciseScreen({ navigation }: Props) {
   const calendar = useMemo(() => trainingCalendar(history, CALENDAR_WEEKS), [history]);
   const hasTrained = consistency.totalSessions > 0;
 
-  // Ask for the workout type, then start. The type is what Apple Health
-  // categorizes the session as; it's stored on Android too, so a workout
-  // logged there keeps its type if the account is later opened on an iPhone.
-  function pickTypeThenStart(template?: WorkoutTemplate) {
-    // Strength, then the recovery kinds. Strength opens the set-logging
-    // screen; a sauna or plunge opens a timer and nothing else, which is the
-    // whole of what they record.
-    const labels = [...WORKOUT_TYPES.map((t) => t.label), ...RECOVERY_TYPES.map((r) => r.label)];
-    const apply = (index: number) => {
-      if (index < 0 || index >= labels.length) return;
-      const recovery = RECOVERY_TYPES[index - WORKOUT_TYPES.length];
-      if (recovery) {
-        navigation.navigate('RecoveryTimer', { kind: recovery.kind });
-        return;
-      }
-      startWorkout(template, WORKOUT_TYPES[index].hk);
-      navigation.navigate('ActiveWorkout');
-    };
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          title: 'What are you starting?',
-          options: [...labels, 'Cancel'],
-          cancelButtonIndex: labels.length,
-        },
-        apply
-      );
-    } else {
-      // Android has no action sheet; an Alert with one button per type is what
-      // the set-type pickers already do. This used to skip the question and
-      // silently start a Strength session.
-      Alert.alert('What are you starting?', undefined, [
-        ...labels.map((label, i) => ({ text: label, onPress: () => apply(i) })),
-        { text: 'Cancel', style: 'cancel' as const },
-      ]);
+  // Ask what's starting, then go. Strength opens the set-logging screen; a
+  // sauna or plunge opens a timer and nothing else, which is the whole of
+  // what they record. The workout type is what Apple Health categorizes the
+  // session as; it's stored on Android too, so a workout logged there keeps
+  // its type if the account is later opened on an iPhone.
+  const [startSheet, setStartSheet] = useState(false);
+
+  function handleChoose(choice: StartChoice) {
+    if (choice.kind === 'recovery') {
+      navigation.navigate('RecoveryTimer', { kind: choice.recovery });
+      return;
     }
+    startWorkout(undefined, choice.hk);
+    navigation.navigate('ActiveWorkout');
   }
 
   function handleStartEmpty() {
@@ -105,7 +82,7 @@ export function ExerciseScreen({ navigation }: Props) {
       navigation.navigate('ActiveWorkout');
       return;
     }
-    pickTypeThenStart();
+    setStartSheet(true);
   }
 
   function handleStartTemplate(t: WorkoutTemplate) {
@@ -337,6 +314,12 @@ export function ExerciseScreen({ navigation }: Props) {
           </>
         )}
       </ScrollView>
+
+      <StartSessionSheet
+        visible={startSheet}
+        onClose={() => setStartSheet(false)}
+        onChoose={handleChoose}
+      />
     </SafeAreaView>
   );
 }

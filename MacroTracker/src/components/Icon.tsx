@@ -35,6 +35,10 @@ const GLYPH = {
   heart: 'heart',
   streak: 'fire',
   bodyWeight: 'scale-bathroom',
+  // Recovery. `fire` is already the streak, so heat is the rising-waves glyph
+  // rather than a second flame.
+  sauna: 'heat-wave',
+  plunge: 'snowflake',
 
   // Progress
   goal: 'target',
