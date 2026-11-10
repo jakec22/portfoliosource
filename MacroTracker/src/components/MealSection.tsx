@@ -22,6 +22,7 @@ import { FoodEntry, MealType, ServingUnit } from '../types';
 import { useStore, sumMacros } from '../store/useStore';
 import { useSnackbar } from '../store/useSnackbar';
 import { availableUnits, defaultAmount, formatAmount, toMultiplier } from '../utils/serving';
+import { useSheetAnimation } from '../hooks/useSheetAnimation';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -76,6 +77,7 @@ interface Props {
 export function MealSection({ meal, date, onAddFood }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const sheetAnimation = useSheetAnimation();
   const [expanded, setExpanded] = useState(true);
   const [editing, setEditing] = useState<EditState | null>(null);
   const [amountFocused, setAmountFocused] = useState(false);
@@ -245,7 +247,7 @@ export function MealSection({ meal, date, onAddFood }: Props) {
       <Modal
         visible={editing !== null}
         transparent
-        animationType="slide"
+        animationType={sheetAnimation}
         onRequestClose={() => setEditing(null)}
       >
         <TouchableOpacity

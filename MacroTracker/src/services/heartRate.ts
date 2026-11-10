@@ -375,14 +375,22 @@ export function getHeartRateMonitor(): HeartRateMonitor {
 /**
  * Reduce a dense heart-rate series to at most `maxPoints` samples for storage.
  * A workout can stream thousands of samples; persisting all of them for every
- * saved workout bloats the on-disk store and slows app cold-start. `maxPoints`
- * (~200) is far more than a small phone chart can resolve, and we always keep
- * the first, last, and the true peak/low samples so the graph shape and the
- * Avg/Peak/Low stats stay accurate.
+ * saved workout bloats the on-disk store and slows app cold-start.
+ *
+ * 80, down from 200. The graph draws 326pt wide, so 200 points is six per
+ * ten pixels — denser than the line can show. It is also the single largest
+ * thing in the persisted store: a hundred saved workouts at 200 points each
+ * is most of a megabyte that zustand/persist re-serializes on every state
+ * change, which means on every water tap and every food entry.
+ *
+ * Shape is unaffected at this density — plotted side by side, 200 and 80 are
+ * the same curve, including a cold plunge's shock spike, which is the
+ * sharpest thing the app records. Peak and low are exact at any density
+ * because they are preserved explicitly below, not sampled.
  */
 export function downsampleHeartRate(
   samples: HeartRateSample[],
-  maxPoints = 200
+  maxPoints = 80
 ): HeartRateSample[] {
   if (samples.length <= maxPoints) return samples;
   const step = samples.length / maxPoints;

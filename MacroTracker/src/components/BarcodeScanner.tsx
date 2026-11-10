@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useSheetAnimation } from '../hooks/useSheetAnimation';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -32,6 +33,7 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
   // — follows the pack's primary color.
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const sheetAnimation = useSheetAnimation();
   const [permission, requestPermission] = useCameraPermissions();
   // Prevents the camera from firing dozens of callbacks for one barcode.
   const [locked, setLocked] = useState(false);
@@ -75,7 +77,7 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onShow={handleShow} onRequestClose={onClose}>
+    <Modal visible={visible} animationType={sheetAnimation} onShow={handleShow} onRequestClose={onClose}>
       <View style={styles.container}>
         {!permission ? (
           <View style={styles.center}>
@@ -167,21 +169,40 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
   );
 }
 
-// The chrome here stays fixed dark whichever pack is active — it sits over a
-// live camera feed, and a cream surface would wash the viewfinder out. The
-// type still comes off the ramp, so the pack's voice carries through.
+/**
+ * Camera chrome, deliberately outside the theme packs.
+ *
+ * This sits over a live viewfinder, where the surface has to stay dark and
+ * neutral whatever pack is active — a pack is free to go light later, and
+ * this screen cannot follow it there. So the values are named here as a
+ * declared exception rather than pulled from `c`.
+ *
+ * They were four loose Tailwind greys (gray-900/400/300) left over from
+ * before the token system; naming them is what makes the exception readable
+ * as a decision instead of as drift. Contrast is measured against the chrome
+ * itself: `camText` is 7.0:1 on `camSurface`, `camTextStrong` 14.3:1 on the
+ * black viewfinder.
+ */
+const cam = {
+  surface: '#111827', // panel behind the permission prompt
+  text: '#9CA3AF', // body copy on that panel
+  textStrong: '#D1D5DB', // controls over the live feed
+  white: '#FFFFFF',
+  black: '#000000', // the viewfinder itself
+} as const;
+
 const makeStyles = (c: Theme) =>
   StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: cam.black },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: space.xxl,
-    backgroundColor: '#111827',
+    backgroundColor: cam.surface,
   },
-  permTitle: { ...type.heading(c), color: '#fff', marginBottom: space.sm },
-  permText: { ...type.body(c), color: '#9CA3AF', textAlign: 'center', marginBottom: space.xl },
+  permTitle: { ...type.heading(c), color: cam.white, marginBottom: space.sm },
+  permText: { ...type.body(c), color: cam.text, textAlign: 'center', marginBottom: space.xl },
   permBtn: {
     paddingHorizontal: space.xl,
     paddingVertical: space.lg,
@@ -189,7 +210,7 @@ const makeStyles = (c: Theme) =>
   },
   permBtnText: { ...type.bodyStrong(c) },
   cancelLink: { marginTop: space.lg },
-  cancelLinkText: { ...type.body(c), color: '#9CA3AF' },
+  cancelLinkText: { ...type.body(c), color: cam.text },
   overlay: {
     position: 'absolute',
     top: 0,
@@ -216,7 +237,7 @@ const makeStyles = (c: Theme) =>
   hint: {
     ...type.body(c),
     fontFamily: c.fontBodySemi,
-    color: '#fff',
+    color: cam.white,
     marginTop: space.lg,
     textAlign: 'center',
     paddingHorizontal: space.xxl,
@@ -237,8 +258,8 @@ const makeStyles = (c: Theme) =>
     paddingVertical: space.sm,
     borderRadius: radius.control,
   },
-  modeBtnText: { ...type.captionStrong(c), fontFamily: c.fontBodyBold, color: '#D1D5DB' },
-  modeBtnTextActive: { color: '#fff' },
+  modeBtnText: { ...type.captionStrong(c), fontFamily: c.fontBodyBold, color: cam.textStrong },
+  modeBtnTextActive: { color: cam.white },
   shutterWrap: {
     position: 'absolute',
     bottom: 50,
@@ -270,5 +291,5 @@ const makeStyles = (c: Theme) =>
     paddingVertical: space.md,
     borderRadius: radius.card,
   },
-  closeBtnText: { ...type.body(c), fontFamily: c.fontBodySemi, color: '#fff' },
+  closeBtnText: { ...type.body(c), fontFamily: c.fontBodySemi, color: cam.white },
   });

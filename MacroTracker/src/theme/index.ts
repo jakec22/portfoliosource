@@ -35,7 +35,23 @@ export interface Theme {
   // Text
   text: string; // primary text
   textMuted: string; // secondary text
-  textFaint: string; // tertiary text / placeholder / disabled
+  /**
+   * Third tier of text: captions, month labels, legend ends, placeholders,
+   * disabled.
+   *
+   * Each pack sets it to clear 4.5:1 against the lightest surface it lands
+   * on — Editorial's card, Sport-Tech's cardMuted — because nearly every use
+   * is at 11 or 13pt, where that is the bar. It had been two steps darker and
+   * measured 3.0:1 and 3.4:1 on those surfaces, which is where most of the
+   * app's secondary copy lives.
+   *
+   * Hue and saturation are each pack's own; only lightness moved. Lifting
+   * textMuted alongside it was tried and discarded: at the lightness that
+   * keeps an even ladder it starts competing with primary text, flattening
+   * the top of the hierarchy to fix the bottom. Weight already separates the
+   * two tiers — muted is 500, faint is 400.
+   */
+  textFaint: string;
 
   // Lines
   border: string; // hairline border / divider
@@ -47,6 +63,14 @@ export interface Theme {
   primarySoft: string; // tinted background behind primary chips/badges
   onPrimary: string; // text/icon sitting on a primary-colored surface
   danger: string;
+  /**
+   * Ink for text sitting directly on `danger`, the counterpart to onPrimary.
+   *
+   * It did not exist, so the three swipe-to-delete labels used '#fff' — which
+   * measures 2.8:1 on Editorial's danger and 3.6:1 on Sport-Tech's. Both
+   * dangers are light reds; white was always going to lose on them.
+   */
+  onDanger: string;
   dangerSoft: string;
   warning: string;
   warningSoft: string;
@@ -139,7 +163,7 @@ export const editorialTheme: Theme = {
 
   text: '#F4F4F5',
   textMuted: '#A1A1A8',
-  textFaint: '#6E6E76',
+  textFaint: '#8C8C94',
 
   border: '#34343A',
   borderStrong: '#47474F',
@@ -149,6 +173,7 @@ export const editorialTheme: Theme = {
   primarySoft: 'rgba(52,199,123,0.16)',
   onPrimary: '#07140D',
   danger: '#F4756D',
+  onDanger: '#1E0403',
   dangerSoft: 'rgba(244,117,109,0.18)',
   warning: '#E0A32E',
   warningSoft: 'rgba(224,163,46,0.18)',
@@ -202,7 +227,7 @@ export const sportTechTheme: Theme = {
 
   text: '#F5F7FA',
   textMuted: '#9CA6B4',
-  textFaint: '#6B7684',
+  textFaint: '#828D9A',
 
   border: '#262C37',
   borderStrong: '#343B48',
@@ -212,6 +237,7 @@ export const sportTechTheme: Theme = {
   primarySoft: 'rgba(201,240,77,0.16)',
   onPrimary: '#0D1017',
   danger: '#F2456B',
+  onDanger: '#140407',
   dangerSoft: 'rgba(242,69,107,0.18)',
   warning: '#FBBF24',
   warningSoft: 'rgba(251,191,36,0.18)',

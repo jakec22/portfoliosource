@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EXERCISE_CATALOG, type ExerciseCategory } from '../utils/exerciseList';
 import { categoryForExercise } from '../utils/trainingSplit';
 import { useStore } from '../store/useStore';
+import { useSheetAnimation } from '../hooks/useSheetAnimation';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -30,6 +31,7 @@ interface Props {
 export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const sheetAnimation = useSheetAnimation();
   const [query, setQuery] = useState('');
 
   const customExercises = useStore((s) => s.customExercises);
@@ -83,7 +85,7 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType={sheetAnimation} onRequestClose={handleClose}>
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose}>

@@ -9,6 +9,7 @@ import {
   Pressable,
 } from 'react-native';
 import { useStore } from '../store/useStore';
+import { useSheetAnimation } from '../hooks/useSheetAnimation';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -71,6 +72,7 @@ const RECOVERY_TINT: Record<RecoveryKind, (c: Theme) => string> = {
 export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
+  const sheetAnimation = useSheetAnimation();
   const presets = useStore((s) => s.recoveryPresets);
 
   // Close first, act after the sheet is really gone.
@@ -130,7 +132,7 @@ export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType={sheetAnimation}
       onRequestClose={onClose}
       onDismiss={Platform.OS === 'ios' ? flush : undefined}
     >

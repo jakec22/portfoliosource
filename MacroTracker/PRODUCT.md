@@ -78,7 +78,10 @@ Confirmed, shipping:
 - **Review** — history by day, key insights (streak, logged days, weight
   change, consistency, volume).
 - **Platform** — email/Apple auth, cloud sync, local notification reminders,
-  three selectable theme packs.
+  two selectable theme packs (Editorial, Sport-Tech), both dark. `app.json`
+  declares `userInterfaceStyle: "dark"` to match, so system alerts, action
+  sheets and the keyboard do not render light over the app on a light-mode
+  device.
 
 Constraints:
 

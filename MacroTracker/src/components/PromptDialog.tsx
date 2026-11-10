@@ -97,10 +97,7 @@ export function PromptDialog() {
                 if (error) setError(null);
               }}
               placeholder={request.placeholder}
-              // textMuted, not the textFaint the rest of the app uses for
-              // placeholders: faint measures 3.4:1 on the input fill, and a
-              // placeholder is the only text in an empty field.
-              placeholderTextColor={c.textMuted}
+              placeholderTextColor={c.textFaint}
               keyboardType={request.keyboardType}
               autoCapitalize={request.autoCapitalize ?? 'sentences'}
               autoCorrect={false}

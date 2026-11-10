@@ -87,5 +87,5 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: space.sm,
     marginLeft: space.sm,
   },
-  swipeDeleteText: { ...type.bodyStrong(c), color: '#fff' },
+  swipeDeleteText: { ...type.bodyStrong(c), color: c.onDanger },
 });
