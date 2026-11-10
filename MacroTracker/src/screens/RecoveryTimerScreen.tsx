@@ -33,17 +33,6 @@ const MAX_TARGET = 60 * 60;
 /** 30s below five minutes, a minute above — the resolution each range wants. */
 const stepFor = (seconds: number) => (seconds < 5 * 60 ? 30 : 60);
 
-/**
- * How long before the target to warn, in seconds.
- *
- * A fifth of the session, between ten seconds and a minute — the same rule
- * the watch uses. A fixed thirty seconds would be a tenth of a fifteen-minute
- * sauna and a sixth of a three-minute plunge, which are not the same warning.
- */
-function warningLead(targetSeconds: number): number {
-  return Math.min(60, Math.max(10, targetSeconds * 0.2));
-}
-
 function clock(totalSeconds: number): string {
   const t = Math.max(0, Math.round(totalSeconds));
   const m = Math.floor(t / 60);
@@ -101,9 +90,8 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
   const shownTarget = activeRecovery?.targetSeconds ?? targetSeconds;
   const shownMode = activeRecovery?.mode ?? mode;
 
-  // So each alert fires once rather than on every tick past its mark.
+  // So the target buzz fires once rather than on every tick past it.
   const reachedRef = useRef(false);
-  const warnedRef = useRef(false);
   // Set while this screen is the one ending the session, so the effect below
   // doesn't also treat its own save as a finish that happened elsewhere.
   const endingRef = useRef(false);
@@ -141,21 +129,16 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
    * wrist (see DayStats.recoveryTick). What this covers is the user who has
    * no watch and keeps the phone within arm's reach.
    *
-   * A warning first, then the target, matching the wrist. iOS ignores the
-   * duration argument and plays one fixed buzz, so the only way to make the
-   * end feel different from the heads-up is to repeat it: the array form is
-   * a gap-and-buzz pattern, which iOS does honour.
+   * Five buzzes at the target, matching the wrist. iOS ignores the duration
+   * argument and plays one fixed buzz whatever is passed, so the only way to
+   * make this carry is to repeat it: the array form is a gap-and-buzz
+   * pattern, which iOS does honour.
    */
   useEffect(() => {
-    if (!running) return;
-    if (!warnedRef.current && elapsed > 0 && shownTarget - elapsed <= warningLead(shownTarget)) {
-      warnedRef.current = true;
-      Vibration.vibrate();
-    }
-    if (!reachedRef.current && elapsed >= shownTarget) {
+    if (!running || reachedRef.current) return;
+    if (elapsed >= shownTarget) {
       reachedRef.current = true;
-      warnedRef.current = true; // a target short enough to pass both at once
-      Vibration.vibrate([0, 400, 250, 400, 250, 400]);
+      Vibration.vibrate([0, 400, 250, 400, 250, 400, 250, 400, 250, 400]);
     }
   }, [elapsed, running, shownTarget]);
 
@@ -193,7 +176,6 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
       return;
     }
     reachedRef.current = false;
-    warnedRef.current = false;
     setElapsed(0);
     setLiveBpm(0);
     beginRecovery(kind, { targetSeconds, mode });
