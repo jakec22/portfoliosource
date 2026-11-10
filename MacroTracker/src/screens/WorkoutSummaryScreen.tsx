@@ -29,10 +29,11 @@ import {
   queryActiveEnergyForWorkout,
 } from '../services/activeEnergy';
 import { HeartRateGraph } from '../components/HeartRateGraph';
+import { isRecoverySession } from '../utils/workoutTypes';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
-import type { WorkoutExercise } from '../types';
+import type { WorkoutExercise, WorkoutSession } from '../types';
 
 // The heaviest completed working set by estimated 1RM — the single most
 // representative number for "how strong was this exercise today."
@@ -188,6 +189,32 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
   }
 
   const durationMs = (session.completedAt ?? session.startedAt) - session.startedAt;
+
+  /**
+   * A sauna or plunge gets its own summary.
+   *
+   * Every headline the lifting summary leads with is zero here — no volume,
+   * no sets, no reps, no exercises — and the Breakdown section below renders
+   * a heading, a "tap a set to correct it" hint, and nothing at all. What a
+   * recovery session actually produced is the time held and what the heart
+   * did, so that is what this shows.
+   *
+   * Active energy is left out for the same reason the watch leaves it out:
+   * HealthKit will report energy from a heart rate raised by heat rather
+   * than by work, and a number you have to disbelieve is worse than none.
+   */
+  if (isRecoverySession(session)) {
+    return (
+      <RecoverySummary
+        session={session}
+        previousSession={previousSession}
+        viewOnly={viewOnly}
+        onDone={done}
+        c={c}
+      />
+    );
+  }
+
   const totalSets = session.exercises.reduce((n, e) => n + e.sets.length, 0);
   const completedSets = session.exercises.reduce(
     (n, e) => n + e.sets.filter((s) => s.completed).length,
@@ -422,6 +449,113 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
           )}
         </KeyboardAvoidingView>
       </Modal>
+    </SafeAreaView>
+  );
+}
+
+/**
+ * The sauna / cold plunge recap.
+ *
+ * Two numbers and a graph. Held time is the headline, because it is the one
+ * thing the session was about. The second slot is the time of day, which is
+ * not shown anywhere else and does distinguish one of these from another — a
+ * morning sauna is a different thing from one after a lift.
+ *
+ * It is deliberately not average heart rate: the graph below carries its own
+ * avg / peak / low header, and a card saying 110 directly above a column
+ * saying 110 reads as two measurements that happen to agree rather than one
+ * stated twice.
+ */
+function RecoverySummary({
+  session,
+  previousSession,
+  viewOnly,
+  onDone,
+  c,
+}: {
+  session: WorkoutSession;
+  previousSession: WorkoutSession | null;
+  viewOnly?: boolean;
+  onDone: () => void;
+  c: Theme;
+}) {
+  const styles = useMemo(() => makeStyles(c), [c]);
+  const samples = session.heartRateSamples ?? [];
+  const durationMs = (session.completedAt ?? session.startedAt) - session.startedAt;
+  const startedLabel = new Date(session.startedAt).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+  const prevDurationMs = previousSession
+    ? (previousSession.completedAt ?? previousSession.startedAt) - previousSession.startedAt
+    : null;
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content}>
+        {!viewOnly && (
+          <View style={styles.completeBadge}>
+            <Text style={styles.completeBadgeText}>Completed</Text>
+          </View>
+        )}
+        <Text style={styles.title}>{session.name}</Text>
+        <Text style={styles.subtitle}>{displayDate(session.date)}</Text>
+
+        <View style={styles.statGrid}>
+          <StatCard label="Held" value={formatDuration(durationMs)} color={c.primary} c={c} />
+          <StatCard label="Started" value={startedLabel} color={c.info} c={c} />
+        </View>
+
+        {previousSession && prevDurationMs != null && (
+          <>
+            <Text style={styles.sectionTitle}>
+              vs. Last Time ({displayDate(previousSession.date)})
+            </Text>
+            <View style={styles.vsCard}>
+              <VsStat
+                label="Held"
+                delta={deltaLabel((durationMs - prevDurationMs) / 60000, ' min', 1)}
+                // Longer is the improvement here, which is the opposite of a
+                // workout: a denser lift is a shorter one, a better plunge is
+                // a longer one.
+                positive={durationMs >= prevDurationMs}
+                c={c}
+              />
+            </View>
+          </>
+        )}
+
+        {samples.length >= 2 ? (
+          <>
+            <Text style={styles.sectionTitle}>Heart Rate</Text>
+            <View style={styles.hrCard}>
+              <HeartRateGraph
+                samples={samples}
+                startMs={session.startedAt}
+                endMs={session.completedAt ?? session.startedAt}
+              />
+            </View>
+          </>
+        ) : (
+          // Said plainly rather than left as a missing section: a sauna with
+          // no trace is almost always a watch that wasn't on the wrist, and
+          // the user is otherwise left guessing whether the feature works.
+          <>
+            <Text style={styles.sectionTitle}>Heart Rate</Text>
+            <View style={styles.hrCard}>
+              <Text style={styles.emptyText}>
+                No heart rate recorded. Wear your Apple Watch during a session to
+                capture it.
+              </Text>
+            </View>
+          </>
+        )}
+
+        <TouchableOpacity style={styles.doneBtn} onPress={onDone} activeOpacity={0.85}>
+          <Text style={styles.doneText}>{viewOnly ? 'Close' : 'Done'}</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }

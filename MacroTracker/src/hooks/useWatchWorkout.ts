@@ -106,8 +106,15 @@ export function useWatchWorkout(): void {
     return subscribeWatchRecoveryFinish(({ kind, startedAt, heldSeconds, save }) => {
       const state = useStore.getState();
       if (state.activeRecovery) {
-        if (save) void endRecovery(heldSeconds);
-        else state.cancelRecovery();
+        if (save) {
+          // Same as the workout path: the recap is shown whether the finish
+          // came from this phone or from the wrist.
+          void endRecovery(heldSeconds).then((id) => {
+            if (id) navigateToWorkoutSummary(id);
+          });
+        } else {
+          state.cancelRecovery();
+        }
         return;
       }
       // A session this phone never heard start, because the start was queued
@@ -117,7 +124,9 @@ export function useWatchWorkout(): void {
       if (!save || heldSeconds < 10) return;
       const type = RECOVERY_TYPES.find((r) => r.kind === kind);
       if (!type) return;
-      void logWatchRecovery(type.kind, startedAt, heldSeconds);
+      void logWatchRecovery(type.kind, startedAt, heldSeconds).then((id) => {
+        if (id) navigateToWorkoutSummary(id);
+      });
     });
   }, []);
 

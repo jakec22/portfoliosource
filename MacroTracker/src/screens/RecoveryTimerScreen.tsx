@@ -170,8 +170,12 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
 
   async function save(heldSeconds: number) {
     endingRef.current = true;
-    await endRecovery(heldSeconds);
-    navigation.goBack();
+    const id = await endRecovery(heldSeconds);
+    // Replace rather than push, so Back from the recap lands on Exercise and
+    // not on a timer for a session that has already been saved — the same
+    // thing the workout finish does.
+    if (id) navigation.replace('WorkoutSummary', { sessionId: id });
+    else navigation.goBack();
   }
 
   function discard() {
