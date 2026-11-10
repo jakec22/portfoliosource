@@ -19,7 +19,19 @@ export function beginRecovery(kind: RecoveryKind, preset: RecoveryPreset) {
   const started = useStore.getState().startRecovery(kind, preset);
   // Only once the store agreed to start: a refused start (a workout already
   // running) must not wipe that workout's samples.
-  if (started) resetWorkoutHrBuffer();
+  if (started) {
+    resetWorkoutHrBuffer();
+    // Ask the phone for its own read access.
+    //
+    // The watch asks for its own when it opens a session, but this side needs
+    // its own grant to read the window back at the end, and until now the
+    // only thing that ever asked was the lifting screen. A user whose first
+    // session was a sauna therefore got a silent empty query — queryQuantity-
+    // Samples returns nothing rather than failing — and a saved session with
+    // no graph and no reason given. A no-op once granted; iOS does not
+    // re-prompt.
+    void getHeartRateMonitor().requestPermissions();
+  }
   return started;
 }
 
