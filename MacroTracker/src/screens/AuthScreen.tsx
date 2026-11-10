@@ -20,6 +20,7 @@ import {
   signInWithApple,
   resetPasswordForEmail,
 } from '../services/auth';
+import { showPrompt } from '../store/usePrompt';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -64,22 +65,31 @@ export function AuthScreen() {
   }
 
   function handleForgotPassword() {
-    Alert.prompt(
-      'Reset Password',
-      'Enter the email address for your account.',
-      async (input) => {
-        if (!input?.trim()) return;
-        const { error } = await resetPasswordForEmail(input);
+    showPrompt({
+      title: 'Reset password',
+      message: 'We’ll email you a link to set a new one.',
+      placeholder: 'you@example.com',
+      defaultValue: email,
+      submitLabel: 'Send link',
+      keyboardType: 'email-address',
+      autoCapitalize: 'none',
+      // RFC 5321's limit. Long enough that no real address hits it, short
+      // enough that a pasted paragraph cannot.
+      maxLength: 254,
+      // Caught here rather than by the server, so a typo costs a correction
+      // in a field that still holds what you typed instead of a round trip
+      // and a re-type.
+      validate: (v) =>
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : 'That doesn’t look like an email address.',
+      onSubmit: async (address) => {
+        const { error } = await resetPasswordForEmail(address);
         if (error) {
-          Alert.alert('Error', error.message);
+          Alert.alert('Couldn’t send the link', error.message);
         } else {
-          Alert.alert('Email sent', `Check ${input.trim()} for a password reset link.`);
+          Alert.alert('Email sent', `Check ${address} for a password reset link.`);
         }
       },
-      'plain-text',
-      email,
-      'email-address'
-    );
+    });
   }
 
   async function handleGoogle() {

@@ -27,6 +27,7 @@ import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { StartSessionSheet, type StartChoice } from '../components/StartSessionSheet';
+import { showPrompt } from '../store/usePrompt';
 
 interface Props {
   navigation: any;
@@ -151,31 +152,30 @@ export function ExerciseScreen({ navigation }: Props) {
   // Fallback for when tapping a shared link doesn't auto-open the app: let the
   // user paste the link text and import it manually.
   function handleImportFromLink() {
-    Alert.prompt(
-      'Add from link',
-      'Paste a shared MacroTracker workout link.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Import',
-          onPress: (value?: string) => {
-            const text = (value ?? '').trim();
-            if (!text) return;
-            const template = decodeTemplateLink(text);
-            if (!template) {
-              Alert.alert(
-                'Invalid link',
-                "That doesn't look like a MacroTracker workout link. Copy the whole link and try again."
-              );
-              return;
-            }
-            saveTemplate(template);
-            Alert.alert('Imported', `“${template.name}” was added to My Workouts.`);
-          },
-        },
-      ],
-      'plain-text'
-    );
+    showPrompt({
+      title: 'Add from link',
+      message: 'Paste a shared HolyMacro workout link.',
+      placeholder: 'https://…',
+      submitLabel: 'Import',
+      autoCapitalize: 'none',
+      // A link carries the whole template, so this is the one field here that
+      // is legitimately long. Generous, but still bounded.
+      maxLength: 4000,
+      // Decoded before the dialog closes. It used to close, raise a second
+      // alert, and leave the user to find and paste the link again — the
+      // worst possible place to throw away what someone pasted.
+      validate: (v) =>
+        decodeTemplateLink(v)
+          ? null
+          : 'That isn’t a HolyMacro workout link. Copy the whole link and try again.',
+      onSubmit: (text) => {
+        const template = decodeTemplateLink(text);
+        // Validated a moment ago; this is the type guard, not a second check.
+        if (!template) return;
+        saveTemplate(template);
+        Alert.alert('Imported', `“${template.name}” was added to My Workouts.`);
+      },
+    });
   }
 
   return (

@@ -20,6 +20,7 @@ import { analyzeMealText } from '../services/mealPhoto';
 import type { AnalyzedItem } from '../services/mealPhoto';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
+import { showPrompt } from '../store/usePrompt';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -243,25 +244,28 @@ export function BuildMealScreen({ route, navigation }: Props) {
 
   function handleSaveAsMeal() {
     if (items.length === 0) return;
-    Alert.prompt(
-      'Save as Meal',
-      'Give this meal a name for quick re-logging later:',
-      (name) => {
-        if (!name?.trim()) return;
+    showPrompt({
+      title: 'Save as meal',
+      message: 'Name it so you can log the whole thing in one tap.',
+      placeholder: 'Sunday breakfast',
+      submitLabel: 'Save meal',
+      // Matches the cap on the other save-meal prompt; both write the same
+      // list, so one of them allowing longer names would be the bug.
+      maxLength: 60,
+      onSubmit: (name) => {
         const saved: SavedMeal = {
           id: `meal-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          name: name.trim(),
+          name,
           items: items.map((it) => ({ food: it.food, servings: itemMultiplier(it) })),
           createdAt: Date.now(),
         };
         saveMealToStore(saved);
         Alert.alert(
           'Saved',
-          `"${name.trim()}" is now in your Saved Meals — tap it to log it in one tap next time.`
+          `“${name}” is now in your Saved Meals — tap it to log it in one tap next time.`
         );
       },
-      'plain-text'
-    );
+    });
   }
 
   // ─── Render ────────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ import { BarcodeScanner } from '../components/BarcodeScanner';
 import Svg, { Rect } from 'react-native-svg';
 import { availableUnits, defaultAmount, toMultiplier } from '../utils/serving';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
+import { showPrompt } from '../store/usePrompt';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -360,20 +361,23 @@ export function LogFoodScreen({ route, navigation }: Props) {
 
   function handleSaveMeal() {
     if (mealEntries.length === 0) return;
-    Alert.prompt(
-      'Save Meal',
-      `Name this ${MEAL_LABELS[meal].toLowerCase()} for quick re-logging:`,
-      (name) => {
-        if (!name?.trim()) return;
+    showPrompt({
+      title: 'Save meal',
+      message: `Name this ${MEAL_LABELS[meal].toLowerCase()} so you can log it again in one tap.`,
+      placeholder: 'Post-gym shake',
+      submitLabel: 'Save meal',
+      // Names are shown in a single row on the saved-meals list; past this
+      // they stop being a name and start being a paragraph.
+      maxLength: 60,
+      onSubmit: (name) => {
         saveMealToStore({
           id: `meal-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          name: name.trim(),
+          name,
           items: mealEntries.map((e) => ({ food: e.food, servings: e.servings })),
           createdAt: Date.now(),
         });
       },
-      'plain-text'
-    );
+    });
   }
 
   // Meal-level actions — build a multi-item meal, copy yesterday's, save this

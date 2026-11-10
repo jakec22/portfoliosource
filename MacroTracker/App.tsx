@@ -27,6 +27,7 @@ import { useTheme } from './src/theme/useTheme';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon } from './src/components/TabIcon';
 import { Snackbar } from './src/components/Snackbar';
+import { PromptDialog } from './src/components/PromptDialog';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LogFoodScreen } from './src/screens/LogFoodScreen';
 import { MealPhotoScreen } from './src/screens/MealPhotoScreen';
@@ -308,8 +309,9 @@ export default function App() {
         ) : (
           <AuthScreen />
         )}
-        {/* One instance for the whole app, over the tab bar. */}
+        {/* One instance each for the whole app, over the tab bar. */}
         <Snackbar />
+        <PromptDialog />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
@@ -329,6 +331,14 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {/* The only input screen that had none. The macro fields sit well down
+          a long scroll, so on a short phone the keyboard covered the field
+          being typed into — you could see the goal change but not the number
+          you were changing it to. Android resizes the window itself. */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Profile</Text>
         <Text style={styles.subtitle}>Your goals, body weight, and app settings</Text>
@@ -721,11 +731,13 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const makeStyles = (c: Theme) => StyleSheet.create({
+  flex: { flex: 1 },
   safe: { flex: 1, backgroundColor: c.bg },
   content: { padding: space.lg, paddingBottom: space.xxxl },
   pageTitle: { ...type.title(c), color: c.text, marginBottom: space.xs },
