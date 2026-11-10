@@ -412,6 +412,8 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                   <TouchableOpacity
                     onPress={() => deleteBodyWeightEntry(e.loggedAt)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete weigh-in from ${displayDate(e.date)}`}
                   >
                     <Icon name="close" size="sm" color={c.textFaint} />
                   </TouchableOpacity>

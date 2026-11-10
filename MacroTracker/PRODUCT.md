@@ -101,9 +101,13 @@ Constraints:
   to be designed for it. Portrait-locking an iPad app would also have needed
   `UIRequiresFullScreen`. Reversing this means real iPad work — a sidebar in
   place of the tab bar, split view on the list screens — not a flag.
-- Accessibility is a known, accepted gap: there are no accessibility labels or
-  roles on any control, and a number of tap targets sit under 44pt. The owner
-  has deferred this; it is recorded, not resolved.
+- Accessibility is partly addressed. Contrast passes AA on every text token
+  and every ink-on-fill pairing in both packs; tap targets reach 44pt; Reduce
+  Motion is honoured; text boxes grow with the reader's size setting; and
+  every icon-only control carries a label, a role, and — where it has one — a
+  state. What remains is the long tail: controls that already announce their
+  own text are unlabelled beyond it, reading order has never been walked with
+  VoiceOver, and nothing here has been tested on a device.
 
 ## Brand Commitments
 

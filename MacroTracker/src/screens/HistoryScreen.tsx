@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -45,173 +45,200 @@ export function HistoryScreen({ navigation }: Props) {
     return map;
   }, [workoutHistory]);
 
+  // Hoisted out of the list so FlatList treats them as its header and footer
+  // rather than as rows it has to measure and recycle.
+  const header = (
+    <>
+      {/* This is pushed from Home's week strip now, not a tab root, so it
+          needs its own way back. */}
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backRow}
+        hitSlop={8}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Back to today"
+      >
+        <Icon name="back" size="sm" color={c.primary} />
+        <Text style={styles.backText}>Today</Text>
+      </TouchableOpacity>
+      <Text style={styles.pageTitle}>History</Text>
+
+      {/* Key Insights */}
+      <TouchableOpacity
+        style={styles.trendsBtn}
+        onPress={() => navigation.navigate('KeyInsights')}
+        activeOpacity={0.7}
+      >
+        <Icon name="insights" size="lg" color={c.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.trendsTitle}>Key Insights</Text>
+          <Text style={styles.trendsSub}>Weight, nutrition, consistency & workout volume</Text>
+        </View>
+        <Icon name="forward" size="md" color={c.textFaint} />
+      </TouchableOpacity>
+
+      <Text style={styles.subtitle}>Past {visibleDays} days</Text>
+    </>
+  );
+
+  const footer = (
+    <TouchableOpacity
+      style={styles.loadMoreBtn}
+      onPress={() => setVisibleDays((d) => d + PAGE)}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`Load ${PAGE} more days`}
+    >
+      <Text style={styles.loadMoreText}>Load {PAGE} more days</Text>
+    </TouchableOpacity>
+  );
+
+  /**
+   * Virtualized, because this list only grows.
+   *
+   * "Load 30 more days" was appending to a ScrollView, which mounts every
+   * card it is given and never lets one go — so the fifth tap left 150 day
+   * cards, each with its own macro rows and workout rows, alive and laid out
+   * at once. A FlatList keeps roughly a screenful.
+   */
+  const renderDay = ({ item: date }: { item: string }) => {
+    const totals = sumMacros(logs[date] ?? []);
+    const hasData = totals.calories > 0;
+    const calPct = Math.round((totals.calories / goals.calories) * 100);
+    const dayWorkouts = workoutsByDate[date] ?? [];
+
+    return (
+      <View style={styles.dayCard}>
+        <View style={styles.dayHeader}>
+          <Text style={styles.dayLabel}>{displayDate(date)}</Text>
+          {hasData ? (
+            <Text
+              style={[
+                styles.dayCalories,
+                totals.calories > goals.calories && styles.overGoal,
+              ]}
+            >
+              {Math.round(totals.calories)} / {goals.calories} kcal
+            </Text>
+          ) : dayWorkouts.length > 0 ? (
+            <Text style={styles.workoutDay}>Workout day</Text>
+          ) : (
+            <Text style={styles.noData}>No data</Text>
+          )}
+        </View>
+
+        {hasData && (
+          <>
+            <View style={styles.calorieBarTrack}>
+              <View
+                style={[
+                  styles.calorieBarFill,
+                  {
+                    width: `${Math.min(calPct, 100)}%` as any,
+                    backgroundColor:
+                      totals.calories > goals.calories
+                        ? c.danger
+                        : c.primary,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.macroGrid}>
+              <View style={styles.macroCell}>
+                <Text style={[styles.macroValue, { color: c.macroProtein }]}>
+                  {Math.round(totals.protein)}g
+                </Text>
+                <DayMacroBar
+                  styles={barStyles}
+                  value={totals.protein}
+                  goal={goals.protein}
+                  color={c.macroProtein}
+                />
+                <Text style={styles.macroLabel}>Protein</Text>
+              </View>
+              <View style={styles.macroCell}>
+                <Text style={[styles.macroValue, { color: c.macroCarbs }]}>
+                  {Math.round(totals.carbs)}g
+                </Text>
+                <DayMacroBar
+                  styles={barStyles}
+                  value={totals.carbs}
+                  goal={goals.carbs}
+                  color={c.macroCarbs}
+                />
+                <Text style={styles.macroLabel}>Carbs</Text>
+              </View>
+              <View style={styles.macroCell}>
+                <Text style={[styles.macroValue, { color: c.macroFat }]}>
+                  {Math.round(totals.fat)}g
+                </Text>
+                <DayMacroBar
+                  styles={barStyles}
+                  value={totals.fat}
+                  goal={goals.fat}
+                  color={c.macroFat}
+                />
+                <Text style={styles.macroLabel}>Fat</Text>
+              </View>
+              <View style={styles.macroCell}>
+                <Text style={[styles.macroValue, { color: c.macroFiber }]}>
+                  {Math.round(totals.fiber ?? 0)}g
+                </Text>
+                <DayMacroBar
+                  styles={barStyles}
+                  value={totals.fiber ?? 0}
+                  goal={goals.fiber}
+                  color={c.macroFiber}
+                />
+                <Text style={styles.macroLabel}>Fiber</Text>
+              </View>
+            </View>
+          </>
+        )}
+
+        {dayWorkouts.length > 0 && (
+          <View style={[styles.workoutsSection, hasData && styles.workoutsDivided]}>
+            <Text style={styles.workoutsLabel}>
+              {dayWorkouts.length} workout{dayWorkouts.length === 1 ? '' : 's'}
+            </Text>
+            {dayWorkouts.map((w) => (
+              <WorkoutHistoryItem
+                key={w.id}
+                session={w}
+                showDate={false}
+                onPress={() =>
+                  navigation.navigate('WorkoutSummary', {
+                    sessionId: w.id,
+                    viewOnly: true,
+                  })
+                }
+                onDelete={() => {
+                  deleteWorkout(w.id);
+                  showSnackbar('Workout deleted', {
+                    label: 'Undo',
+                    onPress: () => restoreWorkout(w),
+                  });
+                }}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+  );
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* This is pushed from Home's week strip now, not a tab root, so it
-            needs its own way back. */}
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backRow}
-          hitSlop={8}
-          activeOpacity={0.7}
-        >
-          <Icon name="back" size="sm" color={c.primary} />
-          <Text style={styles.backText}>Today</Text>
-        </TouchableOpacity>
-        <Text style={styles.pageTitle}>History</Text>
-
-        {/* Key Insights */}
-        <TouchableOpacity
-          style={styles.trendsBtn}
-          onPress={() => navigation.navigate('KeyInsights')}
-          activeOpacity={0.7}
-        >
-          <Icon name="insights" size="lg" color={c.primary} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.trendsTitle}>Key Insights</Text>
-            <Text style={styles.trendsSub}>Weight, nutrition, consistency & workout volume</Text>
-          </View>
-          <Icon name="forward" size="md" color={c.textFaint} />
-        </TouchableOpacity>
-
-        <Text style={styles.subtitle}>Past {visibleDays} days</Text>
-
-        {days.map((date) => {
-          const totals = sumMacros(logs[date] ?? []);
-          const hasData = totals.calories > 0;
-          const calPct = Math.round((totals.calories / goals.calories) * 100);
-          const dayWorkouts = workoutsByDate[date] ?? [];
-
-          return (
-            <View key={date} style={styles.dayCard}>
-              <View style={styles.dayHeader}>
-                <Text style={styles.dayLabel}>{displayDate(date)}</Text>
-                {hasData ? (
-                  <Text
-                    style={[
-                      styles.dayCalories,
-                      totals.calories > goals.calories && styles.overGoal,
-                    ]}
-                  >
-                    {Math.round(totals.calories)} / {goals.calories} kcal
-                  </Text>
-                ) : dayWorkouts.length > 0 ? (
-                  <Text style={styles.workoutDay}>Workout day</Text>
-                ) : (
-                  <Text style={styles.noData}>No data</Text>
-                )}
-              </View>
-
-              {hasData && (
-                <>
-                  <View style={styles.calorieBarTrack}>
-                    <View
-                      style={[
-                        styles.calorieBarFill,
-                        {
-                          width: `${Math.min(calPct, 100)}%` as any,
-                          backgroundColor:
-                            totals.calories > goals.calories
-                              ? c.danger
-                              : c.primary,
-                        },
-                      ]}
-                    />
-                  </View>
-
-                  <View style={styles.macroGrid}>
-                    <View style={styles.macroCell}>
-                      <Text style={[styles.macroValue, { color: c.macroProtein }]}>
-                        {Math.round(totals.protein)}g
-                      </Text>
-                      <DayMacroBar
-                        styles={barStyles}
-                        value={totals.protein}
-                        goal={goals.protein}
-                        color={c.macroProtein}
-                      />
-                      <Text style={styles.macroLabel}>Protein</Text>
-                    </View>
-                    <View style={styles.macroCell}>
-                      <Text style={[styles.macroValue, { color: c.macroCarbs }]}>
-                        {Math.round(totals.carbs)}g
-                      </Text>
-                      <DayMacroBar
-                        styles={barStyles}
-                        value={totals.carbs}
-                        goal={goals.carbs}
-                        color={c.macroCarbs}
-                      />
-                      <Text style={styles.macroLabel}>Carbs</Text>
-                    </View>
-                    <View style={styles.macroCell}>
-                      <Text style={[styles.macroValue, { color: c.macroFat }]}>
-                        {Math.round(totals.fat)}g
-                      </Text>
-                      <DayMacroBar
-                        styles={barStyles}
-                        value={totals.fat}
-                        goal={goals.fat}
-                        color={c.macroFat}
-                      />
-                      <Text style={styles.macroLabel}>Fat</Text>
-                    </View>
-                    <View style={styles.macroCell}>
-                      <Text style={[styles.macroValue, { color: c.macroFiber }]}>
-                        {Math.round(totals.fiber ?? 0)}g
-                      </Text>
-                      <DayMacroBar
-                        styles={barStyles}
-                        value={totals.fiber ?? 0}
-                        goal={goals.fiber}
-                        color={c.macroFiber}
-                      />
-                      <Text style={styles.macroLabel}>Fiber</Text>
-                    </View>
-                  </View>
-                </>
-              )}
-
-              {dayWorkouts.length > 0 && (
-                <View style={[styles.workoutsSection, hasData && styles.workoutsDivided]}>
-                  <Text style={styles.workoutsLabel}>
-                    {dayWorkouts.length} workout{dayWorkouts.length === 1 ? '' : 's'}
-                  </Text>
-                  {dayWorkouts.map((w) => (
-                    <WorkoutHistoryItem
-                      key={w.id}
-                      session={w}
-                      showDate={false}
-                      onPress={() =>
-                        navigation.navigate('WorkoutSummary', {
-                          sessionId: w.id,
-                          viewOnly: true,
-                        })
-                      }
-                      onDelete={() => {
-                        deleteWorkout(w.id);
-                        showSnackbar('Workout deleted', {
-                          label: 'Undo',
-                          onPress: () => restoreWorkout(w),
-                        });
-                      }}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-          );
-        })}
-
-        <TouchableOpacity
-          style={styles.loadMoreBtn}
-          onPress={() => setVisibleDays((d) => d + PAGE)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.loadMoreText}>Load {PAGE} more days</Text>
-        </TouchableOpacity>
-      </ScrollView>
+      <FlatList
+        data={days}
+        keyExtractor={(date: string) => date}
+        renderItem={renderDay}
+        ListHeaderComponent={header}
+        ListFooterComponent={footer}
+        contentContainerStyle={styles.content}
+      />
     </SafeAreaView>
   );
 }

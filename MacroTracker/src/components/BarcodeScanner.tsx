@@ -147,6 +147,9 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
                     onPress={handleCapture}
                     disabled={capturing}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={capturing ? 'Capturing photo' : 'Take photo'}
+                    accessibilityState={{ disabled: capturing }}
                   >
                     {capturing ? (
                       <ActivityIndicator color="#fff" />

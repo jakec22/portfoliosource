@@ -302,6 +302,9 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                     disabled={exIdx === 0}
                     style={styles.reorderBtn}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Move ${ex.name} up`}
+                    accessibilityState={{ disabled: exIdx === 0 }}
                   >
                     <Icon name="arrowUp" size="sm" color={exIdx === 0 ? c.textFaint : c.gray700} />
                   </TouchableOpacity>
@@ -310,6 +313,9 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                     disabled={exIdx === workout.exercises.length - 1}
                     style={styles.reorderBtn}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Move ${ex.name} down`}
+                    accessibilityState={{ disabled: exIdx === workout.exercises.length - 1 }}
                   >
                     <Icon
                       name="arrowDown"
@@ -456,6 +462,9 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                       activeOpacity={0.7}
                       // 64 wide already; the 38pt box is 3pt short each side.
                       hitSlop={{ top: 3, bottom: 3 }}
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={`Set ${i + 1} of ${ex.name}`}
+                      accessibilityState={{ checked: set.completed }}
                     >
                       <View style={[styles.checkbox, set.completed && styles.checkboxOn]}>
                         {set.completed && <Icon name="check" size="xs" color={c.onPrimary} />}

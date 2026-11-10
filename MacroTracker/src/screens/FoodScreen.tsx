@@ -134,7 +134,13 @@ export function FoodScreen({ navigation }: Props) {
           are what you check between adding one food and the next. */}
       <View style={styles.header}>
         <View style={styles.dateNav}>
-          <TouchableOpacity onPress={() => goDay(-1)} style={styles.navBtn} hitSlop={8}>
+          <TouchableOpacity
+            onPress={() => goDay(-1)}
+            style={styles.navBtn}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Previous day"
+          >
             <Icon name="back" size="lg" color={c.gray700} />
           </TouchableOpacity>
           <Text style={styles.dateLabel}>{displayDate(selectedDate)}</Text>
@@ -143,6 +149,9 @@ export function FoodScreen({ navigation }: Props) {
             style={[styles.navBtn, isToday && styles.navBtnDisabled]}
             disabled={isToday}
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Next day"
+            accessibilityState={{ disabled: isToday }}
           >
             <Icon name="forward" size="lg" color={isToday ? c.textFaint : c.gray700} />
           </TouchableOpacity>

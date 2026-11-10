@@ -247,7 +247,12 @@ export function GoalWizardScreen({ navigation }: Props) {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       {/* Header: progress + close */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+        >
           <Icon name="close" size="md" color={c.textFaint} />
         </TouchableOpacity>
         <Text style={styles.stepCount}>

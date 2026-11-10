@@ -443,6 +443,8 @@ export function LogFoodScreen({ route, navigation }: Props) {
             onPress={handleMoreActions}
             style={[styles.backBtn, styles.moreBtn]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="More actions"
           >
             <Icon name="more" size="lg" color={c.primary} />
           </TouchableOpacity>
@@ -564,6 +566,8 @@ export function LogFoodScreen({ route, navigation }: Props) {
                         onPress: () => restoreSavedMeal(sm),
                       });
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete saved meal ${sm.name}`}
                     hitSlop={{ top: 8, bottom: 8, left: 12, right: 8 }}
                   >
                     <Icon name="close" size="sm" color={c.textFaint} />
@@ -604,6 +608,11 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   style={styles.starBtn}
                   onPress={() => toggleFavoriteFood(item)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isFav ? `Remove ${item.name} from favourites` : `Add ${item.name} to favourites`
+                  }
+                  accessibilityState={{ selected: isFav }}
                 >
                   <Icon
                     name={isFav ? 'favorite' : 'favoriteOff'}

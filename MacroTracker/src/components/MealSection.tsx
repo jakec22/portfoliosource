@@ -48,6 +48,8 @@ function RightDeleteAction({
         style={styles.deleteActionInner}
         onPress={onDelete}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Delete entry"
       >
         <Icon name="close" size="md" color={c.onPrimary} />
       </TouchableOpacity>

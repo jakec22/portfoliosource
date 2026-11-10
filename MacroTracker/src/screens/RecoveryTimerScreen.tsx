@@ -235,7 +235,12 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleLeave} hitSlop={10}>
+        <TouchableOpacity
+          onPress={handleLeave}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
           <Icon name="back" size="lg" color={c.gray700} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{meta.label}</Text>

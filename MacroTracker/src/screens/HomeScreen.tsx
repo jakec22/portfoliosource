@@ -404,6 +404,11 @@ export function HomeScreen({ navigation }: Props) {
                   style={[styles.waterDot, i < filledBubbles && styles.waterDotFilled]}
                   activeOpacity={0.6}
                   hitSlop={4}
+                  accessibilityRole="button"
+                  // Each dot sets the day's total to its own mark, so the
+                  // label is the amount it would log, not "water dot 3".
+                  accessibilityLabel={`Set water to ${(i + 1) * waterIncrement} ounces`}
+                  accessibilityState={{ selected: i < filledBubbles }}
                 >
                   <Icon name="water" size="xs" color={i < filledBubbles ? c.info : c.textFaint} />
                 </TouchableOpacity>

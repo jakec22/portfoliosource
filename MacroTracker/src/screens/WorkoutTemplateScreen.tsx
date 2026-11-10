@@ -213,7 +213,12 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                 <TouchableOpacity onPress={() => setPickerExId(e.id)} style={styles.exListBtn} hitSlop={8}>
                   <Text style={styles.exListBtnText}>List</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => removeExercise(e.id)} style={styles.exRemove}>
+                <TouchableOpacity
+                  onPress={() => removeExercise(e.id)}
+                  style={styles.exRemove}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${e.name || 'exercise'}`}
+                >
                   <Icon name="close" size="sm" color={c.danger} />
                 </TouchableOpacity>
               </View>

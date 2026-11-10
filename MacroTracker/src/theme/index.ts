@@ -60,7 +60,26 @@ export interface Theme {
   // Brand + semantic
   primary: string;
   primaryDark: string;
-  primarySoft: string; // tinted background behind primary chips/badges
+  /**
+   * Tinted fills behind chips, badges and selected rows — opaque, not alpha.
+   *
+   * They used to be `rgba(...)`, which made every one of them legible or not
+   * depending on what was behind it: the same "Completed" badge measured
+   * 4.8:1 on the page background and 3.6:1 inside a card. Nine of the twenty
+   * ink-on-fill pairings failed that way, and all of them failed on cards,
+   * which is where chips actually live.
+   *
+   * Each is now frozen at what it already looked like on a card, so the app
+   * is unchanged where these are most used and merely a shade lighter
+   * elsewhere — and, more to the point, one value with one contrast figure
+   * rather than a different one per surface.
+   *
+   * Six inks moved with them, a step lighter apiece, to clear 4.5:1 on their
+   * own fill: primaryDark, danger, accent and info in Editorial, danger and
+   * accent in Sport-Tech. Lighter ink on a dark app only adds contrast
+   * everywhere else those tokens appear.
+   */
+  primarySoft: string;
   onPrimary: string; // text/icon sitting on a primary-colored surface
   danger: string;
   /**
@@ -169,18 +188,18 @@ export const editorialTheme: Theme = {
   borderStrong: '#47474F',
 
   primary: '#34C77B',
-  primaryDark: '#27A663',
-  primarySoft: 'rgba(52,199,123,0.16)',
+  primaryDark: '#2CBC70',
+  primarySoft: '#273F34',
   onPrimary: '#07140D',
-  danger: '#F4756D',
+  danger: '#F5827B',
   onDanger: '#1E0403',
-  dangerSoft: 'rgba(244,117,109,0.18)',
+  dangerSoft: '#4A3334',
   warning: '#E0A32E',
-  warningSoft: 'rgba(224,163,46,0.18)',
-  info: '#5A9FD4',
-  infoSoft: 'rgba(90,159,212,0.16)',
-  accent: '#E2683C',
-  accentSoft: 'rgba(226,104,60,0.16)',
+  warningSoft: '#473C28',
+  info: '#68A7D8',
+  infoSoft: '#2D3943',
+  accent: '#E7835E',
+  accentSoft: '#43302A',
 
   macroProtein: '#E2683C',
   macroCarbs: '#E0A32E',
@@ -234,17 +253,17 @@ export const sportTechTheme: Theme = {
 
   primary: '#C9F04D',
   primaryDark: '#A8CC3A',
-  primarySoft: 'rgba(201,240,77,0.16)',
+  primarySoft: '#333D2A',
   onPrimary: '#0D1017',
-  danger: '#F2456B',
+  danger: '#F46081',
   onDanger: '#140407',
-  dangerSoft: 'rgba(242,69,107,0.18)',
+  dangerSoft: '#3E2330',
   warning: '#FBBF24',
-  warningSoft: 'rgba(251,191,36,0.18)',
+  warningSoft: '#403923',
   info: '#22D3EE',
-  infoSoft: 'rgba(34,211,238,0.16)',
-  accent: '#F2408F',
-  accentSoft: 'rgba(242,64,143,0.16)',
+  infoSoft: '#193843',
+  accent: '#F4569C',
+  accentSoft: '#3A2134',
 
   macroProtein: '#C9F04D',
   macroCarbs: '#22D3EE',
