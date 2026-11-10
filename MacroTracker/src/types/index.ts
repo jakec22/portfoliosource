@@ -337,6 +337,8 @@ export interface AppState {
   setProfile: (profile: UserProfile) => void;
   logBodyWeight: (lbs: number, date?: string) => void;
   deleteBodyWeightEntry: (loggedAt: number) => void;
+  /** Put back a weigh-in just deleted, so the ✕ is recoverable. */
+  restoreBodyWeightEntry: (entry: BodyWeightEntry) => void;
   getEntriesForDate: (date: string) => FoodEntry[];
   getTotalsForDate: (date: string) => MacroNutrients;
   getMealTotals: (date: string, meal: MealType) => MacroNutrients;

@@ -30,6 +30,78 @@ export function weightTrend(log: BodyWeightEntry[], days: number): WeightPoint[]
     .map((e) => ({ date: e.date, lbs: e.lbs }));
 }
 
+/** Days the Profile card's trend covers. */
+export const WEIGHT_WINDOW_DAYS = 30;
+
+/** Days averaged together to get past the daily noise. */
+export const WEIGHT_SMOOTHING_DAYS = 7;
+
+export interface WeightSummary {
+  /** Every reading in the window, oldest → newest. */
+  points: WeightPoint[];
+  /** Trailing mean at each point, same length and order as `points`. */
+  smoothed: number[];
+  /** The most recent single reading. */
+  current: number;
+  /** Trailing mean at the newest point — the number the goals are built on. */
+  average: number;
+  /** Change in the trailing mean across the window. Negative is a loss. */
+  deltaLbs: number;
+  /** How many readings the window holds. */
+  readings: number;
+}
+
+/**
+ * What the Profile card shows instead of a list of readings.
+ *
+ * A single weigh-in is mostly water, food timing and when you stepped on the
+ * scale, so a column of raw numbers invites a comparison between today and
+ * yesterday that means nothing. The trailing mean is the signal — and it is
+ * already the number this app makes decisions on: `smoothedWeight` in
+ * adaptiveGoals uses the same seven days to decide whether to rebuild the
+ * user's calorie targets. This surfaces the figure the app was already acting
+ * on, rather than one it ignores.
+ *
+ * `smoothed` is a trailing mean, not a centred one: each point averages
+ * itself and the readings in the days before it, so the last value is the
+ * same number `smoothedWeight` returns and the line never claims to know
+ * about readings that had not happened yet.
+ *
+ * Returns null with nothing logged. One reading is a valid summary — current
+ * and average are that reading and the delta is zero — so the card can show a
+ * number from the very first weigh-in.
+ */
+export function weightSummary(
+  log: BodyWeightEntry[],
+  days = WEIGHT_WINDOW_DAYS,
+  smoothingDays = WEIGHT_SMOOTHING_DAYS
+): WeightSummary | null {
+  const points = weightTrend(log, days);
+  if (points.length === 0) return null;
+
+  const dayOf = (d: string) => parseDate(d).getTime() / 86400000;
+  const smoothed = points.map((p, i) => {
+    const from = dayOf(p.date) - (smoothingDays - 1);
+    let sum = 0;
+    let n = 0;
+    // Walk back from this point only: readings after it are not yet known.
+    for (let k = i; k >= 0 && dayOf(points[k].date) >= from; k--) {
+      sum += points[k].lbs;
+      n += 1;
+    }
+    return Math.round((sum / n) * 10) / 10;
+  });
+
+  return {
+    points,
+    smoothed,
+    current: points[points.length - 1].lbs,
+    average: smoothed[smoothed.length - 1],
+    deltaLbs: Math.round((smoothed[smoothed.length - 1] - smoothed[0]) * 10) / 10,
+    readings: points.length,
+  };
+}
+
 // ── Nutrition adherence ──────────────────────────────────────────────────────
 
 export interface DayNutrition {

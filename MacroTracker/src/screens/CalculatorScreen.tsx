@@ -10,10 +10,20 @@ import {
   Switch,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { ThemeMode, ReminderKey, ReminderTime } from '../types';
+import { ThemeMode, ReminderKey, ReminderTime, type BodyWeightEntry } from '../types';
+import {
+  weightSummary,
+  WEIGHT_WINDOW_DAYS,
+  WEIGHT_SMOOTHING_DAYS,
+} from '../utils/analytics';
+import { WeightSparkline } from '../components/WeightSparkline';
+import { useSheetAnimation } from '../hooks/useSheetAnimation';
+import { useSnackbar } from '../store/useSnackbar';
 import { displayDate } from '../utils/date';
 import { supabase } from '../services/supabase';
 import { signOut, deleteAccount } from '../services/auth';
@@ -137,6 +147,9 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
   const logBodyWeight = useStore((s) => s.logBodyWeight);
   const deleteBodyWeightEntry = useStore((s) => s.deleteBodyWeightEntry);
+  const restoreBodyWeightEntry = useStore((s) => s.restoreBodyWeightEntry);
+  const showSnackbar = useSnackbar((s) => s.show);
+  const sheetAnimation = useSheetAnimation();
   const weeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
   const setWeeklyWorkoutGoal = useStore((s) => s.setWeeklyWorkoutGoal);
   const waterGoal = useStore((s) => s.waterGoal);
@@ -188,7 +201,16 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
 
   // --- Body weight log ---
   const [weightInput, setWeightInput] = useState('');
-  const latestWeight = bodyWeightLog[0]?.lbs;
+  const [showWeightLog, setShowWeightLog] = useState(false);
+  const weight = useMemo(() => weightSummary(bodyWeightLog), [bodyWeightLog]);
+
+  function handleDeleteWeight(entry: BodyWeightEntry) {
+    deleteBodyWeightEntry(entry.loggedAt);
+    showSnackbar(`Deleted ${entry.lbs} lb`, {
+      label: 'Undo',
+      onPress: () => restoreBodyWeightEntry(entry),
+    });
+  }
 
   function handleLogWeight() {
     const lbs = parseFloat(weightInput);
@@ -397,11 +419,24 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         </View>
         <View style={styles.card}>
           <View style={styles.weightTopRow}>
+            {/* The seven-day mean leads, not today's reading.
+                A single weigh-in is mostly water, food timing and when you
+                stepped on the scale; comparing it to yesterday's is the one
+                thing this card used to invite and the one thing that tells
+                you nothing. The mean is also the figure the adaptive goals
+                already rebuild against, so the number on screen is now the
+                number the app is acting on. Today's reading stays, small,
+                as confirmation the tap landed. */}
             <View>
-              <Text style={styles.weightCurrentLabel}>Current</Text>
-              <Text style={styles.weightCurrentValue}>
-                {latestWeight != null ? `${latestWeight} lb` : '—'}
+              <Text style={styles.weightCurrentLabel}>
+                {weight ? `${WEIGHT_SMOOTHING_DAYS}-day average` : 'Current'}
               </Text>
+              <Text style={styles.weightCurrentValue}>
+                {weight ? `${weight.average} lb` : '—'}
+              </Text>
+              {weight && (
+                <Text style={styles.weightLatest}>Today {weight.current} lb</Text>
+              )}
             </View>
             <View style={styles.weightInputRow}>
               <TextInput
@@ -421,27 +456,62 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             </View>
           </View>
 
-          {bodyWeightLog.length > 0 && (
-            <View style={styles.weightList}>
-              {bodyWeightLog.slice(0, 6).map((e) => (
-                <View key={e.loggedAt} style={styles.weightRow}>
-                  <Text style={styles.weightRowDate}>{displayDate(e.date)}</Text>
-                  <Text style={styles.weightRowValue}>{e.lbs} lb</Text>
-                  <TouchableOpacity
-                    onPress={() => deleteBodyWeightEntry(e.loggedAt)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Delete weigh-in from ${displayDate(e.date)}`}
+          {weight ? (
+            <>
+              <View style={styles.weightTrendRow}>
+                <Text style={styles.weightWindow}>
+                  {weight.readings > 1 ? `Last ${WEIGHT_WINDOW_DAYS} days` : 'First reading'}
+                </Text>
+                {weight.readings > 1 && (
+                  <View
+                    style={[
+                      styles.weightDelta,
+                      { backgroundColor: weight.deltaLbs <= 0 ? c.primarySoft : c.dangerSoft },
+                    ]}
                   >
-                    <Icon name="close" size="sm" color={c.textFaint} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
+                    <Text
+                      style={[
+                        styles.weightDeltaText,
+                        { color: weight.deltaLbs <= 0 ? c.primaryDark : c.danger },
+                      ]}
+                    >
+                      {weight.deltaLbs === 0
+                        ? 'Holding steady'
+                        : `${weight.deltaLbs < 0 ? '↓' : '↑'} ${Math.abs(weight.deltaLbs).toFixed(1)} lb`}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {/* One reading over a thirty-day axis is a lone dot pinned to
+                  the right of an empty box, which reads as no data rather
+                  than as a start. Say what is missing instead. */}
+              {weight.readings > 1 ? (
+                <WeightSparkline summary={weight} days={WEIGHT_WINDOW_DAYS} />
+              ) : (
+                <Text style={styles.weightEmptyTrend}>
+                  Log again to start the trend — it averages your last{' '}
+                  {WEIGHT_SMOOTHING_DAYS} days, so day-to-day swings stop mattering.
+                </Text>
+              )}
+              <View style={styles.weightFoot}>
+                <Text style={styles.weightFootCount}>
+                  {weight.readings} reading{weight.readings === 1 ? '' : 's'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowWeightLog(true)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="See all weigh-ins"
+                >
+                  <Text style={styles.weightFootLink}>See all</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <Text style={[styles.settingHint, { marginTop: space.md }]}>
+              Log as often or as little as you like — defaults to today's date.
+            </Text>
           )}
-          <Text style={[styles.settingHint, { marginTop: space.md }]}>
-            Log as often or as little as you like — defaults to today's date.
-          </Text>
         </View>
 
         {/* Daily Goals (editable) */}
@@ -752,6 +822,55 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         </View>
       </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Every reading, which the card no longer lists. Corrections are rare
+          and the trend is what the card is for, so the full log lives one tap
+          away rather than taking six rows on a screen it shares with goals,
+          reminders and account settings. */}
+      <Modal
+        visible={showWeightLog}
+        transparent
+        animationType={sheetAnimation}
+        onRequestClose={() => setShowWeightLog(false)}
+      >
+        <TouchableOpacity
+          style={styles.weightSheetBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowWeightLog(false)}
+          accessibilityLabel="Dismiss"
+        />
+        <View style={styles.weightSheet}>
+          <View style={styles.weightSheetHead}>
+            <Text style={styles.weightSheetTitle}>Weigh-ins</Text>
+            <TouchableOpacity
+              onPress={() => setShowWeightLog(false)}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <Text style={styles.weightSheetDone}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={bodyWeightLog}
+            keyExtractor={(e: BodyWeightEntry) => String(e.loggedAt)}
+            renderItem={({ item }: { item: BodyWeightEntry }) => (
+              <View style={styles.weightRow}>
+                <Text style={styles.weightRowDate}>{displayDate(item.date)}</Text>
+                <Text style={styles.weightRowValue}>{item.lbs} lb</Text>
+                <TouchableOpacity
+                  onPress={() => handleDeleteWeight(item)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete weigh-in from ${displayDate(item.date)}`}
+                >
+                  <Icon name="close" size="sm" color={c.textFaint} />
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -876,6 +995,55 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     justifyContent: 'center',
   },
   weightLogBtnText: { ...type.bodyStrong(c), color: c.onPrimary },
+  weightLatest: { ...type.caption(c), color: c.textFaint, marginTop: space.xxs },
+  weightTrendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: space.lg,
+    marginBottom: space.xs,
+  },
+  weightWindow: { ...type.caption(c), color: c.textFaint },
+  weightEmptyTrend: {
+    ...type.caption(c),
+    fontFamily: c.fontBody,
+    color: c.textMuted,
+    lineHeight: 18,
+    marginBottom: space.xs,
+  },
+  weightDelta: {
+    borderRadius: radius.control,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xxs,
+  },
+  weightDeltaText: { ...type.captionStrong(c) },
+  weightFoot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: space.sm,
+  },
+  weightFootCount: { ...type.caption(c), color: c.textFaint },
+  weightFootLink: { ...type.captionStrong(c), color: c.primary },
+
+  weightSheetBackdrop: { flex: 1, backgroundColor: c.overlay },
+  weightSheet: {
+    maxHeight: '70%',
+    backgroundColor: c.card,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    paddingHorizontal: space.lg,
+    paddingBottom: space.xxl,
+  },
+  weightSheetHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: space.lg,
+  },
+  weightSheetTitle: { ...type.heading(c), color: c.text },
+  weightSheetDone: { ...type.bodyStrong(c), color: c.primary },
+
   weightList: {
     marginTop: space.lg,
     paddingTop: space.xs,

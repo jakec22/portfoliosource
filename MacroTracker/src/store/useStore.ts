@@ -479,6 +479,28 @@ export const useStore = create<AppState>()(
         syncSettings('bodyWeightLbs', 'goals', 'goalsBasisWeightLbs', 'profile');
       },
 
+      /**
+       * Put back a weigh-in the user just deleted.
+       *
+       * The ✕ on a reading deletes it on the spot, with no confirmation —
+       * the same bet the app makes on deleting a workout or a saved meal,
+       * and the same reason: a confirmation costs a tap on every delete,
+       * including the ones you meant. That bet only works if the delete is
+       * recoverable, and this one was not.
+       */
+      restoreBodyWeightEntry: (entry) => {
+        set((state) => {
+          const log = [entry, ...state.bodyWeightLog]
+            .sort((a, b) =>
+              a.date === b.date ? b.loggedAt - a.loggedAt : a.date < b.date ? 1 : -1
+            )
+            .slice(0, 1000);
+          return { bodyWeightLog: log, bodyWeightLbs: Math.round(log[0].lbs) };
+        });
+        void pushBodyWeight(entry);
+        syncSettings('bodyWeightLbs');
+      },
+
       deleteBodyWeightEntry: (loggedAt) => {
         set((state) => {
           const log = state.bodyWeightLog.filter((e) => e.loggedAt !== loggedAt);
