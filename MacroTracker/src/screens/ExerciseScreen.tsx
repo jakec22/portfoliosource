@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
 import { useSnackbar } from '../store/useSnackbar';
 import { WorkoutTemplate } from '../types';
-import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
+import { DEFAULT_WORKOUT_HK, RECOVERY_TYPES, WORKOUT_TYPES } from '../utils/workoutTypes';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { progressHighlights } from '../utils/exerciseHistory';
 import { consistencyStats, trainingCalendar, trainingSplit } from '../utils/trainingSplit';
@@ -66,16 +66,24 @@ export function ExerciseScreen({ navigation }: Props) {
   // categorizes the session as; it's stored on Android too, so a workout
   // logged there keeps its type if the account is later opened on an iPhone.
   function pickTypeThenStart(template?: WorkoutTemplate) {
-    const labels = WORKOUT_TYPES.map((t) => t.label);
+    // Strength, then the recovery kinds. Strength opens the set-logging
+    // screen; a sauna or plunge opens a timer and nothing else, which is the
+    // whole of what they record.
+    const labels = [...WORKOUT_TYPES.map((t) => t.label), ...RECOVERY_TYPES.map((r) => r.label)];
     const apply = (index: number) => {
-      if (index < 0 || index >= WORKOUT_TYPES.length) return;
+      if (index < 0 || index >= labels.length) return;
+      const recovery = RECOVERY_TYPES[index - WORKOUT_TYPES.length];
+      if (recovery) {
+        navigation.navigate('RecoveryTimer', { kind: recovery.kind });
+        return;
+      }
       startWorkout(template, WORKOUT_TYPES[index].hk);
       navigation.navigate('ActiveWorkout');
     };
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          title: 'Workout type',
+          title: 'What are you starting?',
           options: [...labels, 'Cancel'],
           cancelButtonIndex: labels.length,
         },
@@ -85,7 +93,7 @@ export function ExerciseScreen({ navigation }: Props) {
       // Android has no action sheet; an Alert with one button per type is what
       // the set-type pickers already do. This used to skip the question and
       // silently start a Strength session.
-      Alert.alert('Workout type', undefined, [
+      Alert.alert('What are you starting?', undefined, [
         ...labels.map((label, i) => ({ text: label, onPress: () => apply(i) })),
         { text: 'Cancel', style: 'cancel' as const },
       ]);

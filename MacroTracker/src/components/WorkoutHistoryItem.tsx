@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { WorkoutSession } from '../types';
-import { displayDate } from '../utils/date';
+import { displayDate, formatDuration } from '../utils/date';
+import { isRecoverySession } from '../utils/workoutTypes';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -27,6 +28,11 @@ export function WorkoutHistoryItem({ session, onPress, onDelete, showDate = true
     0
   );
   const exCount = session.exercises.length;
+  // A sauna has no exercises and no sets, so the usual meta line would read
+  // "0 exercises · 0/0 sets". What it does have is a duration, which is the
+  // entire content of the session.
+  const recovery = isRecoverySession(session);
+  const heldMs = Math.max(0, (session.completedAt ?? session.startedAt) - session.startedAt);
 
   return (
     <ReanimatedSwipeable
@@ -45,7 +51,9 @@ export function WorkoutHistoryItem({ session, onPress, onDelete, showDate = true
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
             {showDate ? `${displayDate(session.date)} · ` : ''}
-            {exCount} exercise{exCount === 1 ? '' : 's'} · {doneSets}/{totalSets} sets
+            {recovery
+              ? formatDuration(heldMs)
+              : `${exCount} exercise${exCount === 1 ? '' : 's'} · ${doneSets}/${totalSets} sets`}
           </Text>
         </TouchableOpacity>
         <Icon name="forward" size="md" color={c.textFaint} style={styles.chevron} />

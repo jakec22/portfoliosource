@@ -4,6 +4,7 @@ import type {
   AppState,
   BodyWeightEntry,
   DailyGoals,
+  RecoveryPreset,
   Food,
   FoodEntry,
   SavedMeal,
@@ -12,6 +13,7 @@ import type {
   WorkoutSession,
   WorkoutTemplate,
 } from '../types';
+import type { RecoveryKind } from '../utils/workoutTypes';
 
 // Surface sync failures once per app session. A persistent problem (tables not
 // created, offline, RLS misconfigured) would otherwise fail on every push, so
@@ -56,6 +58,7 @@ export interface SettingsSnapshot {
   goalsBasisWeightLbs?: number;
   waterGoal: number;
   weeklyWorkoutGoal: number;
+  recoveryPresets: Partial<Record<RecoveryKind, RecoveryPreset>>;
   waterIncrement: number;
   showWaterTracker: boolean;
   themeMode: ThemeMode;
@@ -90,6 +93,7 @@ export function settingsSnapshot(s: AppState): SettingsSnapshot {
     goalsBasisWeightLbs: s.goalsBasisWeightLbs,
     waterGoal: s.waterGoal,
     weeklyWorkoutGoal: s.weeklyWorkoutGoal,
+    recoveryPresets: s.recoveryPresets,
     waterIncrement: s.waterIncrement,
     showWaterTracker: s.showWaterTracker,
     themeMode: s.themeMode,
@@ -159,6 +163,8 @@ export async function pushSettings(s: SettingsSnapshot): Promise<void> {
     // whole upsert, taking goals, templates and water with it — see the note
     // at the top of 0004_weekly_workout_goal.sql.
     weekly_workout_goal: s.weeklyWorkoutGoal,
+    // Needs migration 0005, same hazard as the line above.
+    recovery_presets: s.recoveryPresets,
     water_increment: s.waterIncrement,
     show_water_tracker: s.showWaterTracker,
     theme_mode: s.themeMode,
@@ -192,6 +198,10 @@ function workoutRow(w: WorkoutSession) {
     user_id: userId,
     name: w.name,
     template_id: w.templateId ?? null,
+    // Needs migration 0005. Until that column exists this field fails the
+    // upsert and no finished workout syncs at all — see the note at the top
+    // of 0005_workout_activity_type.sql.
+    activity_type: w.activityType ?? null,
     date: w.date,
     started_at: w.startedAt,
     completed_at: w.completedAt ?? null,

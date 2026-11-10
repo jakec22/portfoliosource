@@ -52,6 +52,7 @@ function rowToWorkout(row: any): WorkoutSession {
     id: row.id,
     name: row.name,
     templateId: row.template_id ?? undefined,
+    activityType: row.activity_type ?? undefined,
     date: row.date,
     startedAt: Number(row.started_at),
     completedAt: row.completed_at != null ? Number(row.completed_at) : undefined,
@@ -210,6 +211,7 @@ export async function syncOnLogin(userId: string): Promise<void> {
           : settings.goals_basis_weight_lbs ?? undefined,
       waterGoal: settings?.water_goal ?? state.waterGoal,
       weeklyWorkoutGoal: settings?.weekly_workout_goal ?? state.weeklyWorkoutGoal,
+      recoveryPresets: settings?.recovery_presets ?? state.recoveryPresets,
       waterIncrement: settings?.water_increment ?? state.waterIncrement,
       showWaterTracker: settings?.show_water_tracker ?? state.showWaterTracker,
       // Guard against a pre-removal 'classic' value still sitting in a

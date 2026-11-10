@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
 import { TemplateExercise, TemplateSet, WorkoutTemplate, SetType } from '../types';
-import { WORKOUT_TYPES, DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
+import { DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { DurationInput } from '../components/DurationInput';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
 import { ExercisePickerModal } from '../components/ExercisePickerModal';
@@ -67,9 +67,11 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
   const existing = templateId ? templates.find((t) => t.id === templateId) : undefined;
 
   const [name, setName] = useState(existing?.name ?? '');
-  const [activityType, setActivityType] = useState<number>(
-    existing?.activityType ?? DEFAULT_WORKOUT_HK
-  );
+  // Templates are strength; the picker that set this is gone with the other
+  // workout types. Kept as a stored field rather than dropped so an existing
+  // template's value survives, and so re-adding a type later does not need a
+  // data migration. Recovery sessions are not templated — they are a timer.
+  const activityType = existing?.activityType ?? DEFAULT_WORKOUT_HK;
   const [exercises, setExercises] = useState<TemplateExercise[]>(
     existing
       ? existing.exercises.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s })) }))
@@ -77,19 +79,6 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
   );
   // Which exercise card the picker modal is currently filling in, if any.
   const [pickerExId, setPickerExId] = useState<string | null>(null);
-
-  const activityLabel =
-    WORKOUT_TYPES.find((t) => t.hk === activityType)?.label ?? 'Strength';
-
-  function pickActivityType() {
-    const labels = WORKOUT_TYPES.map((t) => t.label);
-    ActionSheetIOS.showActionSheetWithOptions(
-      { title: 'Workout type', options: [...labels, 'Cancel'], cancelButtonIndex: labels.length },
-      (index) => {
-        if (index >= 0 && index < WORKOUT_TYPES.length) setActivityType(WORKOUT_TYPES[index].hk);
-      }
-    );
-  }
 
   function updateExercise(id: string, patch: Partial<TemplateExercise>) {
     setExercises((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
@@ -209,16 +198,6 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
             placeholder="e.g. Push Day, Leg Day"
             placeholderTextColor={c.textFaint}
           />
-
-          <Text style={[styles.label, { marginTop: space.lg }]}>Workout Type</Text>
-          <TouchableOpacity
-            style={styles.typeSelect}
-            onPress={pickActivityType}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.typeSelectText}>{activityLabel}</Text>
-            <Icon name="down" size="sm" color={c.textFaint} />
-          </TouchableOpacity>
 
           <Text style={[styles.label, { marginTop: space.lg }]}>Exercises</Text>
           {exercises.map((e, idx) => (
@@ -389,18 +368,6 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
   },
-  typeSelect: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: c.card,
-    borderRadius: radius.control,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.lg,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  typeSelectText: { ...type.body(c), fontFamily: c.fontBodySemi, color: c.text },
   exCard: {
     backgroundColor: c.card,
     borderRadius: radius.card,

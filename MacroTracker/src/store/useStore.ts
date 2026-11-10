@@ -14,8 +14,9 @@ import {
   WorkoutTemplate,
 } from '../types';
 import { evaluateGoalsUpdate } from '../utils/adaptiveGoals';
-import { todayString } from '../utils/date';
+import { formatDate, todayString } from '../utils/date';
 import { prefillFromLastPerformance } from '../utils/exerciseHistory';
+import { RECOVERY_HK, recoveryType } from '../utils/workoutTypes';
 import {
   pushEntry,
   deleteEntryRemote,
@@ -79,6 +80,7 @@ export const useStore = create<AppState>()(
       // user's ring does not move when they update.
       weeklyWorkoutGoal: 4,
       goalsPromptDismissed: false,
+      recoveryPresets: {},
       waterIncrement: 8, // fl oz per droplet tap
       showWaterTracker: true,
       themeMode: 'editorial',
@@ -143,6 +145,43 @@ export const useStore = create<AppState>()(
 
       // No syncSettings(): see the note on goalsPromptDismissed in AppState.
       dismissGoalsPrompt: () => set({ goalsPromptDismissed: true }),
+
+      setRecoveryPreset: (kind, preset) => {
+        set((state) => ({
+          recoveryPresets: { ...state.recoveryPresets, [kind]: preset },
+        }));
+        syncSettings();
+      },
+
+      /**
+       * Save a finished sauna or plunge.
+       *
+       * Deliberately not routed through startWorkout/finishWorkout. A
+       * recovery session has no sets to check off and no watch session to
+       * run, and borrowing `activeWorkout` for it would mean a sauna and a
+       * lift could not be in progress at once — which is wrong, since the
+       * ordinary case is one straight after the other. So it is built
+       * finished and appended, the way a completed workout would be.
+       *
+       * Dated from startedAt rather than today, so a plunge begun before
+       * midnight lands on the day it was begun.
+       */
+      logRecoverySession: (kind, startedAt, endedAt) => {
+        const type = recoveryType(kind);
+        const session: WorkoutSession = {
+          id: `r-${startedAt}-${Math.random()}`,
+          name: type.label,
+          activityType: RECOVERY_HK,
+          date: formatDate(new Date(startedAt)),
+          startedAt,
+          completedAt: endedAt,
+          exercises: [],
+        };
+        set((state) => ({
+          workoutHistory: [session, ...state.workoutHistory].slice(0, 100),
+        }));
+        void pushWorkout(session);
+      },
 
       // Remembers a name typed at the rack so the picker has it next time.
       // Case-insensitive, because "hack squat" and "Hack Squat" are the same
@@ -453,6 +492,7 @@ export const useStore = create<AppState>()(
           id: `w-${now}-${Math.random()}`,
           name: template?.name ?? 'Quick Workout',
           templateId: template?.id,
+          activityType,
           date: todayString(),
           startedAt: now,
           exercises: (template?.exercises ?? []).map((te, i) => {
@@ -764,6 +804,7 @@ export const useStore = create<AppState>()(
           goals: DEFAULT_GOALS,
           weeklyWorkoutGoal: 4,
           goalsPromptDismissed: false,
+          recoveryPresets: {},
           logs: {},
           waterIntake: {},
           waterGoal: 64,

@@ -1,6 +1,7 @@
 import { EXERCISE_CATALOG } from './exerciseList';
 import { normalizeExerciseName } from './exerciseHistory';
 import { addDays, formatDate, parseDate, todayString } from './date';
+import { isRecoverySession } from './workoutTypes';
 import type { Theme } from '../theme';
 import type { WorkoutSession } from '../types';
 
@@ -117,6 +118,7 @@ export function trainingSplit(
   const byCategory = new Map<string, number>();
   for (const session of history) {
     if (session.completedAt == null) continue;
+    if (isRecoverySession(session)) continue;
     if (parseDate(session.date).getTime() < cutoffMs) continue;
     for (const ex of session.exercises) {
       let vol = 0;
@@ -175,7 +177,9 @@ export interface ConsistencyStats {
 
 /** Headline training-consistency numbers for the Exercise tab. */
 export function consistencyStats(history: WorkoutSession[]): ConsistencyStats {
-  const done = history.filter((s) => s.completedAt != null);
+  // Recovery is tracked but not counted: a week of saunas must not read as
+  // a week of training. See isRecoverySession.
+  const done = history.filter((s) => s.completedAt != null && !isRecoverySession(s));
   const todayMs = parseDate(todayString()).getTime();
   const thisWeekStart = weekStartMs(todayMs);
 
@@ -246,6 +250,7 @@ export function trainingCalendar(history: WorkoutSession[], weeks = 12): Trainin
 
   for (const s of history) {
     if (s.completedAt == null) continue;
+    if (isRecoverySession(s)) continue;
     const dayMs = parseDate(s.date).getTime();
     if (dayMs < startMs || dayMs > todayMs) continue;
     sessions += 1;

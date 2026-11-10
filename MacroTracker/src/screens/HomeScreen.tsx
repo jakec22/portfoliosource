@@ -23,6 +23,7 @@ import { radius, space, tabular, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { ConsistencyRing } from '../components/ConsistencyRing';
 import { SetUpGoalsCard } from '../components/SetUpGoalsCard';
+import { isRecoverySession } from '../utils/workoutTypes';
 import { BodyHeatMap, BODY_CATEGORIES } from '../components/BodyHeatMap';
 import { consistencyStats, trainingSplit } from '../utils/trainingSplit';
 
@@ -75,24 +76,32 @@ export function HomeScreen({ navigation }: Props) {
     () => workoutHistory.filter((w) => w.date === today),
     [workoutHistory, today]
   );
+  // Training stats only. A sauna has no volume, no sets and no business
+  // lengthening the day's "Duration" beside a lift's — it still appears in
+  // the session list below, which is what "tracked but not counted" means.
+  const dayTraining = useMemo(
+    () => dayWorkouts.filter((w) => !isRecoverySession(w)),
+    [dayWorkouts]
+  );
+
   const dayWorkoutStats = useMemo(() => {
-    if (dayWorkouts.length === 0) return null;
-    const totalDurationMs = dayWorkouts.reduce(
+    if (dayTraining.length === 0) return null;
+    const totalDurationMs = dayTraining.reduce(
       (n, w) => n + Math.max(0, (w.completedAt ?? w.startedAt) - w.startedAt),
       0
     );
-    const totalVolume = dayWorkouts.reduce((n, w) => n + sessionVolume(w), 0);
-    const totalSets = dayWorkouts.reduce(
+    const totalVolume = dayTraining.reduce((n, w) => n + sessionVolume(w), 0);
+    const totalSets = dayTraining.reduce(
       (n, w) => n + w.exercises.reduce((en, e) => en + e.sets.length, 0),
       0
     );
-    const doneSets = dayWorkouts.reduce(
+    const doneSets = dayTraining.reduce(
       (n, w) => n + w.exercises.reduce((en, e) => en + e.sets.filter((s) => s.completed).length, 0),
       0
     );
-    const hr = heartRateStats(dayWorkouts.flatMap((w) => w.heartRateSamples ?? []));
+    const hr = heartRateStats(dayTraining.flatMap((w) => w.heartRateSamples ?? []));
     return { totalDurationMs, totalVolume, totalSets, doneSets, hr };
-  }, [dayWorkouts]);
+  }, [dayTraining]);
 
   // Active Energy from HealthKit — enriched by a watch when one is worn, and
   // null (hidden) with no native module, no permission or no data, so it never
@@ -325,7 +334,10 @@ export function HomeScreen({ navigation }: Props) {
             </View>
           )}
 
-          {dayWorkoutStats ? (
+          {/* Branches on whether anything was logged, not on whether there
+              are training stats: a day with only a sauna has no stats row but
+              is emphatically not a rest day. */}
+          {dayWorkouts.length > 0 ? (
             <>
               {dayWorkouts.map((w) => (
                 <WorkoutHistoryItem

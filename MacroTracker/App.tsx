@@ -41,6 +41,7 @@ import { ExerciseProgressScreen } from './src/screens/ExerciseProgressScreen';
 import { KeyInsightsScreen } from './src/screens/KeyInsightsScreen';
 import { BuildMealScreen } from './src/screens/BuildMealScreen';
 import { GoalWizardScreen } from './src/screens/GoalWizardScreen';
+import { RecoveryTimerScreen } from './src/screens/RecoveryTimerScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -127,6 +128,11 @@ function ExerciseStack() {
       <Stack.Screen name="WorkoutSummary" component={WorkoutSummaryScreen as any} />
       <Stack.Screen name="ExerciseProgress" component={ExerciseProgressScreen as any} />
       <Stack.Screen name="KeyInsights" component={KeyInsightsScreen as any} />
+      <Stack.Screen
+        name="RecoveryTimer"
+        component={RecoveryTimerScreen as any}
+        options={{ presentation: 'modal' }}
+      />
     </Stack.Navigator>
   );
 }

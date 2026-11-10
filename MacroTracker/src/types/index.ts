@@ -1,3 +1,4 @@
+import type { RecoveryKind, TimerMode } from '../utils/workoutTypes';
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 
 // Which visual theme pack is active. Named `ThemeMode` for historical reasons
@@ -129,10 +130,23 @@ export interface HeartRateSample {
 }
 
 // A workout session — in progress (activeWorkout) or finished (history).
+/** What the recovery timer was last set to for one kind of session. */
+export interface RecoveryPreset {
+  targetSeconds: number;
+  mode: TimerMode;
+}
+
 export interface WorkoutSession {
   id: string;
   name: string;
   templateId?: string;
+  /**
+   * HKWorkoutActivityType raw value; undefined === Strength, matching the
+   * rule WorkoutTemplate has always used. 3000 ("other") marks a recovery
+   * session — sauna or cold plunge — which isRecoverySession() reads to keep
+   * them out of the training numbers.
+   */
+  activityType?: number;
   date: string; // YYYY-MM-DD
   startedAt: number;
   completedAt?: number;
@@ -204,6 +218,8 @@ export interface AppState {
    * `profile` — and that does sync, so it clears the card everywhere.
    */
   goalsPromptDismissed: boolean;
+  /** Last timer settings per recovery type, so each remembers its own. */
+  recoveryPresets: Partial<Record<RecoveryKind, RecoveryPreset>>;
   waterIncrement: number; // fl oz added per water droplet tap
   showWaterTracker: boolean;
   themeMode: ThemeMode; // active theme pack (editorial/sportTech)
@@ -264,6 +280,8 @@ export interface AppState {
   setWaterGoal: (oz: number) => void;
   setWeeklyWorkoutGoal: (n: number) => void;
   dismissGoalsPrompt: () => void;
+  setRecoveryPreset: (kind: RecoveryKind, preset: RecoveryPreset) => void;
+  logRecoverySession: (kind: RecoveryKind, startedAt: number, endedAt: number) => void;
   setWaterIncrement: (oz: number) => void;
   setShowWaterTracker: (show: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
