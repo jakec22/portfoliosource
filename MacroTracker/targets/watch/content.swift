@@ -248,6 +248,10 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     // so the phone can record a session it never heard start — see
     // finishRecoveryFromWatch.
     private var recoveryStartedAt: Double = 0
+    // Which alerts this session has already played. See recoveryTick.
+    private var playedWarning = false
+    private var playedTarget = false
+    private var overtimeMinutesPlayed = 0
     var isRecovery: Bool { !recoveryKind.isEmpty }
     var recoveryLabel: String {
         recoveries.first { $0.id == recoveryKind }?.name
@@ -614,12 +618,85 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         recoveryTarget = recovery.target
         recoveryMode = recovery.mode
         recoveryStartedAt = Date().timeIntervalSince1970 * 1000
+        resetRecoveryAlerts()
         WorkoutManager.shared.start(activityType: .other)
         showWorkout = true
         if recovery.id == "plunge" {
             WKInterfaceDevice.current().enableWaterLock()
         }
         sendReliable(["type": "startRecovery", "kind": recovery.id])
+    }
+
+    /// How long before the target to tap once, as a heads-up.
+    ///
+    /// A fifth of the session, between ten seconds and a minute. A fixed
+    /// thirty seconds would be a tenth of a fifteen-minute sauna and a sixth
+    /// of a three-minute plunge, which are not the same warning.
+    private func warningLead(_ target: TimeInterval) -> TimeInterval {
+        min(60, max(10, target * 0.2))
+    }
+
+    /// The alerts for a sauna or plunge, driven from the workout timer.
+    ///
+    /// This is the only thing that can reach the user during a session. The
+    /// phone is in a locker or well away from the water, so the buzz it plays
+    /// is for people with no watch; the wrist is where the session actually
+    /// is. Until now the watch played nothing at all — the one device on the
+    /// user was the silent one.
+    ///
+    /// Three stages, deliberately different strengths, because they mean
+    /// different things:
+    ///
+    ///   - a single firm tap before the end, so there is time to gather a
+    ///     towel or set yourself to climb out rather than being told at the
+    ///     moment it matters;
+    ///   - the notification pattern at the target, three times a little over
+    ///     half a second apart. Once is easy to miss when you are cold,
+    ///     breathing hard and not looking at your wrist;
+    ///   - the lightest tap once a minute past the target, to five, so
+    ///     staying in longer is still tracked without being nagged out.
+    ///
+    /// No sound. A sauna is shared and muffles a watch speaker; a plunge is
+    /// wet and loud in your own head. watchOS already routes these through
+    /// the user's Sound & Haptics setting, so anyone who wants the tone gets
+    /// it without this choosing for them.
+    func recoveryTick(_ elapsed: TimeInterval) {
+        guard isRecovery, recoveryTarget > 0 else { return }
+        let target = TimeInterval(recoveryTarget)
+        let device = WKInterfaceDevice.current()
+
+        if !playedWarning, elapsed > 0, target - elapsed <= warningLead(target) {
+            playedWarning = true
+            device.play(.directionUp)
+        }
+
+        if !playedTarget, elapsed >= target {
+            playedTarget = true
+            // Marks the warning done too, for a target short enough that both
+            // land on the same tick.
+            playedWarning = true
+            for i in 0..<3 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.65) {
+                    device.play(.notification)
+                }
+            }
+            return
+        }
+
+        if playedTarget, overtimeMinutesPlayed < 5 {
+            let minutesOver = Int((elapsed - target) / 60)
+            if minutesOver > overtimeMinutesPlayed {
+                overtimeMinutesPlayed = minutesOver
+                device.play(.click)
+            }
+        }
+    }
+
+    /// Clear the alert marks so the next session starts silent.
+    private func resetRecoveryAlerts() {
+        playedWarning = false
+        playedTarget = false
+        overtimeMinutesPlayed = 0
     }
 
     /// End the running recovery and tell the phone about it.
@@ -679,7 +756,9 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             if let m = ctx["recoveryMode"] as? String, !m.isEmpty { self.recoveryMode = m }
             // Adopt the phone's start for a session it began, so a Stop & Save
             // from this side reports the same window the phone is showing.
+            let isNewSession = self.recoveryStartedAt != startedAt
             self.recoveryStartedAt = (kind.isEmpty || startedAt <= 0) ? 0 : startedAt
+            if isNewSession { self.resetRecoveryAlerts() }
         }
 
         if active, !workoutId.isEmpty, workoutId != lastHandledWorkoutId {

@@ -301,6 +301,12 @@ final class WorkoutManager: NSObject, ObservableObject {
             let current = self.segmentStart.map { Date().timeIntervalSince($0) } ?? 0
             self.elapsed = self.accumulated + current
 
+            // A sauna or plunge has no sets to check off, so this tick is the
+            // only thing that knows how far in the user is. It keeps running
+            // with the screen off and with water lock on, which is exactly
+            // when the alerts matter. A no-op for a lift.
+            DayStats.shared.recoveryTick(self.elapsed)
+
             if !self.hasHeartRateSample, !self.hrUnavailable,
                let since = self.collectionStartedAt,
                Date().timeIntervalSince(since) > Self.heartRateGracePeriod {
