@@ -30,6 +30,8 @@ import {
 } from '../services/activeEnergy';
 import { HeartRateGraph } from '../components/HeartRateGraph';
 import { isRecoverySession } from '../utils/workoutTypes';
+import { weekStartMs } from '../utils/trainingSplit';
+import { parseDate, addDays } from '../utils/date';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -208,6 +210,7 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
       <RecoverySummary
         session={session}
         previousSession={previousSession}
+        history={history}
         viewOnly={viewOnly}
         onDone={done}
         c={c}
@@ -457,24 +460,47 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
  * The sauna / cold plunge recap.
  *
  * Two numbers and a graph. Held time is the headline, because it is the one
- * thing the session was about. The second slot is the time of day, which is
- * not shown anywhere else and does distinguish one of these from another — a
- * morning sauna is a different thing from one after a lift.
+ * thing the session was about. The second is the week's running total for
+ * this kind: heat and cold exposure are things people deliberately
+ * accumulate toward a weekly figure, so the useful question at the end of a
+ * sauna is not only how long that one was but where it leaves the week.
  *
- * It is deliberately not average heart rate: the graph below carries its own
+ * Heat and cold are counted apart, as they are aimed for apart, and the week
+ * is the session's own — Sunday-aligned, like every other week in the app —
+ * so reopening an old sauna from History shows the week it belonged to
+ * rather than this one.
+ *
+ * Deliberately not average heart rate: the graph below carries its own
  * avg / peak / low header, and a card saying 110 directly above a column
  * saying 110 reads as two measurements that happen to agree rather than one
  * stated twice.
  */
+/**
+ * A running total, rounded to the minute.
+ *
+ * Not formatDuration, which renders a clock: "48:00" is the right shape for
+ * one session's stopwatch and the wrong one for a week's accumulation, where
+ * it invites being read as a time of day.
+ */
+function totalLabel(ms: number): string {
+  const minutes = Math.round(ms / 60000);
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h} hr` : `${h}h ${m}m`;
+}
+
 function RecoverySummary({
   session,
   previousSession,
+  history,
   viewOnly,
   onDone,
   c,
 }: {
   session: WorkoutSession;
   previousSession: WorkoutSession | null;
+  history: WorkoutSession[];
   viewOnly?: boolean;
   onDone: () => void;
   c: Theme;
@@ -482,10 +508,25 @@ function RecoverySummary({
   const styles = useMemo(() => makeStyles(c), [c]);
   const samples = session.heartRateSamples ?? [];
   const durationMs = (session.completedAt ?? session.startedAt) - session.startedAt;
-  const startedLabel = new Date(session.startedAt).toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+
+  // Every session of this same kind in the week this one belongs to, this one
+  // included. Matched on name, which is what tells a sauna from a plunge —
+  // both carry HKWorkoutActivityTypeOther, since Apple has no type for
+  // either.
+  const week = useMemo(() => {
+    const start = weekStartMs(parseDate(session.date).getTime());
+    const end = addDays(start, 7);
+    let ms = 0;
+    let count = 0;
+    for (const w of history) {
+      if (!isRecoverySession(w) || w.name !== session.name) continue;
+      const day = parseDate(w.date).getTime();
+      if (day < start || day >= end) continue;
+      ms += (w.completedAt ?? w.startedAt) - w.startedAt;
+      count += 1;
+    }
+    return { ms, count };
+  }, [history, session.date, session.name]);
 
   const prevDurationMs = previousSession
     ? (previousSession.completedAt ?? previousSession.startedAt) - previousSession.startedAt
@@ -504,7 +545,12 @@ function RecoverySummary({
 
         <View style={styles.statGrid}>
           <StatCard label="Held" value={formatDuration(durationMs)} color={c.primary} c={c} />
-          <StatCard label="Started" value={startedLabel} color={c.info} c={c} />
+          <StatCard
+            label={`This Week · ${week.count} session${week.count === 1 ? '' : 's'}`}
+            value={totalLabel(week.ms)}
+            color={c.info}
+            c={c}
+          />
         </View>
 
         {previousSession && prevDurationMs != null && (
