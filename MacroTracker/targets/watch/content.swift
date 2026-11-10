@@ -193,6 +193,22 @@ enum WatchType {
     static func bold(_ size: CGFloat, relativeTo style: Font.TextStyle = .body) -> Font {
         Font.custom("Manrope-Bold", size: size, relativeTo: style)
     }
+
+    /// The one face that is not the app's own: live numerals.
+    ///
+    /// A value that updates in place needs tabular figures, and neither
+    /// DM Serif Display nor Manrope has them — a clock on either jitters
+    /// sideways on every digit change. SF Rounded does, and `monospacedDigit`
+    /// is baked in here rather than left to each call site, which is how the
+    /// two heart-rate readouts ended up without it while the clocks had it.
+    ///
+    /// Deliberately a fixed size, unlike every other face here: these are the
+    /// elements the glance screens are laid out around, and a clock that
+    /// reflows at a larger text setting costs more than one that does not.
+    /// Use it only for numbers that change while you are looking at them.
+    static func readout(_ size: CGFloat) -> Font {
+        Font.system(size: size, weight: .bold, design: .rounded).monospacedDigit()
+    }
 }
 
 final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
@@ -1135,14 +1151,13 @@ struct WorkoutView: View {
                 .tracking(0.7)
                 .foregroundColor(stats.palette.accent)
 
-            // Same reasoning as the workout clock: a serif face has no tabular
-            // figures, so a once-a-second numeral would jitter sideways.
+            // Same size and face as the workout clock — this is the same
+            // element doing the same job on a different screen.
             Text(down
                  ? (over ? "+" : "") + timeString(abs(target - elapsed))
                  : timeString(elapsed))
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(WatchType.readout(30))
                 .foregroundColor(tint)
-                .monospacedDigit()
 
             Text(down
                  ? (over ? "past target" : "remaining")
@@ -1152,7 +1167,7 @@ struct WorkoutView: View {
 
             HStack(spacing: 4) {
                 Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
-                    .font(.title2).fontWeight(.bold)
+                    .font(WatchType.readout(20))
                     .foregroundColor(workout.heartRate > 0
                                      ? hrZoneColor(workout.heartRate, stats.palette)
                                      : .secondary)
@@ -1278,8 +1293,7 @@ struct WorkoutView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "timer").foregroundColor(stats.palette.accent)
                     Text("Rest \(timeString(rest.remaining))")
-                        .font(.footnote).fontWeight(.bold)
-                        .monospacedDigit()
+                        .font(WatchType.readout(13))
                 }
                 .padding(.vertical, 4)
                 .padding(.horizontal, 10)
@@ -1287,14 +1301,11 @@ struct WorkoutView: View {
                 .clipShape(Capsule())
             }
 
-            // The one numeral deliberately left on the system face. It ticks
-            // once a second, and DM Serif Display has no tabular figures — a
-            // serif clock jitters sideways on every digit change. Same reason
-            // the heart rate below stays where it is.
+            // See WatchType.readout: ticking numerals take SF Rounded, which
+            // has the tabular figures the app's own faces do not.
             Text(timeString(workout.elapsed))
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .font(WatchType.readout(30))
                 .foregroundColor(workout.isPaused ? .secondary : stats.palette.accent)
-                .monospacedDigit()
 
             if workout.isPaused {
                 Text("Paused").font(WatchType.body(11)).foregroundColor(.secondary)
@@ -1302,7 +1313,7 @@ struct WorkoutView: View {
 
             HStack(spacing: 4) {
                 Text(workout.heartRate > 0 ? "\(Int(workout.heartRate))" : "--")
-                    .font(.title2).fontWeight(.bold)
+                    .font(WatchType.readout(20))
                     .foregroundColor(workout.heartRate > 0 ? hrZoneColor(workout.heartRate, stats.palette) : .secondary)
                 Text("bpm").font(WatchType.semibold(11)).foregroundColor(.secondary)
             }
