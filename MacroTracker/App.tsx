@@ -24,6 +24,7 @@ import {
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 import { useTheme } from './src/theme/useTheme';
+import { contentColumn } from './src/theme/tokens';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabIcon } from './src/components/TabIcon';
 import { Snackbar } from './src/components/Snackbar';
@@ -182,6 +183,9 @@ function MainTabs() {
         <Tab.Navigator
           screenOptions={({ route }) => ({
             headerShown: false,
+            // Holds every tabbed screen — and the stacks inside them — to one
+            // column. Below CONTENT_MAX this is a no-op, so no phone changes.
+            sceneStyle: contentColumn,
             tabBarActiveTintColor: c.primary,
             tabBarInactiveTintColor: c.textFaint,
             tabBarStyle: {
@@ -303,11 +307,17 @@ export default function App() {
             <ActivityIndicator size="large" color={c.primary} />
           </View>
         ) : needsPasswordReset ? (
-          <ResetPasswordScreen onDone={clearPasswordReset} />
+          // Sign-in and password reset sit outside the tab navigator, so they
+          // need the column applied directly rather than through sceneStyle.
+          <View style={[{ flex: 1 }, contentColumn]}>
+            <ResetPasswordScreen onDone={clearPasswordReset} />
+          </View>
         ) : session ? (
           <MainTabs />
         ) : (
-          <AuthScreen />
+          <View style={[{ flex: 1 }, contentColumn]}>
+            <AuthScreen />
+          </View>
         )}
         {/* One instance each for the whole app, over the tab bar. */}
         <Snackbar />

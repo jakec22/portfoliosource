@@ -47,6 +47,37 @@ export const space = {
 } as const;
 
 // ---------------------------------------------------------------------------
+// Content width
+// ---------------------------------------------------------------------------
+
+/**
+ * The widest the app's content column ever gets.
+ *
+ * Every screen is a single column of cards sized for a thumb. On an iPad that
+ * column has no reason to be 834pt wide — a template card becomes a name with
+ * 600pt of empty space beside it, and a two-up stat grid becomes two 390pt
+ * boxes each holding four characters.
+ *
+ * 560 is a little wider than the largest iPhone, so nothing about the phone
+ * layout changes: below this width the cap does nothing at all. Above it the
+ * column centres on the app background, which the navigation theme already
+ * paints the same colour, so the sides are seamless rather than letterboxed.
+ *
+ * This is not a designed iPad layout — there is no sidebar and no split view.
+ * It is the honest minimum for an app that must keep supporting a device it
+ * was not drawn for: App Store rule 90101 forbids an update dropping a device
+ * the shipped version supported.
+ */
+export const CONTENT_MAX = 560;
+
+/** Spread into any full-screen container to hold it to CONTENT_MAX. */
+export const contentColumn = {
+  width: '100%',
+  maxWidth: CONTENT_MAX,
+  alignSelf: 'center',
+} as const;
+
+// ---------------------------------------------------------------------------
 // Radii
 // ---------------------------------------------------------------------------
 

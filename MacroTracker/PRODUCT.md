@@ -93,14 +93,15 @@ Constraints:
   return.
 - Watch functionality is iOS-only; the Android port deliberately ships without
   it, and without the home-screen widget.
-- **iPhone only.** `ios.supportsTablet` is false. Nothing in the layout adapts
-  to width — there are no size classes anywhere — so on iPad every card spanned
-  the full 834pt with the text stranded at one end. The product is built for
-  one-handed use mid-set, which is not an iPad posture, so iPad gets Apple's
-  scaled-iPhone compatibility window instead of a stretched layout pretending
-  to be designed for it. Portrait-locking an iPad app would also have needed
-  `UIRequiresFullScreen`. Reversing this means real iPad work — a sidebar in
-  place of the tab bar, split view on the list screens — not a flag.
+- **iPad runs the phone layout in a 560pt column, and has to.** Dropping
+  `ios.supportsTablet` was tried and rejected by App Store rule 90101: an
+  update may not drop a device the shipped version supported, and this app has
+  always shipped with iPad on. So the column is capped instead (`CONTENT_MAX`
+  in theme/tokens.ts, applied through the tab navigator's `sceneStyle`), which
+  is a no-op on every iPhone because 560 is wider than the largest one.
+  It is not a designed iPad layout — no sidebar, no split view — and should
+  not be described as one. Making it one is real work; the cap is the honest
+  minimum for a device the app must keep supporting.
 - Accessibility is partly addressed. Contrast passes AA on every text token
   and every ink-on-fill pairing in both packs; tap targets reach 44pt; Reduce
   Motion is honoured; text boxes grow with the reader's size setting; and

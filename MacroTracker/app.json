@@ -47,7 +47,7 @@
         "dark": "./assets/icon-dark.png",
         "tinted": "./assets/icon-tinted.png"
       },
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.jacobclover.macrotracker",
       "appleTeamId": "D8S2K2WAL9",
       "usesAppleSignIn": true,
