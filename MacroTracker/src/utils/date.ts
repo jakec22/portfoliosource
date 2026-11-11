@@ -41,13 +41,26 @@ export function displayDate(dateStr: string): string {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-export function getPastDays(n: number): string[] {
+/**
+ * `n` days ending on `from` (today by default), newest first.
+ *
+ * Steps with `addDays` rather than subtracting 86,400,000 ms a time: the
+ * arithmetic version lands an hour off across a DST boundary, which on the
+ * two changeover weekends a year is enough to repeat or skip a day in the
+ * week strip.
+ */
+export function getPastDays(n: number, from?: string): string[] {
+  const anchor = parseDate(from ?? todayString()).getTime();
   const days: string[] = [];
   for (let i = 0; i < n; i++) {
-    const d = new Date(Date.now() - i * 86400000);
-    days.push(formatDate(d));
+    days.push(formatDate(new Date(addDays(anchor, -i))));
   }
   return days;
+}
+
+/** `n` days from a YYYY-MM-DD date, as a YYYY-MM-DD date. */
+export function shiftDate(dateStr: string, n: number): string {
+  return formatDate(new Date(addDays(parseDate(dateStr).getTime(), n)));
 }
 
 // "Oct 30" from a YYYY-MM-DD string.

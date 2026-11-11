@@ -4,7 +4,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros, DEFAULT_GOALS } from '../store/useStore';
 import { useToday } from '../hooks/useToday';
 import { useSnackbar } from '../store/useSnackbar';
-import { getPastDays, formatDuration, parseDate, displayDate } from '../utils/date';
+import {
+  getPastDays,
+  formatDuration,
+  parseDate,
+  displayDate,
+  shiftDate,
+  shortDate,
+  relativeDateLabel,
+} from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
 import { MacroBar } from '../components/MacroBar';
 import { GoalsUpdatedCard } from '../components/GoalsUpdatedCard';
@@ -43,14 +51,29 @@ const WEEK = 7;
 //
 // Home reads, Food logs. Water is the one exception, because it is the only
 // log in the app that finishes in a single tap with nothing to type.
+//
+// Home opens on today and is usually today, but it is no longer only today.
+// One rule holds the screen together: every figure on it is anchored to the
+// day in the header. The arrows step that day, the week strip picks one, and
+// the "Back to today" pill ends the excursion. Anything that cannot honour
+// the anchor — the streak, the goal-setup prompts, the start-a-workout row —
+// is shown on today and hidden otherwise, rather than left on screen
+// answering a question about a different day.
 export function HomeScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const today = useToday();
 
+  // The day on screen. Defaults to today and returns there at midnight: a
+  // phone left open overnight on "Today" would otherwise be showing
+  // yesterday under today's title.
+  const [viewDate, setViewDate] = useState(today);
+  useEffect(() => setViewDate(today), [today]);
+  const isToday = viewDate === today;
+
   const goals = useStore((s) => s.goals);
   const allLogs = useStore((s) => s.logs);
-  const todayEntries = useStore((s) => s.logs[today]);
+  const dayEntries = useStore((s) => s.logs[viewDate]);
   const workoutHistory = useStore((s) => s.workoutHistory);
   const deleteWorkout = useStore((s) => s.deleteWorkout);
   const restoreWorkout = useStore((s) => s.restoreWorkout);
@@ -64,8 +87,8 @@ export function HomeScreen({ navigation }: Props) {
   const dismissGoalsUpdateNotice = useStore((s) => s.dismissGoalsUpdateNotice);
   const setGoalsAutoUpdate = useStore((s) => s.setGoalsAutoUpdate);
 
-  const totals = useMemo(() => sumMacros(todayEntries ?? []), [todayEntries]);
-  const water = waterIntake[today] ?? 0;
+  const totals = useMemo(() => sumMacros(dayEntries ?? []), [dayEntries]);
+  const water = waterIntake[viewDate] ?? 0;
 
   const { current: currentStreak, best: bestStreak } = useMemo(
     () => computeStreak(allLogs),
@@ -73,8 +96,8 @@ export function HomeScreen({ navigation }: Props) {
   );
 
   const dayWorkouts = useMemo(
-    () => workoutHistory.filter((w) => w.date === today),
-    [workoutHistory, today]
+    () => workoutHistory.filter((w) => w.date === viewDate),
+    [workoutHistory, viewDate]
   );
   // Training stats only. A sauna has no volume, no sets and no business
   // lengthening the day's "Duration" beside a lift's — it still appears in
@@ -124,12 +147,19 @@ export function HomeScreen({ navigation }: Props) {
     (Object.keys(DEFAULT_GOALS) as (keyof typeof DEFAULT_GOALS)[]).every(
       (k) => goals[k] === DEFAULT_GOALS[k]
     );
-  const consistency = useMemo(() => consistencyStats(workoutHistory), [workoutHistory]);
+  const consistency = useMemo(
+    () => consistencyStats(workoutHistory, viewDate),
+    [workoutHistory, viewDate]
+  );
 
   // Seven days, not the Exercise tab's thirty: Home is asking what this week
   // looks like, and a month-long window smooths over exactly the gap a rest
-  // day wants to know about.
-  const weekSplit = useMemo(() => trainingSplit(workoutHistory, 7, c), [workoutHistory, c]);
+  // day wants to know about. Ends on the viewed day, so the figure and the
+  // stats below it are always describing the same week.
+  const weekSplit = useMemo(
+    () => trainingSplit(workoutHistory, 7, c, viewDate),
+    [workoutHistory, c, viewDate]
+  );
 
   // Regions with no volume this week. Drives the rest-day prompt, so that a
   // day off suggests something instead of only reporting that nothing has
@@ -148,19 +178,26 @@ export function HomeScreen({ navigation }: Props) {
   useEffect(() => {
     if (!hkAvailable) return;
     let cancelled = false;
-    queryActiveEnergy(today).then((kcal) => {
+    // Cleared first: the query is a round trip to the health store, and
+    // without this the previous day's figure sits under the new day's date
+    // until it answers.
+    setActiveEnergy(null);
+    queryActiveEnergy(viewDate).then((kcal) => {
       if (!cancelled) setActiveEnergy(kcal);
     });
     return () => {
       cancelled = true;
     };
-  }, [hkAvailable, today]);
+  }, [hkAvailable, viewDate]);
 
   // The week as adherence, not as a chart: one column per day, filled to how
   // close that day landed. Reading the shape is the point — detail is a tap away.
+  //
+  // The window ends on the viewed day, so the day you are reading is always
+  // the rightmost column and stepping back walks the strip with you.
   const week = useMemo(() => {
     const workoutDates = new Set(workoutHistory.map((w) => w.date));
-    return getPastDays(WEEK)
+    return getPastDays(WEEK, viewDate)
       .reverse()
       .map((date) => {
         const t = sumMacros(allLogs[date] ?? []);
@@ -170,10 +207,11 @@ export function HomeScreen({ navigation }: Props) {
           logged: (allLogs[date]?.length ?? 0) > 0,
           trained: workoutDates.has(date),
           isToday: date === today,
+          isViewed: date === viewDate,
           initial: parseDate(date).toLocaleDateString('en-US', { weekday: 'narrow' }),
         };
       });
-  }, [allLogs, workoutHistory, goals.calories, today]);
+  }, [allLogs, workoutHistory, goals.calories, today, viewDate]);
 
   const OZ_PER_BUBBLE = waterIncrement;
   const numBubbles = Math.max(4, Math.round(waterGoal / OZ_PER_BUBBLE));
@@ -181,20 +219,38 @@ export function HomeScreen({ navigation }: Props) {
   const waterPct = Math.min(Math.round((water / waterGoal) * 100), 100);
 
   /**
-   * Open a day in the food log.
+   * Open the viewed day in the food log.
    *
    * Addressed through the tab, not the stack: FoodHome lives in a sibling
    * navigator, and this is the same call History's day cards make.
+   *
+   * The week strip used to make this call. It now selects the day on Home
+   * instead, which is cheaper and reversible, so the door to the log moved
+   * onto the card that holds the day's food.
    */
-  function openDay(date: string) {
-    navigation.navigate('Food', { screen: 'FoodHome', params: { date } });
+  function openFoodLog() {
+    navigation.navigate('Food', { screen: 'FoodHome', params: { date: viewDate } });
+  }
+
+  // Forward stops at today. There is nothing to show for tomorrow and a
+  // disabled arrow says so more clearly than an empty screen would.
+  const canGoForward = !isToday;
+  function stepDay(n: number) {
+    if (n > 0 && !canGoForward) return;
+    setViewDate((d) => shiftDate(d, n));
   }
 
   function handleBubblePress(index: number) {
+    // Writes to the viewed day, not to today. Backdating water is the point
+    // rather than a hazard: the store has always keyed it by date, the dots
+    // are deliberate targets rather than something a scroll can catch, the
+    // caption below names the day being written to, and the top drop undoes
+    // itself.
+    //
     // Tapping the topmost filled bubble un-fills it (undo an accidental tap);
     // any other bubble fills or empties up to that point.
-    if (index + 1 === filledBubbles) setWater(today, index * OZ_PER_BUBBLE);
-    else setWater(today, (index + 1) * OZ_PER_BUBBLE);
+    if (index + 1 === filledBubbles) setWater(viewDate, index * OZ_PER_BUBBLE);
+    else setWater(viewDate, (index + 1) * OZ_PER_BUBBLE);
   }
 
   return (
@@ -204,33 +260,86 @@ export function HomeScreen({ navigation }: Props) {
         backgroundColor={c.bg}
       />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.titleRow}>
-          <Text style={styles.pageTitle}>Today</Text>
-          {currentStreak > 0 && (
-            <View style={styles.streakBadge}>
-              <Icon name="streak" size="xs" color={c.warning} />
-              <Text style={styles.streakBadgeText}>
-                {currentStreak} day{currentStreak !== 1 ? 's' : ''}
-              </Text>
-            </View>
+        {/* The date, and the controls that move it. Centred with the arrows
+            flanking it so that stepping a day changes nothing but the words:
+            a header that re-flows on every tap reads as the screen having
+            been replaced rather than re-pointed.
+
+            The streak badge and the "Back to today" button share the slot
+            under the date. They are mutually exclusive — the streak is a
+            fact about now, the button only exists when you are not on now —
+            so the header is the same height either way. */}
+        <View style={styles.dateRow}>
+          <TouchableOpacity
+            style={styles.dateNav}
+            onPress={() => stepDay(-1)}
+            activeOpacity={0.7}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Previous day"
+          >
+            <Icon name="back" size="lg" color={c.gray700} />
+          </TouchableOpacity>
+
+          <View style={styles.dateMid}>
+            <Text style={styles.pageTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+              {headline(viewDate)}
+            </Text>
+            <Text style={styles.pageDate}>{subhead(viewDate, today)}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.dateNav}
+            onPress={() => stepDay(1)}
+            activeOpacity={0.7}
+            hitSlop={8}
+            disabled={!canGoForward}
+            accessibilityRole="button"
+            accessibilityLabel="Next day"
+            accessibilityState={{ disabled: !canGoForward }}
+          >
+            {/* borderStrong, not border: a disabled control should read as
+                disabled, not as absent, and `border` against the card is
+                close enough to invisible that the header looks lopsided on
+                the day you spend almost all of your time on. */}
+            <Icon name="forward" size="lg" color={canGoForward ? c.gray700 : c.borderStrong} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.dateFooter}>
+          {isToday ? (
+            currentStreak > 0 && (
+              <View style={styles.streakBadge}>
+                <Icon name="streak" size="xs" color={c.warning} />
+                <Text style={styles.streakBadgeText}>
+                  {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+                </Text>
+              </View>
+            )
+          ) : (
+            <TouchableOpacity
+              style={styles.todayBtn}
+              onPress={() => setViewDate(today)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Back to today"
+            >
+              <Icon name="calendar" size="xs" color={c.primary} />
+              <Text style={styles.todayBtnText}>Back to today</Text>
+            </TouchableOpacity>
           )}
         </View>
-        <Text style={styles.pageDate}>
-          {parseDate(today).toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </Text>
 
-        {goalsAreUntouched && (
+        {/* Both prompts are about the goals in force now, and the second is a
+            notice to be dismissed. Neither belongs on a day in the past. */}
+        {isToday && goalsAreUntouched && (
           <SetUpGoalsCard
             onStart={() => navigation.navigate('GoalWizard')}
             onDismiss={dismissGoalsPrompt}
           />
         )}
 
-        {goalsUpdateNotice && (
+        {isToday && goalsUpdateNotice && (
           <GoalsUpdatedCard
             notice={goalsUpdateNotice}
             onDismiss={dismissGoalsUpdateNotice}
@@ -251,6 +360,25 @@ export function HomeScreen({ navigation }: Props) {
             <MacroBar current={totals.fat} goal={goals.fat} label="Fat" color={c.macroFat} />
             <MacroBar current={totals.fiber ?? 0} goal={goals.fiber} label="Fiber" color={c.macroFiber} />
           </View>
+
+          {/* What these numbers are made of. The week strip used to be the
+              way through to the log; now that a bar selects a day here
+              instead, the door belongs on the card that holds the food —
+              and it finally works for today too, which the strip's own
+              today-bar never usefully did. */}
+          <View style={styles.todayDivider} />
+          <TouchableOpacity
+            style={styles.logLink}
+            onPress={openFoodLog}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Open the food log for ${displayDate(viewDate)}`}
+          >
+            <Text style={styles.logLinkText}>
+              {isToday ? "See today's food" : `See what you ate on ${shortDate(viewDate)}`}
+            </Text>
+            <Icon name="forward" size="sm" color={c.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* Training. Used to be one line at the bottom of the screen, under the
@@ -271,7 +399,11 @@ export function HomeScreen({ navigation }: Props) {
               already offers them the way in. */}
           {consistency.totalSessions > 0 && (
             <>
-              <ConsistencyRing stats={consistency} target={weeklyWorkoutGoal} />
+              <ConsistencyRing
+                stats={consistency}
+                target={weeklyWorkoutGoal}
+                past={!isToday}
+              />
 
               {/* Where the week's volume went. Withheld when nothing has been
                   lifted in seven days: every region would render at the same
@@ -279,7 +411,9 @@ export function HomeScreen({ navigation }: Props) {
                   rest week. */}
               {weekSplit.length > 0 && (
                 <View style={styles.coverage}>
-                  <Text style={styles.coverageLabel}>Coverage this week</Text>
+                  <Text style={styles.coverageLabel}>
+                    {isToday ? 'Coverage this week' : 'Coverage that week'}
+                  </Text>
                   <BodyHeatMap slices={weekSplit} days={7} compact />
                 </View>
               )}
@@ -302,7 +436,9 @@ export function HomeScreen({ navigation }: Props) {
               names the half above it. Without it the card runs week numbers
               into day numbers with nothing saying which is which. Shown only
               once there is a week block to be distinguished from. */}
-          {consistency.totalSessions > 0 && <Text style={styles.todayLabel}>Today</Text>}
+          {consistency.totalSessions > 0 && (
+            <Text style={styles.todayLabel}>{displayDate(viewDate)}</Text>
+          )}
 
           {(dayWorkoutStats || activeEnergy != null) && (
             <View style={styles.workoutStatsRow}>
@@ -367,6 +503,11 @@ export function HomeScreen({ navigation }: Props) {
                 />
               ))}
             </>
+          ) : !isToday ? (
+            // No call to action on a past day: "Start a workout" starts one
+            // now, and offering it under a date three days gone is an offer
+            // to log to the wrong day.
+            <Text style={styles.restText}>No training logged</Text>
           ) : (
             <TouchableOpacity
               style={styles.restRow}
@@ -425,22 +566,25 @@ export function HomeScreen({ navigation }: Props) {
               ))}
             </View>
             <Text style={styles.waterGoal}>
-              Tap to fill {OZ_PER_BUBBLE} fl oz · tap the last drop again to undo
+              {isToday
+                ? `Tap to fill ${OZ_PER_BUBBLE} fl oz · tap the last drop again to undo`
+                : `Tap to fill ${OZ_PER_BUBBLE} fl oz · logs to ${shortDate(viewDate)}`}
             </Text>
           </View>
         )}
 
-        {/* The week, with every day in it a door.
-            Home stays today — picking a date here would make it a second
-            Food tab, and FoodScreen records why the date lives there
-            instead. But the strip already draws seven addressable days and
-            used to answer all seven the same way: the whole card was one
-            button to History, so tapping Tuesday's bar went to a list, not
-            to Tuesday. Each bar opens its own day now, and the header link
-            keeps the door to every day before this week. */}
+        {/* The week, and the fastest way to move around in it.
+            The whole card was once a single button to History, so tapping
+            Tuesday's bar went to a list rather than to Tuesday. Then each
+            bar opened its own day in the food log. Now that Home itself
+            holds a date, a bar sets it: no screen change, no trip back, and
+            the strip redraws around the day you picked. "All days" keeps the
+            door to everything older than the seven columns. */}
         <View style={styles.card}>
           <View style={styles.weekHeader}>
-            <Text style={styles.cardTitle}>This week</Text>
+            <Text style={styles.cardTitle}>
+              {isToday ? 'This week' : `Week to ${shortDate(viewDate)}`}
+            </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('History')}
               hitSlop={8}
@@ -458,30 +602,44 @@ export function HomeScreen({ navigation }: Props) {
               <TouchableOpacity
                 key={d.date}
                 style={styles.weekCol}
-                onPress={() => openDay(d.date)}
+                onPress={() => setViewDate(d.date)}
                 activeOpacity={0.7}
                 // A seventh of the card is 40pt wide. The 8pt gap between
                 // columns absorbs this without the targets overlapping.
                 hitSlop={{ left: 2, right: 2 }}
                 accessibilityRole="button"
-                accessibilityLabel={`${displayDate(d.date)} — open in the food log`}
+                accessibilityLabel={`${displayDate(d.date)} — show this day`}
+                accessibilityState={{ selected: d.isViewed }}
               >
                 <View style={styles.weekTrack}>
                   <View
                     style={[
                       styles.weekFill,
                       { height: `${Math.max(d.pct * 100, d.logged ? 6 : 0)}%` as any },
+                      // Today is green wherever it falls in the strip; the
+                      // day being read is blue. On today they are the same
+                      // column and green wins, which is why the two colours
+                      // never compete for the same meaning.
+                      d.isViewed && { backgroundColor: c.info },
                       d.isToday && { backgroundColor: c.primary },
                     ]}
                   />
                 </View>
                 <View style={[styles.weekDot, d.trained && { backgroundColor: c.primary }]} />
-                <Text style={[styles.weekDay, d.isToday && styles.weekDayToday]}>{d.initial}</Text>
+                <Text
+                  style={[
+                    styles.weekDay,
+                    d.isViewed && styles.weekDayViewed,
+                    d.isToday && styles.weekDayToday,
+                  ]}
+                >
+                  {d.initial}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
           <Text style={styles.weekCaption}>
-            Tap a day to open it · bar is calories against goal, dot means you trained
+            Tap a day to see it · bar is calories against goal, dot means you trained
           </Text>
         </View>
 
@@ -504,6 +662,48 @@ export function HomeScreen({ navigation }: Props) {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+/**
+ * The big word in the header.
+ *
+ * "Today" and "Yesterday" rather than the weekday, because that is what the
+ * day is called; further back the weekday is the fastest handle on it, and
+ * the date underneath carries the precision.
+ */
+function headline(viewDate: string): string {
+  const label = displayDate(viewDate);
+  if (label === 'Today' || label === 'Yesterday') return label;
+  return parseDate(viewDate).toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+/**
+ * The line under it. On today and yesterday the headline has not spent the
+ * weekday, so the full date can carry it and the header reads exactly as it
+ * did before any of this existed. Further back the weekday is already above,
+ * so the line spends its room on how far back you have gone instead.
+ */
+function subhead(viewDate: string, today: string): string {
+  const label = displayDate(viewDate);
+  const d = parseDate(viewDate);
+  if (label === 'Today' || label === 'Yesterday') {
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  }
+
+  const sameYear = d.getFullYear() === parseDate(today).getFullYear();
+  const date = d.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    // "October 12" is a guess once you are far enough back to have crossed a
+    // new year, and stepping back a day at a time is a way to get there.
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+
+  // relativeDateLabel gives up and returns a short date past four weeks,
+  // which here would print the date twice — "October 12 · Oct 12". Past that
+  // point the date alone is the better answer anyway: nobody reads "7w ago".
+  const days = Math.round((parseDate(today).getTime() - d.getTime()) / 86400000);
+  return days < 28 ? `${date} · ${relativeDateLabel(viewDate)}` : date;
 }
 
 // "Legs", "Legs and Back", "Legs, Back and Core" — and nothing longer, since
@@ -562,9 +762,51 @@ const makeStyles = (c: Theme) =>
     scroll: { flex: 1 },
     content: { padding: space.lg, paddingBottom: space.xxl },
 
-    titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    pageTitle: { ...type.title(c), color: c.text },
-    pageDate: { ...type.caption(c), color: c.textMuted, marginTop: space.xxs, marginBottom: space.lg },
+    dateRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    // 44pt, the full touch target, and round so the arrow sits in something
+    // rather than floating next to the title.
+    dateNav: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.pill,
+      backgroundColor: c.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dateMid: { flex: 1, alignItems: 'center' },
+    pageTitle: { ...type.title(c), color: c.text, textAlign: 'center' },
+    pageDate: { ...type.caption(c), color: c.textMuted, marginTop: space.xxs, textAlign: 'center' },
+    // Fixed height so the header does not grow and shrink by a badge as you
+    // step across today, and so a streakless first week leaves the same gap
+    // the badge would have.
+    dateFooter: {
+      height: 34,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: space.sm,
+      marginBottom: space.lg,
+    },
+
+    todayBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.xs,
+      backgroundColor: c.primarySoft,
+      borderRadius: radius.control,
+      paddingHorizontal: space.md,
+      paddingVertical: space.sm,
+    },
+    todayBtnText: { ...type.captionStrong(c), color: c.primary },
+
+    logLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: space.xs,
+      // The row is the target: the text alone is 18pt tall.
+      paddingVertical: space.xs,
+    },
+    logLinkText: { ...type.captionStrong(c), color: c.primary },
 
     streakBadge: {
       flexDirection: 'row',
@@ -680,6 +922,7 @@ const makeStyles = (c: Theme) =>
       marginTop: space.sm,
     },
     weekDay: { ...type.micro(c), color: c.textFaint, marginTop: space.xs },
+    weekDayViewed: { color: c.info, fontFamily: c.fontBodyBold },
     weekDayToday: { color: c.text, fontFamily: c.fontBodyBold },
     weekCaption: { ...type.micro(c), color: c.textFaint, textAlign: 'center', marginTop: space.md },
 

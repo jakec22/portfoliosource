@@ -104,22 +104,28 @@ function sliceColors(c: Theme): string[] {
 }
 
 /**
- * Training volume by body part over the last `days` days, largest first.
- * Returns [] when there's nothing to show so callers can hide the section.
+ * Training volume by body part over the `days` days ending on `anchor`
+ * (today by default), largest first. Returns [] when there's nothing to show
+ * so callers can hide the section.
+ *
+ * The anchor is what lets Home show a past day: the window has to end on the
+ * day being looked at, or Wednesday's screen reports work done on Friday.
  */
 export function trainingSplit(
   history: WorkoutSession[],
   days: number,
-  c: Theme
+  c: Theme,
+  anchor?: string
 ): SplitSlice[] {
-  const cutoff = formatDate(new Date(Date.now() - (days - 1) * 86400000));
-  const cutoffMs = parseDate(cutoff).getTime();
+  const anchorMs = parseDate(anchor ?? todayString()).getTime();
+  const cutoffMs = addDays(anchorMs, -(days - 1));
 
   const byCategory = new Map<string, number>();
   for (const session of history) {
     if (session.completedAt == null) continue;
     if (isRecoverySession(session)) continue;
-    if (parseDate(session.date).getTime() < cutoffMs) continue;
+    const dayMs = parseDate(session.date).getTime();
+    if (dayMs < cutoffMs || dayMs > anchorMs) continue;
     for (const ex of session.exercises) {
       let vol = 0;
       for (const set of ex.sets) {
@@ -168,19 +174,33 @@ export function weekStartMs(ms: number): number {
 }
 
 export interface ConsistencyStats {
-  /** Workouts completed since Sunday, this calendar week. */
+  /** Workouts completed since Sunday, in the anchor's calendar week. */
   thisWeek: number;
-  /** Consecutive calendar weeks (back from this one) with at least one workout. */
+  /** Consecutive calendar weeks (back from that one) with at least one workout. */
   weekStreak: number;
   totalSessions: number;
 }
 
-/** Headline training-consistency numbers for the Exercise tab. */
-export function consistencyStats(history: WorkoutSession[]): ConsistencyStats {
+/**
+ * Headline training-consistency numbers, as of `anchor` (today by default).
+ *
+ * Everything here is counted up to the anchor and no further, `totalSessions`
+ * included — on a past day a figure that quietly included the days since
+ * would make the ring disagree with the stats under it.
+ */
+export function consistencyStats(
+  history: WorkoutSession[],
+  anchor?: string
+): ConsistencyStats {
+  const todayMs = parseDate(anchor ?? todayString()).getTime();
   // Recovery is tracked but not counted: a week of saunas must not read as
   // a week of training. See isRecoverySession.
-  const done = history.filter((s) => s.completedAt != null && !isRecoverySession(s));
-  const todayMs = parseDate(todayString()).getTime();
+  const done = history.filter(
+    (s) =>
+      s.completedAt != null &&
+      !isRecoverySession(s) &&
+      parseDate(s.date).getTime() <= todayMs
+  );
   const thisWeekStart = weekStartMs(todayMs);
 
   // Sunday to today, not the trailing seven days. The rolling window meant

@@ -39,8 +39,11 @@ const ratio = (value: number, goal: number) => (goal > 0 ? Math.min(value / goal
 // want opposite things from a screen. Keeping them together meant the day's
 // answer sat on top of a list that grew all day and pushed it out of view.
 //
-// The date lives here rather than on Home: picking a day is only ever in
-// service of logging to it or reading what was logged. Home is always today.
+// This screen's date is the one you log to. Home carries a date of its own
+// now, but the two are deliberately separate: that one is a reading position
+// and resets to today at midnight, this one is a writing position and holds
+// whatever you set it to for as long as you are logging to it. Home hands a
+// date over (see `route.params.date`); it never takes one back.
 export function FoodScreen({ navigation, route }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);

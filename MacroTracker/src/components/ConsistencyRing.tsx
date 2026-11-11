@@ -10,6 +10,13 @@ interface Props {
   stats: ConsistencyStats;
   /** Sessions per week the ring fills toward. */
   target?: number;
+  /**
+   * True when the stats belong to a week that has already finished, which is
+   * the case on Home once a past day is selected. "2 to go this week" is an
+   * instruction, and handing someone an instruction about a week they can no
+   * longer train in reads as a bug.
+   */
+  past?: boolean;
 }
 
 const SIZE = 104;
@@ -18,7 +25,7 @@ const STROKE = 11;
 // This week's training at a glance: a progress ring against a weekly target,
 // with the week streak and all-time count beside it. Gives the Exercise tab a
 // headline stat the way the calorie ring anchors Home.
-export function ConsistencyRing({ stats, target = 4 }: Props) {
+export function ConsistencyRing({ stats, target = 4, past = false }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
@@ -62,7 +69,11 @@ export function ConsistencyRing({ stats, target = 4 }: Props) {
 
       <View style={styles.side}>
         <Text style={styles.headline}>
-          {hit ? 'Weekly target hit' : `${safeTarget - stats.thisWeek} to go this week`}
+          {hit
+            ? 'Weekly target hit'
+            : past
+              ? `${safeTarget - stats.thisWeek} short that week`
+              : `${safeTarget - stats.thisWeek} to go this week`}
         </Text>
         <View style={styles.metaRow}>
           <Text style={styles.metaValue}>{stats.weekStreak}</Text>
