@@ -636,11 +636,11 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     ///
     /// Two stages, deliberately different strengths:
     ///
-    ///   - the notification pattern five times at the target, 1.5s apart
+    ///   - the notification pattern three times at the target, 1.5s apart
     ///     (see pulseGap — the spacing is load-bearing, not taste). Once is
     ///     easy to miss when you are cold, breathing hard and not looking at
-    ///     your wrist, and five carries far enough to notice without turning
-    ///     into an alarm;
+    ///     your wrist, and three carries far enough to notice without
+    ///     turning into an alarm;
     ///   - a single firm tap once a minute past the target, to five, so
     ///     staying in longer is still tracked without being nagged out.
     ///
@@ -691,12 +691,13 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     /// played. That count is also the measurement: the pattern runs about
     /// 1.3 seconds, which Apple documents nowhere.
     ///
-    /// 1.5s leaves roughly 0.2s of margin on that and keeps the rhythm the
-    /// three pulses already had, so the alert feels the same — there are
-    /// simply five of them now. It does mean the whole alert takes six
-    /// seconds, which is deliberate for a timer you are meant to notice
-    /// while submerged, but it is the number to turn down if it nags.
-    private static let targetPulses = 5
+    /// 1.5s leaves roughly 0.2s of margin on that. Three pulses at that gap
+    /// is, almost exactly, the alert that was reaching the wrist all along —
+    /// the five were never felt as five, and asked for in full they ran six
+    /// seconds, which is long enough to nag. So the count follows what the
+    /// wrist actually liked rather than what the code was asking for, and
+    /// the alert lands in three seconds.
+    private static let targetPulses = 3
     private static let pulseGap = 1.5
 
     /// Clear the alert marks so the next session starts silent.
