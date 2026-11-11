@@ -636,11 +636,12 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     ///
     /// Two stages, deliberately different strengths:
     ///
-    ///   - the notification pattern five times at the target, a little over
-    ///     half a second apart. Once is easy to miss when you are cold,
-    ///     breathing hard and not looking at your wrist, and five carries far
-    ///     enough to notice without turning into an alarm;
-    ///   - the lightest tap once a minute past the target, to five, so
+    ///   - the notification pattern five times at the target, 1.5s apart
+    ///     (see pulseGap — the spacing is load-bearing, not taste). Once is
+    ///     easy to miss when you are cold, breathing hard and not looking at
+    ///     your wrist, and five carries far enough to notice without turning
+    ///     into an alarm;
+    ///   - a single firm tap once a minute past the target, to five, so
     ///     staying in longer is still tracked without being nagged out.
     ///
     /// Nothing before the end. A heads-up tap was tried and dropped: these
@@ -658,8 +659,8 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
 
         if !playedTarget, elapsed >= target {
             playedTarget = true
-            for i in 0..<5 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.65) {
+            for i in 0..<Self.targetPulses {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * Self.pulseGap) {
                     device.play(.notification)
                 }
             }
@@ -670,10 +671,33 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             let minutesOver = Int((elapsed - target) / 60)
             if minutesOver > overtimeMinutesPlayed {
                 overtimeMinutesPlayed = minutesOver
-                device.play(.click)
+                // .directionUp, not .click: .click is the crown's detent
+                // tick, the lightest thing the device plays, and it does not
+                // survive sauna heat or cold water. This is a single firm
+                // tap — still plainly lighter than the target's pattern, so
+                // the two stages stay distinguishable, but actually felt.
+                device.play(.directionUp)
             }
         }
     }
+
+    /// How many times the target alert repeats, and how far apart.
+    ///
+    /// `play(_:)` has no queue: a request that arrives while a haptic is
+    /// still running is dropped, silently and with nothing returned to say
+    /// so. `.notification` is a repeating pattern rather than a single tap,
+    /// so five requests 0.65s apart produced three pulses on the wrist —
+    /// t=0 played, 0.65 was dropped, 1.3 played, 1.95 was dropped, 2.6
+    /// played. That count is also the measurement: the pattern runs about
+    /// 1.3 seconds, which Apple documents nowhere.
+    ///
+    /// 1.5s leaves roughly 0.2s of margin on that and keeps the rhythm the
+    /// three pulses already had, so the alert feels the same — there are
+    /// simply five of them now. It does mean the whole alert takes six
+    /// seconds, which is deliberate for a timer you are meant to notice
+    /// while submerged, but it is the number to turn down if it nags.
+    private static let targetPulses = 5
+    private static let pulseGap = 1.5
 
     /// Clear the alert marks so the next session starts silent.
     private func resetRecoveryAlerts() {
