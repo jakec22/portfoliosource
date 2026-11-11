@@ -34,9 +34,16 @@ import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { RECOVERY_TYPES } from '../utils/workoutTypes';
-import { gramsForSplit, macroCalories } from '../utils/tdee';
+import {
+  KCAL_PER_GRAM,
+  gramsForSplit,
+  macroCalories,
+  rebalanceMacros,
+  type MacroKey,
+} from '../utils/tdee';
 import { planForWeight, smoothedWeight } from '../utils/adaptiveGoals';
 import { GoalSource, type GoalSourceMode } from '../components/GoalSource';
+import { MacroSlider } from '../components/MacroSlider';
 
 const THEME_PACKS: { key: ThemeMode; name: string; blurb: string; theme: Theme }[] = [
   { key: 'editorial', name: 'Executive', blurb: 'Warm neutrals, serif numerals — the app’s original, refined look.', theme: editorialTheme },
@@ -108,6 +115,7 @@ const GoalField = React.memo(function GoalField({
   value,
   pct,
   onChange,
+  onSlide,
   styles,
 }: {
   field: GoalKey;
@@ -118,23 +126,35 @@ const GoalField = React.memo(function GoalField({
   /** Share of the macro calories, for the three that have one. */
   pct: number | null;
   onChange: (field: GoalKey, value: string) => void;
+  /** Given for the three macros, which carry a slider. */
+  onSlide?: (field: GoalKey, percent: number) => void;
   styles: ReturnType<typeof makeStyles>;
 }) {
   return (
-    <View style={styles.goalRow}>
-      <View style={[styles.goalDot, { backgroundColor: color }]} />
-      <Text style={styles.goalLabel}>{label}</Text>
-      <Text style={styles.goalPct}>{pct == null ? '' : `${pct}%`}</Text>
-      <View style={styles.goalInputWrap}>
-        <TextInput
-          style={styles.goalInput}
-          value={value}
-          onChangeText={(v) => onChange(field, v)}
-          keyboardType="number-pad"
-          selectTextOnFocus
-        />
-        <Text style={styles.goalUnit}>{unit}</Text>
+    <View style={styles.goalBlock}>
+      <View style={styles.goalRow}>
+        <View style={[styles.goalDot, { backgroundColor: color }]} />
+        <Text style={styles.goalLabel}>{label}</Text>
+        <Text style={styles.goalPct}>{pct == null ? '' : `${pct}%`}</Text>
+        <View style={styles.goalInputWrap}>
+          <TextInput
+            style={styles.goalInput}
+            value={value}
+            onChangeText={(v) => onChange(field, v)}
+            keyboardType="number-pad"
+            selectTextOnFocus
+          />
+          <Text style={styles.goalUnit}>{unit}</Text>
+        </View>
       </View>
+      {onSlide && pct != null && (
+        <MacroSlider
+          percent={pct}
+          color={color}
+          onChange={(percent) => onSlide(field, percent)}
+          accessibilityLabel={`${label} share of calories`}
+        />
+      )}
     </View>
   );
 });
@@ -405,7 +425,13 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
 
   const calorieTarget = parseInt(form.calories || '0');
   const hasCalorieGoal = calorieTarget > 0;
-  const calorieGap = hasCalorieGoal ? totalCalsFromMacros - calorieTarget : 0;
+  const rawCalorieGap = hasCalorieGoal ? totalCalsFromMacros - calorieTarget : 0;
+  // Below one gram of the finest macro — protein and carbs at 4 kcal — a gap
+  // cannot be closed by moving any single gram, so it is an artefact of
+  // whole-gram targets rather than a disagreement. Reporting "1 kcal under
+  // your calorie goal" after every slider drag is false precision; the
+  // rebalance leaves at most 2, measured.
+  const calorieGap = Math.abs(rawCalorieGap) < KCAL_PER_GRAM.carbs ? 0 : rawCalorieGap;
 
   // Each macro's share of the macro calories, not of the calorie goal — so the
   // three always read as a split totalling 100 even while the grams are being
@@ -446,6 +472,42 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
       protein: String(macros.protein),
       carbs: String(macros.carbs),
       fat: String(macros.fat),
+    }));
+  }
+
+  /**
+   * A macro slider moved. Convert the share back into grams, take the
+   * difference out of the other two, and write all three.
+   *
+   * The budget is the calorie goal rather than the current macro total, so
+   * repeated drags cannot walk away from it — each one is computed from the
+   * same fixed number rather than from the result of the last.
+   *
+   * Only the drag rebalances. Typing a gram value does not, and that
+   * asymmetry is deliberate: dragging a share is a statement about the
+   * split, where moving one part has to move another and you watch it
+   * happen; typing 180 into the protein box is a statement about protein,
+   * and silently rewriting two numbers you did not touch is what made the
+   * old version feel broken. The reconciliation row below is the typed
+   * path's answer.
+   */
+  function handleSlide(field: GoalKey, percent: number) {
+    const budget = parseInt(form.calories || '0');
+    if (budget <= 0) return;
+    const macro = field as MacroKey;
+    const current = {
+      protein: parseInt(form.protein || '0'),
+      carbs: parseInt(form.carbs || '0'),
+      fat: parseInt(form.fat || '0'),
+    };
+    const perGram = macro === 'fat' ? 9 : 4;
+    const grams = (percent / 100) * budget / perGram;
+    const next = rebalanceMacros(budget, current, macro, grams);
+    setForm((prev) => ({
+      ...prev,
+      protein: String(next.protein),
+      carbs: String(next.carbs),
+      fat: String(next.fat),
     }));
   }
 
@@ -626,6 +688,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
               value={form[field]}
               pct={macroPct[field] ?? null}
               onChange={handleGoalChange}
+              onSlide={field === 'calories' || field === 'fiber' ? undefined : handleSlide}
               styles={styles}
             />
           ))}
@@ -1083,10 +1146,17 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   wizardTitle: { ...type.bodyStrong(c), color: c.scheme === 'dark' ? c.primary : c.primaryDark },
   wizardSub: { ...type.caption(c), color: c.scheme === 'dark' ? c.textMuted : c.primaryDark, marginTop: space.xxs },
   // Goals editing
+  // Wraps the row and its slider. The rule moved here from goalRow: with a
+  // slider under the numbers it was drawing a line between a macro and its
+  // own control, separating the two halves of one thing.
+  goalBlock: {
+    paddingBottom: space.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: c.border,
+  },
   goalRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: space.md,
-    borderBottomWidth: 1, borderBottomColor: c.border,
   },
   goalDot: { width: 10, height: 10, borderRadius: radius.pill, marginRight: space.md },
   goalLabel: { ...type.body(c), flex: 1, color: c.gray700 },

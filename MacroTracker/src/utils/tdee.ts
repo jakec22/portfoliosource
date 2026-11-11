@@ -64,6 +64,79 @@ export function macroCalories(g: { protein: number; carbs: number; fat: number }
  * inside the error of any food label it will ever be compared against,
  * and in exchange the two figures agree exactly and always.
  */
+export interface MacroGrams {
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export type MacroKey = keyof MacroGrams;
+
+/**
+ * Set one macro and take the difference out of the other two.
+ *
+ * The calorie budget is fixed and the three macros spend it, so raising
+ * protein has to lower something. The other two absorb it in proportion to
+ * the share they already hold, which keeps the shape of a split while
+ * changing one part of it — drag protein up on a low-carb plan and carbs do
+ * not suddenly become the thing that gives way.
+ *
+ * Whole grams again, so the three rarely land back on the budget exactly.
+ * Fat is rounded first and carbs take the remainder, because carbs move in
+ * 4-kcal steps and fat in 9: closing on the finer of the two leaves the
+ * smaller error.
+ *
+ * Both others at zero is the one case with no ratio to preserve — a plan
+ * that is all protein — so the remainder is split evenly rather than
+ * dividing by zero.
+ */
+export function rebalanceMacros(
+  budgetKcal: number,
+  current: MacroGrams,
+  macro: MacroKey,
+  grams: number
+): MacroGrams {
+  const next: MacroGrams = { ...current, [macro]: Math.max(0, Math.round(grams)) };
+  const others = (['protein', 'carbs', 'fat'] as MacroKey[]).filter((k) => k !== macro);
+
+  const remaining = budgetKcal - next[macro] * KCAL_PER_GRAM[macro];
+  if (remaining <= 0) {
+    for (const k of others) next[k] = 0;
+    return next;
+  }
+
+  const priorCals = others.map((k) => current[k] * KCAL_PER_GRAM[k]);
+  const priorSum = priorCals[0] + priorCals[1];
+  const shares =
+    priorSum > 0 ? priorCals.map((v) => v / priorSum) : [0.5, 0.5];
+
+  // Fat first at its coarse 9-kcal step, then carbs mop up at 4. Done the
+  // other way round the leftover would have to land on fat and could be off
+  // by as much as 8.
+  const fatIndex = others.indexOf('fat');
+  if (fatIndex >= 0) {
+    const carbIndex = 1 - fatIndex;
+    const fat = Math.max(0, Math.round((remaining * shares[fatIndex]) / KCAL_PER_GRAM.fat));
+    const left = remaining - fat * KCAL_PER_GRAM.fat;
+    next.fat = fat;
+    next[others[carbIndex]] = Math.max(
+      0,
+      Math.round(left / KCAL_PER_GRAM[others[carbIndex]])
+    );
+  } else {
+    // Dragging fat itself: protein and carbs are both 4 kcal a gram, so
+    // neither is the coarse one and the order does not matter.
+    next[others[0]] = Math.max(
+      0,
+      Math.round((remaining * shares[0]) / KCAL_PER_GRAM[others[0]])
+    );
+    const left = remaining - next[others[0]] * KCAL_PER_GRAM[others[0]];
+    next[others[1]] = Math.max(0, Math.round(left / KCAL_PER_GRAM[others[1]]));
+  }
+
+  return next;
+}
+
 export function gramsForSplit(
   calories: number,
   split: { protein: number; carbs: number; fat: number }
