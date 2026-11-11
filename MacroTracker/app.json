@@ -54,7 +54,8 @@
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.jacobclover.macrotracker"
-        ]
+        ],
+        "com.apple.developer.usernotifications.time-sensitive": true
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false

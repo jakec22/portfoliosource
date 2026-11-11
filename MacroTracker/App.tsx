@@ -52,6 +52,7 @@ import { useTemplateImport } from './src/hooks/useTemplateImport';
 import { useWatchSync } from './src/hooks/useWatchSync';
 import { useWidgetSync } from './src/hooks/useWidgetSync';
 import { useWatchWorkout } from './src/hooks/useWatchWorkout';
+import { useRecoveryAlert } from './src/hooks/useRecoveryAlert';
 import { navigationRef } from './src/services/navigation';
 import { supabase } from './src/services/supabase';
 import { useStore } from './src/store/useStore';
@@ -168,6 +169,8 @@ function MainTabs() {
   useWatchSync();
   // Mirror the active workout's exercises/sets to the watch.
   useWatchWorkout();
+  // Silence a recovery alarm that has already been heard.
+  useRecoveryAlert();
   // Mirror today's calories/macros to the home screen widget.
   useWidgetSync();
 

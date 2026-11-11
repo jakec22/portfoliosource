@@ -30,11 +30,20 @@ const COPY: Record<ReminderKey, { title: string; body: string; fallback: Reminde
 /**
  * The one notification in the app that is an alarm rather than a nudge.
  *
- * A fixed identifier, because there is only ever one running session and
- * because the reminder schedule below has to be able to tell it apart from
- * its own.
+ * Fixed identifiers, because there is only ever one running session and
+ * because the reminder schedule below has to be able to tell these apart
+ * from its own.
+ *
+ * There are several of them because a notification is not an alarm. iOS
+ * plays a notification's sound once, caps it at 30 seconds, and then stops —
+ * there is no "ring until dismissed" for anything but the Clock app, which
+ * holds entitlements no third-party app is given. So the ring is faked the
+ * only way it can be: a short series, each one a fresh notification, with
+ * the rest cancelled the moment the user shows up (see cancelRecoveryAlert
+ * and useRecoveryAlert). Four at 30s covers about two minutes.
  */
-const RECOVERY_ALERT_ID = 'recovery-target';
+const RECOVERY_ALERT_IDS = [0, 1, 2, 3].map((i) => `recovery-target-${i}`);
+const RECOVERY_REPEAT_GAP = 30;
 const RECOVERY_KIND = 'recoveryTarget';
 
 // Show an alert + badge even when the app is foregrounded.
@@ -118,28 +127,49 @@ export async function scheduleRecoveryAlert(
   if (!(await requestNotificationPermission())) return;
   await ensureRecoveryChannel();
 
-  await Notifications.scheduleNotificationAsync({
-    identifier: RECOVERY_ALERT_ID,
-    content: {
-      title: `${label} — time`,
-      body: "You've hit your target. Open the app to save the session.",
-      sound: 'default',
-      data: { kind: RECOVERY_KIND },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: Math.round(secondsFromNow),
-      ...(Platform.OS === 'android' ? { channelId: 'recovery' } : {}),
-    },
-  });
+  const at = Math.round(secondsFromNow);
+  for (const [i, identifier] of RECOVERY_ALERT_IDS.entries()) {
+    await Notifications.scheduleNotificationAsync({
+      identifier,
+      content: {
+        title: `${label} — time`,
+        body: "You've hit your target. Open the app to save the session.",
+        // The ringtone, not the notification ding. Both are free and need no
+        // entitlement, but the ding is a half-second chirp designed not to
+        // intrude and this has to be heard from a bench across a hot room.
+        sound: 'defaultRingtone',
+        // Breaks through Focus and Do Not Disturb, and keeps the alert on
+        // the lock screen rather than letting it summarise. This needs the
+        // com.apple.developer.usernotifications.time-sensitive entitlement,
+        // which is in app.json — free to claim, no request to Apple. Without
+        // it iOS quietly downgrades this to 'active' rather than failing.
+        interruptionLevel: 'timeSensitive',
+        data: { kind: RECOVERY_KIND },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: at + i * RECOVERY_REPEAT_GAP,
+        ...(Platform.OS === 'android' ? { channelId: 'recovery' } : {}),
+      },
+    });
+  }
 }
 
-/** Drop the pending alert. A no-op once it has fired, or if none was set. */
+/**
+ * Drop every pending alert in the series.
+ *
+ * Called when the session ends, and also the moment the user opens the app
+ * after the target — which is this alarm's version of hitting Stop. Ones
+ * that have already fired are not cancellable and do not need to be; this
+ * only silences what has not rung yet.
+ */
 export async function cancelRecoveryAlert(): Promise<void> {
-  try {
-    await Notifications.cancelScheduledNotificationAsync(RECOVERY_ALERT_ID);
-  } catch {
-    // Nothing scheduled under that id. Not worth distinguishing from success.
+  for (const identifier of RECOVERY_ALERT_IDS) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(identifier);
+    } catch {
+      // Nothing scheduled under that id. Not worth distinguishing.
+    }
   }
 }
 
@@ -173,7 +203,7 @@ export async function applyReminderSchedule(prefs: ReminderPrefs): Promise<void>
   // here would name, and those have to keep being cleared or they double up.
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   for (const n of scheduled) {
-    if (n.identifier === RECOVERY_ALERT_ID) continue;
+    if (RECOVERY_ALERT_IDS.includes(n.identifier)) continue;
     await Notifications.cancelScheduledNotificationAsync(n.identifier);
   }
 
