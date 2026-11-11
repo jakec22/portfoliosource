@@ -1,7 +1,8 @@
 import { useStore } from '../store/useStore';
 import { getHeartRateMonitor } from './heartRate';
 import { getWorkoutHrSamples, resetWorkoutHrBuffer } from './watch';
-import type { RecoveryKind } from '../utils/workoutTypes';
+import { scheduleRecoveryAlert, cancelRecoveryAlert } from './notifications';
+import { recoveryType, type RecoveryKind } from '../utils/workoutTypes';
 import type { RecoveryPreset } from '../types';
 
 /**
@@ -31,8 +32,26 @@ export function beginRecovery(kind: RecoveryKind, preset: RecoveryPreset) {
     // no graph and no reason given. A no-op once granted; iOS does not
     // re-prompt.
     void getHeartRateMonitor().requestPermissions();
+
+    // Hand the target to the OS. Fire-and-forget: the timer must start on
+    // the tap whatever the notification layer is doing, including while a
+    // permission prompt is still open over it.
+    void scheduleRecoveryAlert(recoveryType(kind).label, preset.targetSeconds);
   }
   return started;
+}
+
+/**
+ * Abandon the running recovery without saving it.
+ *
+ * Here rather than straight onto the store action for the same reason the
+ * other two ends are: a session discarded on the wrist and one discarded on
+ * the phone have to leave the same state behind, and that now includes a
+ * pending alarm nobody wants going off after they have got out.
+ */
+export function abortRecovery() {
+  useStore.getState().cancelRecovery();
+  void cancelRecoveryAlert();
 }
 
 /**
@@ -73,6 +92,10 @@ export async function logWatchRecovery(
 export async function endRecovery(heldSeconds?: number): Promise<string | null> {
   const active = useStore.getState().activeRecovery;
   if (!active) return null;
+  // Before the save, not after: the save queries the health store and can
+  // take a moment, and a session finished a second early must not be able to
+  // lose that race and alarm anyway.
+  void cancelRecoveryAlert();
   const id = useStore.getState().finishRecovery(heldSeconds);
   if (!id) return null;
   const attach = useStore.getState().attachWorkoutHeartRate;

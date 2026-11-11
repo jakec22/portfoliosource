@@ -20,6 +20,7 @@ import {
 import { getHeartRateMonitor } from '../services/heartRate';
 import { navigateToWorkoutSummary } from '../services/navigation';
 import {
+  abortRecovery,
   beginRecovery,
   endRecovery,
   logWatchRecovery,
@@ -113,7 +114,7 @@ export function useWatchWorkout(): void {
             if (id) navigateToWorkoutSummary(id);
           });
         } else {
-          state.cancelRecovery();
+          abortRecovery();
         }
         return;
       }

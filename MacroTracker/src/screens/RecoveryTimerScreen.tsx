@@ -15,7 +15,7 @@ import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, tabular, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
-import { beginRecovery, endRecovery } from '../services/recoverySession';
+import { abortRecovery, beginRecovery, endRecovery } from '../services/recoverySession';
 import { subscribeWatchHeartRate } from '../services/watch';
 import { recoveryType, type RecoveryKind, type TimerMode } from '../utils/workoutTypes';
 
@@ -66,7 +66,6 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const activeRecovery = useStore((s) => s.activeRecovery);
-  const cancelRecovery = useStore((s) => s.cancelRecovery);
   const activeWorkout = useStore((s) => s.activeWorkout);
 
   // A recovery started on the wrist decides which kind this screen is showing;
@@ -121,18 +120,24 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
   }, [running]);
 
   /**
-   * The phone's alerts, for a session run without a watch.
+   * The buzz, for when this screen is the thing you are looking at.
    *
-   * Secondary by design. During a sauna the phone is in a locker and during
-   * a plunge it is well away from the water, so this reaches nobody who is
-   * wearing a watch — that side plays its own, stronger schedule on the
-   * wrist (see DayStats.recoveryTick). What this covers is the user who has
-   * no watch and keeps the phone within arm's reach.
+   * One of two phone alerts and the weaker one, because it is driven by the
+   * interval above and that interval stops the moment the phone locks or the
+   * app goes to the background — which is most of a sauna. The alert that
+   * actually carries is a local notification handed to the OS at the start
+   * of the session (see scheduleRecoveryAlert): it fires with sound whether
+   * the app is open, backgrounded, locked or killed.
    *
-   * Five buzzes at the target, matching the wrist. iOS ignores the duration
-   * argument and plays one fixed buzz whatever is passed, so the only way to
-   * make this carry is to repeat it: the array form is a gap-and-buzz
-   * pattern, which iOS does honour.
+   * Both still earn their place. The notification is the one that reaches
+   * you across the room; this is the one that lands the instant the number
+   * hits zero while you are watching it, with no banner in the way. On a
+   * wrist neither matters — the watch plays its own, stronger schedule (see
+   * DayStats.recoveryTick).
+   *
+   * Five buzzes. iOS ignores the duration argument and plays one fixed buzz
+   * whatever is passed, so the only way to make this carry is to repeat it:
+   * the array form is a gap-and-buzz pattern, which iOS does honour.
    */
   useEffect(() => {
     if (!running || reachedRef.current) return;
@@ -193,7 +198,7 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
 
   function discard() {
     endingRef.current = true;
-    cancelRecovery();
+    abortRecovery();
     navigation.goBack();
   }
 
