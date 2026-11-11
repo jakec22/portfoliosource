@@ -636,13 +636,13 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     ///
     /// Two stages, deliberately different strengths:
     ///
-    ///   - a firm tap three times at the target, 0.75s apart (see pulseGap —
-    ///     the gap and the haptic are one choice, not two). Once is easy to
-    ///     miss when you are cold, breathing hard and not looking at your
-    ///     wrist, and three in a burst carries far enough to notice without
+    ///   - the notification pattern three times at the target, 1.5s apart
+    ///     (see pulseGap — the spacing is load-bearing, not taste). Once is
+    ///     easy to miss when you are cold, breathing hard and not looking at
+    ///     your wrist, and three carries far enough to notice without
     ///     turning into an alarm;
-    ///   - the same tap once a minute past the target, to five, so staying
-    ///     in longer is still tracked without being nagged out.
+    ///   - a single firm tap once a minute past the target, to five, so
+    ///     staying in longer is still tracked without being nagged out.
     ///
     /// Nothing before the end. A heads-up tap was tried and dropped: these
     /// sessions are short enough that a second alert reads as the end
@@ -661,10 +661,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
             playedTarget = true
             for i in 0..<Self.targetPulses {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * Self.pulseGap) {
-                    // .directionUp, not .notification: at this gap the
-                    // pattern cannot finish between pulses and the dropped
-                    // ones never reach the wrist. See pulseGap.
-                    device.play(.directionUp)
+                    device.play(.notification)
                 }
             }
             return
@@ -676,9 +673,9 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
                 overtimeMinutesPlayed = minutesOver
                 // .directionUp, not .click: .click is the crown's detent
                 // tick, the lightest thing the device plays, and it does not
-                // survive sauna heat or cold water. One tap here against the
-                // target's three — the stages differ by count, which is what
-                // a wrist can actually tell apart.
+                // survive sauna heat or cold water. This is a single firm
+                // tap — still plainly lighter than the target's pattern, so
+                // the two stages stay distinguishable, but actually felt.
                 device.play(.directionUp)
             }
         }
@@ -688,31 +685,20 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     ///
     /// `play(_:)` has no queue: a request that arrives while a haptic is
     /// still running is dropped, silently and with nothing returned to say
-    /// so. This is the whole reason the gap and the haptic are chosen
-    /// together rather than separately.
+    /// so. `.notification` is a repeating pattern rather than a single tap,
+    /// so five requests 0.65s apart produced three pulses on the wrist —
+    /// t=0 played, 0.65 was dropped, 1.3 played, 1.95 was dropped, 2.6
+    /// played. That count is also the measurement: the pattern runs about
+    /// 1.3 seconds, which Apple documents nowhere.
     ///
-    /// `.notification` is a repeating pattern, not a tap. Five requests
-    /// 0.65s apart reached the wrist as three — t=0 played, 0.65 dropped,
-    /// 1.3 played, 1.95 dropped, 2.6 played — which is the only measurement
-    /// of it there is, since Apple documents no durations. It bounds the
-    /// pattern between 0.65s and 1.3s and no closer.
-    ///
-    /// Three pulses 0.75s apart is a deliberately tight alert, and 0.75s
-    /// sits inside that uncertain band: with `.notification` the middle
-    /// pulse would be dropped on some watches and not others. So the target
-    /// plays `.directionUp` instead — a single firm tap, short enough that
-    /// three of them land at this gap on any watch.
-    ///
-    /// The cost is that a tap is lighter than the pattern was. Three of them
-    /// in 1.5 seconds is a distinct enough burst to carry it, but if this
-    /// proves too easy to miss through heat or cold water the fix is to go
-    /// back to `.notification` and widen the gap past 1.3s — not to add
-    /// pulses, which only get dropped.
-    ///
-    /// The overtime marker is the same tap played once, so the two stages
-    /// are told apart by count rather than by texture.
+    /// 1.5s leaves roughly 0.2s of margin on that. Three pulses at that gap
+    /// is, almost exactly, the alert that was reaching the wrist all along —
+    /// the five were never felt as five, and asked for in full they ran six
+    /// seconds, which is long enough to nag. So the count follows what the
+    /// wrist actually liked rather than what the code was asking for, and
+    /// the alert lands in three seconds.
     private static let targetPulses = 3
-    private static let pulseGap = 0.75
+    private static let pulseGap = 1.5
 
     /// Clear the alert marks so the next session starts silent.
     private func resetRecoveryAlerts() {
