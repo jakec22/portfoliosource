@@ -41,13 +41,21 @@ const COPY: Record<ReminderKey, { title: string; body: string; fallback: Reminde
  * a short series, each one a fresh notification, with the rest cancelled the
  * moment the user shows up (see cancelRecoveryAlert and useRecoveryAlert).
  *
- * Four at 30s covers about a minute and a half. These two numbers carry the
- * whole weight of the alert now that the sound is a half-second ding rather
- * than a ringtone — one ding is genuinely easy to sleep through, four is
- * hard to. They are also the numbers to turn down first if it nags.
+ * One a minute, matching the wrist. The watch plays its target pulses and
+ * then a single tap for each minute you stay in past the target; the phone
+ * was repeating every 30 seconds, so a session run with both devices
+ * alerted twice as often from the pocket as from the arm, and the two read
+ * as two different timers disagreeing rather than one being echoed.
+ *
+ * A minute is also about right on its own. The sound is a half-second ding
+ * rather than a ringtone, so one of them is genuinely easy to sleep
+ * through and the repeats are what make the alert carry — but by the time
+ * four have gone unanswered, more is nagging rather than alerting.
+ *
+ * These two numbers are the first to turn down if it still does.
  */
 const RECOVERY_ALERT_IDS = [0, 1, 2, 3].map((i) => `recovery-target-${i}`);
-const RECOVERY_REPEAT_GAP = 30;
+const RECOVERY_REPEAT_GAP = 60;
 const RECOVERY_KIND = 'recoveryTarget';
 
 // Show an alert + badge even when the app is foregrounded.
