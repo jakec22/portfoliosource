@@ -136,26 +136,6 @@ const GoalField = React.memo(function GoalField({
   );
 });
 
-/**
- * How far one tap on a weekly recovery goal moves it.
- *
- * Coarser as the number grows, the same idea as the timer's own stepper.
- * A flat step cannot serve both ends: 5-minute steps make an hour-and-a-half
- * sauna target eighteen taps away, and 15-minute steps cannot express the
- * ten or eleven minutes of cold a week that people actually aim at.
- *
- * The first tap up from nothing is the exception. It lands on 15 rather than
- * 5, because turning a target on and being given three minutes a week is not
- * a starting point, it is a tap you now have to repeat. Stepping back down
- * returns to zero from 15 in one tap, so the control is still reversible in
- * the move that set it.
- */
-function recoveryStep(minutes: number, direction: 1 | -1): number {
-  if (direction > 0 && minutes === 0) return 15;
-  if (direction < 0 && minutes <= 15) return minutes;
-  return minutes < 30 ? 5 : 15;
-}
-
 export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -674,7 +654,14 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
               sauna; a shipped number would hand all of them a goal they are
               failing at. Stepping to zero is also how a target is removed,
               which is why the stepper allows it where the workout goal
-              above does not. */}
+              above does not.
+
+              One tap is five minutes of heat and one minute of cold — see
+              goalStepMinutes, which lives on the recovery type because the
+              two scales are an order of magnitude apart. The clamp in
+              setRecoveryGoal catches the step below zero, so stepping down
+              from the first notch lands on no target rather than a negative
+              one. */}
           {RECOVERY_TYPES.map((t) => {
             const minutes = recoveryGoals[t.kind] ?? 0;
             return (
@@ -688,7 +675,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                 <TouchableOpacity
                   style={styles.hydrationBtn}
                   hitSlop={2}
-                  onPress={() => setRecoveryGoal(t.kind, minutes - recoveryStep(minutes, -1))}
+                  onPress={() => setRecoveryGoal(t.kind, minutes - t.goalStepMinutes)}
                   accessibilityRole="button"
                   accessibilityLabel={`Decrease weekly ${t.label.toLowerCase()} goal`}
                 >
@@ -703,7 +690,7 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
                 <TouchableOpacity
                   style={styles.hydrationBtn}
                   hitSlop={2}
-                  onPress={() => setRecoveryGoal(t.kind, minutes + recoveryStep(minutes, 1))}
+                  onPress={() => setRecoveryGoal(t.kind, minutes + t.goalStepMinutes)}
                   accessibilityRole="button"
                   accessibilityLabel={`Increase weekly ${t.label.toLowerCase()} goal`}
                 >

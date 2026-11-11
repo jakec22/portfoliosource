@@ -34,6 +34,7 @@ import { SetUpGoalsCard } from '../components/SetUpGoalsCard';
 import { isRecoverySession } from '../utils/workoutTypes';
 import { BodyHeatMap, BODY_CATEGORIES } from '../components/BodyHeatMap';
 import { consistencyStats, trainingSplit } from '../utils/trainingSplit';
+import { recoverySummaries, recoveryTint, totalLabel } from '../utils/recovery';
 
 interface Props {
   navigation: any;
@@ -133,6 +134,7 @@ export function HomeScreen({ navigation }: Props) {
   // with — the component was written to be that tab's answer to Home's
   // calorie ring, and Home never had the training equivalent.
   const weeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
+  const recoveryGoals = useStore((s) => s.recoveryGoals);
   const profile = useStore((s) => s.profile);
   const goalsPromptDismissed = useStore((s) => s.goalsPromptDismissed);
   const dismissGoalsPrompt = useStore((s) => s.dismissGoalsPrompt);
@@ -212,6 +214,25 @@ export function HomeScreen({ navigation }: Props) {
         };
       });
   }, [allLogs, workoutHistory, goals.calories, today, viewDate]);
+
+  // Heat and cold for the viewed day's week. One week, not the Exercise
+  // tab's eight: that screen is where a trend is read, and Home is asking
+  // the one question you can answer by doing something about it today.
+  //
+  // Stricter than the Exercise tab about which kinds appear. There, a kind
+  // with any history earns a card, because a card that says "nothing in the
+  // last 8 weeks" is telling you something. Here it would be a row reading
+  // "Sauna — 0 min" every week for the rest of time because someone tried
+  // one in March. So: minutes this week, or a target set. A target is the
+  // user saying they mean to, which is exactly when an empty week is worth
+  // seeing.
+  const recovery = useMemo(
+    () =>
+      recoverySummaries(workoutHistory, 1, viewDate).filter(
+        (r) => r.thisWeek.ms > 0 || (recoveryGoals[r.kind] ?? 0) > 0
+      ),
+    [workoutHistory, viewDate, recoveryGoals]
+  );
 
   const OZ_PER_BUBBLE = waterIncrement;
   const numBubbles = Math.max(4, Math.round(waterGoal / OZ_PER_BUBBLE));
@@ -533,6 +554,61 @@ export function HomeScreen({ navigation }: Props) {
           )}
         </View>
 
+        {/* Recovery, the week's running total.
+            Recovery sessions already appear in the Training card's list
+            above — a day with only a sauna is not a rest day — but a list
+            of sessions is not a total, and heat and cold are things people
+            accumulate toward a weekly figure rather than tick off one at a
+            time. The eight-week trend and the place to set a target both
+            live on the Exercise tab; this is the figure you can still act
+            on today. */}
+        {recovery.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              {isToday ? 'Recovery this week' : 'Recovery that week'}
+            </Text>
+            {recovery.map((r) => {
+              const goalMs = (recoveryGoals[r.kind] ?? 0) * 60000;
+              const tint = recoveryTint(r.kind, c);
+              const met = goalMs > 0 && r.thisWeek.ms >= goalMs;
+              return (
+                <View key={r.kind} style={styles.recRow}>
+                  <View style={styles.recHead}>
+                    <View style={styles.recName}>
+                      <Icon name={r.kind === 'sauna' ? 'sauna' : 'plunge'} size="sm" color={tint} />
+                      <Text style={styles.recLabel}>{r.label}</Text>
+                    </View>
+                    <Text style={styles.recReadout}>
+                      <Text style={[styles.recValue, met && { color: c.primary }]}>
+                        {totalLabel(r.thisWeek.ms)}
+                      </Text>
+                      {goalMs > 0 && (
+                        <Text style={styles.recGoal}>{` of ${totalLabel(goalMs)}`}</Text>
+                      )}
+                    </Text>
+                  </View>
+                  {/* Only with a target. Without one there is nothing for a
+                      bar to be a fraction of, and a bar drawn against the
+                      week's own total would always be full. */}
+                  {goalMs > 0 && (
+                    <View style={styles.recTrack}>
+                      <View
+                        style={[
+                          styles.recFill,
+                          {
+                            width: `${Math.min(r.thisWeek.ms / goalMs, 1) * 100}%` as any,
+                            backgroundColor: tint,
+                          },
+                        ]}
+                      />
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         {showWaterTracker && (
           <View style={styles.card}>
             <View style={styles.waterHeader}>
@@ -848,6 +924,32 @@ const makeStyles = (c: Theme) =>
     macroList: { gap: space.md },
 
     cardTitle: { ...type.bodyStrong(c), color: c.gray700 },
+
+    // First row carries the gap from the card title; the rest from each
+    // other, so two kinds sit evenly rather than crowding the heading.
+    recRow: { marginTop: space.lg },
+    recHead: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      gap: space.md,
+    },
+    recName: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    recLabel: { ...type.captionStrong(c), color: c.text },
+    recReadout: { ...tabular },
+    recValue: { ...type.body(c), fontFamily: c.fontDisplay, color: c.text },
+    recGoal: { ...type.caption(c), fontFamily: c.fontDisplay, color: c.textFaint },
+    // The same 6pt track the macro bars use, on the same borderStrong: this
+    // is a fraction of a target, which is what every other bar on the screen
+    // is, and it should not read as a different kind of measurement.
+    recTrack: {
+      height: 6,
+      borderRadius: radius.hairline,
+      backgroundColor: c.borderStrong,
+      overflow: 'hidden',
+      marginTop: space.sm,
+    },
+    recFill: { height: '100%', borderRadius: radius.hairline },
     cardTitleRow: {
       flexDirection: 'row',
       alignItems: 'center',

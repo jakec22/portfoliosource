@@ -4,7 +4,7 @@ import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, tabular, type } from '../theme/tokens';
 import { Icon } from './Icon';
-import { totalLabel, weekLabel, type RecoverySummary } from '../utils/recovery';
+import { totalLabel, weekLabel, recoveryTint, type RecoverySummary } from '../utils/recovery';
 
 // Bar height. 56, the same as Home's week strip: at 40 the difference
 // between a thirty-minute week and a seventy-minute one compressed into
@@ -43,7 +43,7 @@ export function RecoveryTrend({ summary, goalMinutes = 0 }: Props) {
   const styles = useMemo(() => makeStyles(c), [c]);
 
   const { thisWeek, lastWeek, weeks } = summary;
-  const tint = summary.kind === 'sauna' ? c.warning : c.hrZone1;
+  const tint = recoveryTint(summary.kind, c);
   const goalMs = Math.max(0, goalMinutes) * 60000;
   const hasGoal = goalMs > 0;
 

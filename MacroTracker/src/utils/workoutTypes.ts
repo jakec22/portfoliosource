@@ -35,14 +35,35 @@ export interface RecoveryType {
   /** Starting point for the timer the first time; the user's choice sticks. */
   defaultTargetSeconds: number;
   defaultMode: TimerMode;
+  /**
+   * Minutes one tap moves the weekly goal stepper.
+   *
+   * Per kind rather than a shared rule, because the two are an order of
+   * magnitude apart: a sauna week is counted in tens of minutes and a cold
+   * week in single ones. A step coarse enough to reach ninety minutes of
+   * heat without forty taps cannot express eleven minutes of cold at all.
+   */
+  goalStepMinutes: number;
 }
 
 /** Count down from the target, or up toward it and past it. */
 export type TimerMode = 'down' | 'up';
 
 export const RECOVERY_TYPES: RecoveryType[] = [
-  { kind: 'sauna', label: 'Sauna', defaultTargetSeconds: 15 * 60, defaultMode: 'down' },
-  { kind: 'plunge', label: 'Cold Plunge', defaultTargetSeconds: 3 * 60, defaultMode: 'up' },
+  {
+    kind: 'sauna',
+    label: 'Sauna',
+    defaultTargetSeconds: 15 * 60,
+    defaultMode: 'down',
+    goalStepMinutes: 5,
+  },
+  {
+    kind: 'plunge',
+    label: 'Cold Plunge',
+    defaultTargetSeconds: 3 * 60,
+    defaultMode: 'up',
+    goalStepMinutes: 1,
+  },
 ];
 
 export function recoveryType(kind: RecoveryKind): RecoveryType {

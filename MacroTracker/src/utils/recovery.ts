@@ -1,6 +1,7 @@
 import { addDays, parseDate, shortDate, formatDate, todayString } from './date';
 import { weekStartMs } from './trainingSplit';
 import { isRecoverySession, RECOVERY_TYPES, type RecoveryKind } from './workoutTypes';
+import type { Theme } from '../theme';
 import type { WorkoutSession } from '../types';
 
 /**
@@ -132,4 +133,17 @@ export function totalLabel(ms: number): string {
 /** "Week of Oct 12", for a bar's accessibility label. */
 export function weekLabel(startMs: number): string {
   return `Week of ${shortDate(formatDate(new Date(startMs)))}`;
+}
+
+/**
+ * The colour a kind is drawn in, wherever it is drawn.
+ *
+ * Heat takes the warning amber and cold the first heart-rate zone's blue —
+ * both already in the pack, neither spent on anything recovery collides
+ * with. Here rather than in a component because two screens draw these now,
+ * and a sauna that is amber on one and something else on the other is two
+ * features as far as the eye is concerned.
+ */
+export function recoveryTint(kind: RecoveryKind, c: Theme): string {
+  return kind === 'sauna' ? c.warning : c.hrZone1;
 }
