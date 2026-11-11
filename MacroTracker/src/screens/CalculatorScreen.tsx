@@ -433,16 +433,33 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   // rebalance leaves at most 2, measured.
   const calorieGap = Math.abs(rawCalorieGap) < KCAL_PER_GRAM.carbs ? 0 : rawCalorieGap;
 
-  // Each macro's share of the macro calories, not of the calorie goal — so the
-  // three always read as a split totalling 100 even while the grams are being
-  // edited. Whether that adds up to the calorie target is the separate
-  // question the reconciliation row below answers.
+  // Each macro's share of the calorie goal — the same denominator
+  // handleSlide divides by, which is the point.
+  //
+  // This used to be a share of the macro total instead, so that the three
+  // always read as a split totalling 100 while the grams were edited. That
+  // was defensible while the percentage was a label. It is not now that it
+  // positions a slider: typing protein up from 166 to 221 left carbs
+  // untouched at 221 g and still moved its slider from 40% to 36%, because
+  // the total underneath had grown. A control moving for a number nobody
+  // touched reads as the rebalance having fired when it has not. The two
+  // figures also disagreed — the label said 36% while a drag would have
+  // treated the same bar as 40% — so the slider could jump on first touch.
+  //
+  // The cost is that the three no longer always sum to 100. They sum to
+  // exactly what the macros come to as a share of the goal, which is the
+  // same thing the reconciliation row reports in calories, and is only ever
+  // not 100 when that row is already saying so.
+  //
+  // Falls back to the macro total when no goal is set, so the percentages
+  // still describe a split rather than dividing by zero.
+  const pctBasis = hasCalorieGoal ? calorieTarget : totalCalsFromMacros;
   const macroPct: Partial<Record<GoalKey, number>> =
-    totalCalsFromMacros > 0
+    pctBasis > 0
       ? {
-          protein: Math.round((macroCals.protein / totalCalsFromMacros) * 100),
-          carbs: Math.round((macroCals.carbs / totalCalsFromMacros) * 100),
-          fat: Math.round((macroCals.fat / totalCalsFromMacros) * 100),
+          protein: Math.round((macroCals.protein / pctBasis) * 100),
+          carbs: Math.round((macroCals.carbs / pctBasis) * 100),
+          fat: Math.round((macroCals.fat / pctBasis) * 100),
         }
       : {};
 
