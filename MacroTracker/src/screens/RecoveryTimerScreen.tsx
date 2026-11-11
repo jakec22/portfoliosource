@@ -10,12 +10,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
-import Animated, {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { useStore } from '../store/useStore';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
@@ -30,6 +24,8 @@ interface Props {
   route: { params?: { kind?: RecoveryKind } };
 }
 
+/** How often the clock is re-read. Drives both the digits and the ring. */
+const TICK_MS = 100;
 const RING = 232;
 const STROKE = 16;
 
@@ -53,10 +49,6 @@ const stepFor = (seconds: number) => (seconds < 5 * 60 ? 30 : 60);
  * starts and 0:00 only when the time is genuinely up — the behaviour of
  * every other timer the user owns.
  */
-// The arc is the only thing on this screen that wants to move every frame,
-// so it is the only thing driven from the UI thread.
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
 function clock(totalSeconds: number, round: 'floor' | 'ceil' = 'floor'): string {
   const t = Math.max(0, round === 'ceil' ? Math.ceil(totalSeconds) : Math.floor(totalSeconds));
   const m = Math.floor(t / 60);
@@ -125,20 +117,21 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
     if (startedAt == null) return;
     const tick = () => setElapsed((Date.now() - startedAt) / 1000);
 
-    // Scheduled to the next whole second of elapsed time rather than every
-    // 250 ms. A fixed interval drifts against the clock it is reading, so
-    // the digit changed up to a quarter-second after the second it was
-    // reporting, and by a different amount each time — the other half of
-    // the stutter. This fires just after each boundary, so the text changes
-    // when the number does, and re-renders drop from four a second to one.
+    // Aligned to a tenth of a second of elapsed time, re-armed each time
+    // from the real clock. A plain setInterval drifts against the clock it
+    // reads, which is what made the digit change up to a quarter-second
+    // after the second it was reporting, by a different amount each time.
+    // Landing on exact multiples means every whole second is hit exactly,
+    // so each digit holds for 1.000s.
     //
-    // The ring does not depend on any of this: it sweeps on the UI thread,
-    // which is why dropping to 1 Hz costs nothing.
+    // A tenth rather than a whole second because the ring reads this too,
+    // and ten steps a second is smooth at the speeds it travels — see
+    // `progress` below for the arithmetic.
     let timer: ReturnType<typeof setTimeout>;
     const schedule = () => {
       const sinceStart = Date.now() - startedAt;
       // A few ms past the boundary, so the clock has certainly crossed it.
-      const delay = 1000 - (((sinceStart % 1000) + 1000) % 1000) + 8;
+      const delay = TICK_MS - (((sinceStart % TICK_MS) + TICK_MS) % TICK_MS) + 4;
       timer = setTimeout(() => {
         tick();
         schedule();
@@ -300,46 +293,19 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
   const circumference = 2 * Math.PI * radius_;
   const tint = overshot ? c.hrZone3 : c.primary;
 
-  // The arc's position, animated on the UI thread so it sweeps at the screen
-  // refresh rate instead of advancing once per state update. Before this it
-  // was a direct function of `elapsed`, so it stepped forward four times a
-  // second and now would step once — a progress ring that ticks is the
-  // thing that reads as broken.
+  // Plain arithmetic, not an animation. The ring was briefly driven by a
+  // Reanimated shared value on the UI thread, which rendered as a static
+  // full circle on this stack — react-native-svg's strokeDashoffset does
+  // not take an animated prop here, so none was applied and the arc drew
+  // complete.
   //
-  // Set to where the session actually is, then handed a linear timing to
-  // full over whatever is left of the target. No per-frame JavaScript: the
-  // one assignment describes the entire remaining sweep.
-  const sweep = useSharedValue(0);
-  useEffect(() => {
-    if (startedAt == null || shownTarget <= 0) {
-      sweep.value = 0;
-      return;
-    }
-    const resync = () => {
-      const now = (Date.now() - startedAt) / 1000;
-      const at = Math.min(now / shownTarget, 1);
-      // Cancels any timing in flight by assigning a plain value first.
-      sweep.value = at;
-      if (at < 1) {
-        sweep.value = withTiming(1, {
-          duration: (shownTarget - now) * 1000,
-          easing: Easing.linear,
-        });
-      }
-    };
-    resync();
-    // Reanimated keeps animating while the app is away and arrives back
-    // ahead of the real elapsed time, so the sweep is re-aimed from the
-    // clock on every return rather than trusted.
-    const sub = RNAppState.addEventListener('change', (st) => {
-      if (st === 'active') resync();
-    });
-    return () => sub.remove();
-  }, [startedAt, shownTarget, sweep]);
-
-  const arcProps = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - sweep.value),
-  }));
+  // It did not need one. The circumference is 679pt and the shortest
+  // target in practice is a three-minute plunge, so the arc travels
+  // 3.8pt per second; a fifteen-minute sauna moves 0.8. At the hundred-
+  // millisecond tick below that is under half a point of movement per
+  // frame on the fastest case and under a tenth on the usual one. There is
+  // nothing for sixty frames a second to add that ten cannot.
+  const progress = Math.min(shownTarget > 0 ? elapsed / shownTarget : 0, 1);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
@@ -367,7 +333,7 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
               strokeWidth={STROKE}
               fill="none"
             />
-            <AnimatedCircle
+            <Circle
               cx={RING / 2}
               cy={RING / 2}
               r={radius_}
@@ -376,7 +342,7 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
               fill="none"
               strokeLinecap="round"
               strokeDasharray={circumference}
-              animatedProps={arcProps}
+              strokeDashoffset={circumference * (1 - progress)}
               rotation="-90"
               origin={`${RING / 2}, ${RING / 2}`}
             />
