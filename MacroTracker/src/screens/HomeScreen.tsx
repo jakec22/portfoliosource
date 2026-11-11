@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore, sumMacros, DEFAULT_GOALS } from '../store/useStore';
 import { useToday } from '../hooks/useToday';
 import { useSnackbar } from '../store/useSnackbar';
-import { getPastDays, formatDuration, parseDate } from '../utils/date';
+import { getPastDays, formatDuration, parseDate, displayDate } from '../utils/date';
 import { CalorieSummary } from '../components/CalorieSummary';
 import { MacroBar } from '../components/MacroBar';
 import { GoalsUpdatedCard } from '../components/GoalsUpdatedCard';
@@ -179,6 +179,16 @@ export function HomeScreen({ navigation }: Props) {
   const numBubbles = Math.max(4, Math.round(waterGoal / OZ_PER_BUBBLE));
   const filledBubbles = Math.round(water / OZ_PER_BUBBLE);
   const waterPct = Math.min(Math.round((water / waterGoal) * 100), 100);
+
+  /**
+   * Open a day in the food log.
+   *
+   * Addressed through the tab, not the stack: FoodHome lives in a sibling
+   * navigator, and this is the same call History's day cards make.
+   */
+  function openDay(date: string) {
+    navigation.navigate('Food', { screen: 'FoodHome', params: { date } });
+  }
 
   function handleBubblePress(index: number) {
     // Tapping the topmost filled bubble un-fills it (undo an accidental tap);
@@ -420,22 +430,42 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* The week, then the door to every day before it. */}
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate('History')}
-          activeOpacity={0.7}
-        >
+        {/* The week, with every day in it a door.
+            Home stays today — picking a date here would make it a second
+            Food tab, and FoodScreen records why the date lives there
+            instead. But the strip already draws seven addressable days and
+            used to answer all seven the same way: the whole card was one
+            button to History, so tapping Tuesday's bar went to a list, not
+            to Tuesday. Each bar opens its own day now, and the header link
+            keeps the door to every day before this week. */}
+        <View style={styles.card}>
           <View style={styles.weekHeader}>
             <Text style={styles.cardTitle}>This week</Text>
-            <View style={styles.weekLink}>
-              <Text style={styles.weekLinkText}>All days</Text>
-              <Icon name="forward" size="sm" color={c.textFaint} />
-            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('History')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="All days"
+            >
+              <View style={styles.weekLink}>
+                <Text style={styles.weekLinkText}>All days</Text>
+                <Icon name="forward" size="sm" color={c.textFaint} />
+              </View>
+            </TouchableOpacity>
           </View>
           <View style={styles.weekRow}>
             {week.map((d) => (
-              <View key={d.date} style={styles.weekCol}>
+              <TouchableOpacity
+                key={d.date}
+                style={styles.weekCol}
+                onPress={() => openDay(d.date)}
+                activeOpacity={0.7}
+                // A seventh of the card is 40pt wide. The 8pt gap between
+                // columns absorbs this without the targets overlapping.
+                hitSlop={{ left: 2, right: 2 }}
+                accessibilityRole="button"
+                accessibilityLabel={`${displayDate(d.date)} — open in the food log`}
+              >
                 <View style={styles.weekTrack}>
                   <View
                     style={[
@@ -447,13 +477,13 @@ export function HomeScreen({ navigation }: Props) {
                 </View>
                 <View style={[styles.weekDot, d.trained && { backgroundColor: c.primary }]} />
                 <Text style={[styles.weekDay, d.isToday && styles.weekDayToday]}>{d.initial}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
           <Text style={styles.weekCaption}>
-            Bar is calories against goal · dot means you trained
+            Tap a day to open it · bar is calories against goal, dot means you trained
           </Text>
-        </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={styles.trendsBtn}
