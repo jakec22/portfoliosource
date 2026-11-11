@@ -102,6 +102,7 @@ export interface SettingsSnapshot {
   waterGoal: number;
   weeklyWorkoutGoal: number;
   recoveryPresets: Partial<Record<RecoveryKind, RecoveryPreset>>;
+  recoveryGoals: Partial<Record<RecoveryKind, number>>;
   waterIncrement: number;
   showWaterTracker: boolean;
   themeMode: ThemeMode;
@@ -136,6 +137,7 @@ export function settingsSnapshot(s: AppState): SettingsSnapshot {
     waterGoal: s.waterGoal,
     weeklyWorkoutGoal: s.weeklyWorkoutGoal,
     recoveryPresets: s.recoveryPresets,
+    recoveryGoals: s.recoveryGoals,
     waterIncrement: s.waterIncrement,
     showWaterTracker: s.showWaterTracker,
     themeMode: s.themeMode,
@@ -200,6 +202,7 @@ const SETTINGS_COLUMN: Record<keyof SettingsSnapshot, string> = {
   waterGoal: 'water_goal',
   weeklyWorkoutGoal: 'weekly_workout_goal',
   recoveryPresets: 'recovery_presets',
+  recoveryGoals: 'recovery_goals',
   waterIncrement: 'water_increment',
   showWaterTracker: 'show_water_tracker',
   themeMode: 'theme_mode',
@@ -247,6 +250,7 @@ export async function pushSettings(
     weekly_workout_goal: s.weeklyWorkoutGoal,
     // Needs migration 0005, same hazard as the line above.
     recovery_presets: s.recoveryPresets,
+    recovery_goals: s.recoveryGoals,
     water_increment: s.waterIncrement,
     show_water_tracker: s.showWaterTracker,
     theme_mode: s.themeMode,

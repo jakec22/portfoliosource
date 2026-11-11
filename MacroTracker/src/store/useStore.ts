@@ -94,6 +94,7 @@ export const useStore = create<AppState>()(
       weeklyWorkoutGoal: 4,
       goalsPromptDismissed: false,
       recoveryPresets: {},
+      recoveryGoals: {},
       waterIncrement: 8, // fl oz per droplet tap
       showWaterTracker: true,
       themeMode: 'editorial',
@@ -375,6 +376,16 @@ export const useStore = create<AppState>()(
         // a zero, which the ring would divide by.
         set({ weeklyWorkoutGoal: Math.max(1, Math.min(14, Math.round(n))) });
         syncSettings('weeklyWorkoutGoal');
+      },
+
+      setRecoveryGoal: (kind, minutes) => {
+        // Clamped to the 0-600 the Supabase check constraint enforces. Zero
+        // is meaningful here rather than rejected the way the workout goal
+        // rejects it: this target is opt-in, and stepping back to nothing is
+        // how it is turned off again.
+        const n = Math.max(0, Math.min(600, Math.round(minutes)));
+        set((state) => ({ recoveryGoals: { ...state.recoveryGoals, [kind]: n } }));
+        syncSettings('recoveryGoals');
       },
 
       setWaterGoal: (oz) => {
@@ -923,6 +934,7 @@ export const useStore = create<AppState>()(
           weeklyWorkoutGoal: 4,
           goalsPromptDismissed: false,
           recoveryPresets: {},
+          recoveryGoals: {},
           logs: {},
           waterIntake: {},
           waterGoal: 64,

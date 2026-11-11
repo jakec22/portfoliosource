@@ -33,6 +33,7 @@ import { editorialTheme, sportTechTheme } from '../theme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
+import { RECOVERY_TYPES } from '../utils/workoutTypes';
 
 const THEME_PACKS: { key: ThemeMode; name: string; blurb: string; theme: Theme }[] = [
   { key: 'editorial', name: 'Executive', blurb: 'Warm neutrals, serif numerals — the app’s original, refined look.', theme: editorialTheme },
@@ -135,6 +136,26 @@ const GoalField = React.memo(function GoalField({
   );
 });
 
+/**
+ * How far one tap on a weekly recovery goal moves it.
+ *
+ * Coarser as the number grows, the same idea as the timer's own stepper.
+ * A flat step cannot serve both ends: 5-minute steps make an hour-and-a-half
+ * sauna target eighteen taps away, and 15-minute steps cannot express the
+ * ten or eleven minutes of cold a week that people actually aim at.
+ *
+ * The first tap up from nothing is the exception. It lands on 15 rather than
+ * 5, because turning a target on and being given three minutes a week is not
+ * a starting point, it is a tap you now have to repeat. Stepping back down
+ * returns to zero from 15 in one tap, so the control is still reversible in
+ * the move that set it.
+ */
+function recoveryStep(minutes: number, direction: 1 | -1): number {
+  if (direction > 0 && minutes === 0) return 15;
+  if (direction < 0 && minutes <= 15) return minutes;
+  return minutes < 30 ? 5 : 15;
+}
+
 export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -152,6 +173,8 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const sheetAnimation = useSheetAnimation();
   const weeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
   const setWeeklyWorkoutGoal = useStore((s) => s.setWeeklyWorkoutGoal);
+  const recoveryGoals = useStore((s) => s.recoveryGoals);
+  const setRecoveryGoal = useStore((s) => s.setRecoveryGoal);
   const waterGoal = useStore((s) => s.waterGoal);
   const setWaterGoal = useStore((s) => s.setWaterGoal);
   const waterIncrement = useStore((s) => s.waterIncrement);
@@ -640,6 +663,58 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
           <Text style={[styles.settingHint, { marginTop: space.sm }]}>
             Sessions a week the consistency ring on Home fills toward. It does not
             affect your calorie or macro targets.
+          </Text>
+
+          {/* Heat and cold, in minutes rather than sessions — the time is
+              the dose, and three five-minute saunas are near enough one
+              fifteen that counting visits would measure the wrong thing.
+
+              Both start at zero, meaning no target, and nothing nudges
+              anyone off zero. Most people who use this app will never log a
+              sauna; a shipped number would hand all of them a goal they are
+              failing at. Stepping to zero is also how a target is removed,
+              which is why the stepper allows it where the workout goal
+              above does not. */}
+          {RECOVERY_TYPES.map((t) => {
+            const minutes = recoveryGoals[t.kind] ?? 0;
+            return (
+              <View
+                key={t.kind}
+                style={[
+                  styles.hydrationRow,
+                  { marginTop: space.md, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.border },
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.hydrationBtn}
+                  hitSlop={2}
+                  onPress={() => setRecoveryGoal(t.kind, minutes - recoveryStep(minutes, -1))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Decrease weekly ${t.label.toLowerCase()} goal`}
+                >
+                  <Text style={styles.hydrationBtnText}>−</Text>
+                </TouchableOpacity>
+                <View style={styles.hydrationCenter}>
+                  <Text style={styles.hydrationLabel}>Weekly {t.label}</Text>
+                  <Text style={styles.hydrationValue}>
+                    {minutes === 0 ? 'No target' : `${minutes} min`}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.hydrationBtn}
+                  hitSlop={2}
+                  onPress={() => setRecoveryGoal(t.kind, minutes + recoveryStep(minutes, 1))}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Increase weekly ${t.label.toLowerCase()} goal`}
+                >
+                  <Text style={styles.hydrationBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+          <Text style={[styles.settingHint, { marginTop: space.sm }]}>
+            Minutes of heat or cold a week, drawn as a line across the Recovery
+            chart on the Workouts tab. Leave at no target to just see the trend.
           </Text>
         </View>
 

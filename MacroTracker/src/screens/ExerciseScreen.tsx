@@ -64,6 +64,7 @@ export function ExerciseScreen({ navigation }: Props) {
   // Visual training summary: how consistent the last week was, and what the
   // volume was actually spent on.
   const weeklyWorkoutGoal = useStore((s) => s.weeklyWorkoutGoal);
+  const recoveryGoals = useStore((s) => s.recoveryGoals);
   const consistency = useMemo(() => consistencyStats(history), [history]);
   const split = useMemo(() => trainingSplit(history, SPLIT_DAYS, c), [history, c]);
   const calendar = useMemo(() => trainingCalendar(history, CALENDAR_WEEKS), [history]);
@@ -346,7 +347,11 @@ export function ExerciseScreen({ navigation }: Props) {
               <Text style={styles.sectionTitle}>Recovery</Text>
             </View>
             {recovery.map((r) => (
-              <RecoveryTrend key={r.kind} summary={r} />
+              <RecoveryTrend
+                key={r.kind}
+                summary={r}
+                goalMinutes={recoveryGoals[r.kind] ?? 0}
+              />
             ))}
           </>
         )}

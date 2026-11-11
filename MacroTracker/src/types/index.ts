@@ -239,6 +239,17 @@ export interface AppState {
   goalsPromptDismissed: boolean;
   /** Last timer settings per recovery type, so each remembers its own. */
   recoveryPresets: Partial<Record<RecoveryKind, RecoveryPreset>>;
+  /**
+   * Minutes of heat or cold a week, per kind. Missing or 0 means no target,
+   * which is the default and stays the default.
+   *
+   * Off rather than a shipped number on purpose. The weekly workout goal can
+   * default to 4 because the wizard asks for it and nearly everyone training
+   * has some answer; nobody is asked for this, most users never log a sauna
+   * at all, and a target they did not choose would turn a summary into a
+   * verdict. Separate per kind because heat and cold are aimed at apart.
+   */
+  recoveryGoals: Partial<Record<RecoveryKind, number>>;
   waterIncrement: number; // fl oz added per water droplet tap
   showWaterTracker: boolean;
   themeMode: ThemeMode; // active theme pack (editorial/sportTech)
@@ -299,6 +310,8 @@ export interface AppState {
   setWater: (date: string, oz: number) => void;
   setWaterGoal: (oz: number) => void;
   setWeeklyWorkoutGoal: (n: number) => void;
+  /** Minutes a week for one recovery kind. 0 turns the target off. */
+  setRecoveryGoal: (kind: RecoveryKind, minutes: number) => void;
   dismissGoalsPrompt: () => void;
   setRecoveryPreset: (kind: RecoveryKind, preset: RecoveryPreset) => void;
   /**

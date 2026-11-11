@@ -1,0 +1,33 @@
+-- Weekly heat and cold targets.
+--
+-- Run this once in the Supabase SQL editor (Dashboard → SQL Editor → New
+-- query). Idempotent and additive, like 0001–0006 — safe to re-run.
+--
+-- RUN THIS BEFORE SHIPPING THE BUILD THAT WRITES IT. pushSettings sends the
+-- whole settings row in one upsert, and PostgREST rejects an upsert naming a
+-- column that does not exist — so an un-migrated table means no setting syncs
+-- at all, not merely this one. (sync.ts detects that case and reports it, but
+-- reporting a dead sync is not the same as having one.)
+--
+--   user_settings.recovery_goals — minutes of each recovery kind per week,
+--                                  e.g. {"sauna":90,"plunge":11}
+--
+-- One jsonb column keyed by kind rather than a scalar column per kind: a
+-- third recovery type is a plausible thing to add, and it should not cost
+-- another migration and another whole-row-upsert hazard to do it.
+--
+-- Defaults to an empty object rather than null so hydrate reads it the way it
+-- reads recovery_presets beside it. An absent or zero entry means no target,
+-- which is the shipped state — this is opt-in, and a target nobody chose
+-- would turn a summary into a verdict.
+--
+-- No range check, unlike weekly_workout_goal's. That one is a scalar and its
+-- constraint is a comparison; bounding the values inside a jsonb object needs
+-- to iterate them, which needs a subquery, and Postgres does not allow a
+-- subquery in a CHECK. The alternative is an IMMUTABLE helper function, which
+-- is more migration surface to fail on than the thing is worth: setRecoveryGoal
+-- already clamps to 0-600 before the value can reach here, and the column is
+-- read back only by this app.
+
+alter table public.user_settings
+  add column if not exists recovery_goals jsonb not null default '{}'::jsonb;
