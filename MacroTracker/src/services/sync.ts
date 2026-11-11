@@ -330,7 +330,7 @@ function workoutRow(w: WorkoutSession) {
     template_id: w.templateId ?? null,
     // Needs migration 0005. Until that column exists this field fails the
     // upsert and no finished workout syncs at all — see the note at the top
-    // of 0005_workout_activity_type.sql.
+    // of 0005_recovery_sessions.sql.
     activity_type: w.activityType ?? null,
     date: w.date,
     started_at: w.startedAt,
