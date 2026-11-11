@@ -35,6 +35,46 @@ const SPLIT: Record<GoalType, { protein: number; carbs: number; fat: number }> =
 // lb/week of intended change.
 const KCAL_PER_LB_WEEK = 500;
 
+/** Calories per gram. The reason macro targets can never be arbitrary. */
+export const KCAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 } as const;
+
+/** What a set of macro targets actually comes to. */
+export function macroCalories(g: { protein: number; carbs: number; fat: number }): number {
+  return (
+    g.protein * KCAL_PER_GRAM.protein +
+    g.carbs * KCAL_PER_GRAM.carbs +
+    g.fat * KCAL_PER_GRAM.fat
+  );
+}
+
+/**
+ * Grams for a calorie target and a protein/carb/fat split, each as a
+ * fraction of 1.
+ *
+ * These will not add back up to `calories`, and cannot be made to. Grams are
+ * whole numbers, so protein and carbs move in 4-kcal steps and fat in 9-kcal
+ * ones; a target of 1,210 split 30/40/30 lands on 1,208 and the nearest
+ * exact answer is four grams of carbs away in one direction and two grams of
+ * fat in the other — six grams of movement to correct two calories, and a
+ * split that no longer reads as the one that was asked for.
+ *
+ * So the grams are the honest number and the calorie goal is the one that
+ * gives: every caller pairs this with macroCalories() and stores that as the
+ * target. The goal moves by at most a handful of calories, which is well
+ * inside the error of any food label it will ever be compared against,
+ * and in exchange the two figures agree exactly and always.
+ */
+export function gramsForSplit(
+  calories: number,
+  split: { protein: number; carbs: number; fat: number }
+): { protein: number; carbs: number; fat: number } {
+  return {
+    protein: Math.max(0, Math.round((calories * split.protein) / KCAL_PER_GRAM.protein)),
+    carbs: Math.max(0, Math.round((calories * split.carbs) / KCAL_PER_GRAM.carbs)),
+    fat: Math.max(0, Math.round((calories * split.fat) / KCAL_PER_GRAM.fat)),
+  };
+}
+
 // Never recommend an unsafely low intake even for aggressive cuts.
 const CALORIE_FLOOR = 1200;
 
@@ -110,20 +150,24 @@ export function buildPlan(
   const direction = goalType === 'lose' ? -1 : goalType === 'gain' ? 1 : 0;
   const delta = direction * Math.round((rateLbPerWeek || 0) * KCAL_PER_LB_WEEK);
   const calories = Math.max(CALORIE_FLOOR, Math.round(tdee + delta));
-  const split = SPLIT[goalType];
   const fiber = Math.round(weightKg * 0.4); // ~0.4 g/kg, ~14g per 1000 kcal
+
+  // Grams first, then the calorie goal from them — not the other way round.
+  // Rounding three macros to whole grams almost never lands back on the
+  // number they were derived from, and the plan then ships a calorie target
+  // its own macros contradict. See gramsForSplit for why the grams win.
+  const macros = gramsForSplit(calories, SPLIT[goalType]);
+  const exact = macroCalories(macros);
+
   return {
     goalType,
     rateLbPerWeek,
     tdee,
-    calorieDelta: calories - tdee, // reflects the floor clamp
-    goals: {
-      calories,
-      protein: Math.round((calories * split.protein) / 4),
-      carbs: Math.round((calories * split.carbs) / 4),
-      fat: Math.round((calories * split.fat) / 9),
-      fiber,
-    },
+    // From the figure actually stored, so the stated deficit is the one the
+    // targets describe. Already reflected the CALORIE_FLOOR clamp; this is
+    // the same kind of adjustment, a few calories rather than hundreds.
+    calorieDelta: exact - tdee,
+    goals: { calories: exact, ...macros, fiber },
   };
 }
 

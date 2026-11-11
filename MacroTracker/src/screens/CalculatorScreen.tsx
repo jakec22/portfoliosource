@@ -34,6 +34,7 @@ import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { RECOVERY_TYPES } from '../utils/workoutTypes';
+import { gramsForSplit, macroCalories } from '../utils/tdee';
 
 const THEME_PACKS: { key: ThemeMode; name: string; blurb: string; theme: Theme }[] = [
   { key: 'editorial', name: 'Executive', blurb: 'Warm neutrals, serif numerals — the app’s original, refined look.', theme: editorialTheme },
@@ -339,6 +340,13 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
     fat: parseInt(form.fat || '0') * 9,
   };
   const totalCalsFromMacros = macroCals.protein + macroCals.carbs + macroCals.fat;
+  // Signed: positive means the macros come to more than the calorie goal.
+  // Only meaningful once there is a goal to be measured against — with the
+  // field empty the gap is the macro total, and the row would announce that
+  // you are two thousand calories over a target you have not set.
+  const calorieTarget = parseInt(form.calories || '0');
+  const hasCalorieGoal = calorieTarget > 0;
+  const calorieGap = hasCalorieGoal ? totalCalsFromMacros - calorieTarget : 0;
 
   // Each macro's share of the macro calories, not of the calorie goal — so the
   // three always read as a split totalling 100 even while the grams are being
@@ -364,12 +372,35 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
       Alert.alert('Set a calorie goal first', 'The split is calculated from it.');
       return;
     }
+    const macros = gramsForSplit(cal, { protein: p / 100, carbs: cb / 100, fat: f / 100 });
+    // The calorie goal comes back out of the grams rather than staying as
+    // typed. Three macros rounded to whole grams almost never add back up to
+    // the number they came from — a 1,210 goal split 30/40/30 lands on 1,208
+    // — and the only way to close that from the grams side is to move six of
+    // them to correct two calories, which leaves a split that no longer
+    // reads as the one that was tapped. A few calories off a goal that was
+    // itself an estimate is the cheaper of the two inaccuracies, and it is
+    // the one that leaves every figure on this screen agreeing.
     setForm((prev) => ({
       ...prev,
-      protein: String(Math.round((cal * p) / 100 / 4)),
-      carbs: String(Math.round((cal * cb) / 100 / 4)),
-      fat: String(Math.round((cal * f) / 100 / 9)),
+      calories: String(macroCalories(macros)),
+      protein: String(macros.protein),
+      carbs: String(macros.carbs),
+      fat: String(macros.fat),
     }));
+  }
+
+  /**
+   * Close the gap after the macros have been edited by hand.
+   *
+   * Same rule as the split chips, and the answer to a row that used to
+   * report a mismatch without offering any way out of it. Only the calorie
+   * goal moves: the grams are what was deliberately typed, and the gap here
+   * is whatever the user made it rather than a rounding artefact — someone
+   * who has just set protein to 200 means 200, not 196.
+   */
+  function matchCaloriesToMacros() {
+    setForm((prev) => ({ ...prev, calories: String(totalCalsFromMacros) }));
   }
 
   return (
@@ -553,18 +584,36 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
             ))}
           </View>
 
+          {/* The reconciliation row.
+              It used to state the macro total and go quiet, turning amber
+              past 50 kcal of disagreement and saying nothing at all below
+              that — so a goal three calories out looked settled, and one
+              sixty out was flagged with no way to act on it. It now names
+              the gap in both cases and offers the one tap that closes it.
+
+              Grams never move here. They are what was typed; the calorie
+              goal is the estimate. */}
           <View style={styles.calCalc}>
             <Text style={styles.calCalcLabel}>Calories from macros:</Text>
-            <Text
-              style={[
-                styles.calCalcValue,
-                Math.abs(totalCalsFromMacros - parseInt(form.calories || '0')) > 50 &&
-                  styles.calCalcMismatch,
-              ]}
-            >
-              {totalCalsFromMacros} kcal
+            <Text style={[styles.calCalcValue, calorieGap !== 0 && styles.calCalcMismatch]}>
+              {totalCalsFromMacros.toLocaleString()} kcal
             </Text>
           </View>
+          {calorieGap !== 0 && totalCalsFromMacros > 0 && (
+            <TouchableOpacity
+              style={styles.calFixRow}
+              onPress={matchCaloriesToMacros}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Set the calorie goal to ${totalCalsFromMacros}`}
+            >
+              <Text style={styles.calFixText}>
+                {Math.abs(calorieGap).toLocaleString()} kcal{' '}
+                {calorieGap > 0 ? 'over' : 'under'} your calorie goal
+              </Text>
+              <Text style={styles.calFixAction}>Match goal</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity style={styles.saveBtn} onPress={handleSaveGoals}>
             <Text style={styles.saveBtnText}>Save Goals</Text>
@@ -1015,6 +1064,12 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   calCalcLabel: { ...type.caption(c), color: c.textMuted },
   calCalcValue: { ...type.captionStrong(c), color: c.primary },
   calCalcMismatch: { color: c.warning },
+  calFixRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: space.md, marginTop: space.sm, paddingVertical: space.xs,
+  },
+  calFixText: { ...type.caption(c), color: c.textFaint, flex: 1 },
+  calFixAction: { ...type.captionStrong(c), color: c.primary },
   saveBtn: {
     backgroundColor: c.primary, borderRadius: radius.control,
     paddingVertical: space.lg, alignItems: 'center', marginTop: space.lg,
