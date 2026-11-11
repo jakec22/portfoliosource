@@ -35,6 +35,8 @@ import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { RECOVERY_TYPES } from '../utils/workoutTypes';
 import { gramsForSplit, macroCalories } from '../utils/tdee';
+import { planForWeight, smoothedWeight } from '../utils/adaptiveGoals';
+import { GoalSource, type GoalSourceMode } from '../components/GoalSource';
 
 const THEME_PACKS: { key: ThemeMode; name: string; blurb: string; theme: Theme }[] = [
   { key: 'editorial', name: 'Executive', blurb: 'Warm neutrals, serif numerals — the app’s original, refined look.', theme: editorialTheme },
@@ -147,6 +149,8 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   const profile = useStore((s) => s.profile);
   const setBodyWeight = useStore((s) => s.setBodyWeight);
   const bodyWeightLog = useStore((s) => s.bodyWeightLog);
+  const goalsBasisWeightLbs = useStore((s) => s.goalsBasisWeightLbs);
+  const applyGoalPlan = useStore((s) => s.applyGoalPlan);
   const logBodyWeight = useStore((s) => s.logBodyWeight);
   const deleteBodyWeightEntry = useStore((s) => s.deleteBodyWeightEntry);
   const restoreBodyWeightEntry = useStore((s) => s.restoreBodyWeightEntry);
@@ -238,8 +242,44 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
       Alert.alert('Invalid values', 'All fields must be positive numbers.');
       return;
     }
+    // Nothing changed, so nothing is written. setGoals clears
+    // goalsBasisWeightLbs — that is how hand-editing switches the automatic
+    // rebuild off — which meant opening this screen and tapping Save with
+    // no edits silently ended a user's adaptive goals for good, with
+    // nothing on screen having changed to explain it.
+    if (!formIsDirty) {
+      Alert.alert('Saved', 'Your goals have been updated!');
+      return;
+    }
     setGoals(parsed);
     Alert.alert('Saved', 'Your goals have been updated!');
+  }
+
+  /**
+   * Rebuild the targets from the profile at the current weight.
+   *
+   * The same arithmetic the wizard's last step runs and the same the
+   * automatic rebuild runs, against the smoothed weight rather than a
+   * single reading, for the reason smoothedWeight exists. Before this, the
+   * only way back to computed goals was re-running the whole wizard, which
+   * is what made it feel like a second editor for the same numbers.
+   */
+  function handleRecalculate() {
+    if (!profile) return;
+    const basis = smoothedWeight(bodyWeightLog) ?? profile.weightLbs;
+    const plan = planForWeight(profile, basis);
+    if (!plan) {
+      Alert.alert(
+        'Could not recalculate',
+        'Your profile is missing something the calculation needs. Re-run the goal wizard to fix it.'
+      );
+      return;
+    }
+    applyGoalPlan(plan.goals, basis);
+    Alert.alert(
+      'Goals recalculated',
+      `Rebuilt from your profile at ${basis} lb. They will keep updating as you weigh in.`
+    );
   }
 
   async function toggleReminders(on: boolean) {
@@ -344,6 +384,25 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
   // Only meaningful once there is a goal to be measured against — with the
   // field empty the gap is the macro total, and the row would announce that
   // you are two thousand calories over a target you have not set.
+  // Whether the fields still hold exactly what is stored. Drives the
+  // banner, so it flips the moment a digit is typed rather than waiting for
+  // Save — the point is to show the consequence while it is being caused.
+  const formIsDirty =
+    form.calories !== String(goals.calories) ||
+    form.protein !== String(goals.protein) ||
+    form.carbs !== String(goals.carbs) ||
+    form.fat !== String(goals.fat) ||
+    form.fiber !== String(goals.fiber);
+
+  // Computed only while the stored goals were built from the profile AND
+  // the fields still match them. An unsaved edit is already hand-set as far
+  // as the user is concerned, whatever the store still says.
+  const goalSource: GoalSourceMode = !profile
+    ? 'none'
+    : goalsBasisWeightLbs != null && !formIsDirty
+      ? 'computed'
+      : 'hand';
+
   const calorieTarget = parseInt(form.calories || '0');
   const hasCalorieGoal = calorieTarget > 0;
   const calorieGap = hasCalorieGoal ? totalCalsFromMacros - calorieTarget : 0;
@@ -551,6 +610,12 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
         {/* Daily Goals (editable) */}
         <Text style={styles.sectionTitle}>Daily Goals</Text>
         <View style={styles.card}>
+          <GoalSource
+            mode={goalSource}
+            basisWeightLbs={goalsBasisWeightLbs}
+            onRecalculate={handleRecalculate}
+            onRunWizard={() => navigation?.navigate('GoalWizard')}
+          />
           {GOAL_FIELDS.map(({ field, label, unit, tone }) => (
             <GoalField
               key={field}

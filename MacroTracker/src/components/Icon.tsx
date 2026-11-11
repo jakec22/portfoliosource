@@ -47,6 +47,8 @@ const GLYPH = {
 
   // Progress
   goal: 'target',
+  // Rebuilding something that already exists, not reloading a page.
+  refresh: 'autorenew',
   trends: 'trending-up',
   trendDown: 'trending-down',
   balance: 'scale-balance',
