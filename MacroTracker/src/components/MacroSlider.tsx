@@ -1,14 +1,16 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, PanResponder, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { View, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space } from '../theme/tokens';
 
 interface Props {
-  /** 0–100, this macro's share of the macro calories. */
+  /** 0–100, this macro's share of the calorie goal. */
   percent: number;
   color: string;
-  /** Called continuously during the drag with the new 0–100 share. */
+  /** Called with the new 0–100 share as the drag moves. */
   onChange: (percent: number) => void;
   accessibilityLabel: string;
 }
@@ -16,120 +18,116 @@ interface Props {
 /**
  * The drag half of a macro row. The gram field beside it is the other half.
  *
- * There was a version of this before, and it was removed for three reasons
- * (see 7ef08ed). All three were in the wiring rather than the idea, so this
- * is the same idea wired differently:
+ * Built on react-native-gesture-handler rather than PanResponder, after two
+ * attempts with the latter failed in different ways:
  *
- *  1. It kept its own percentage state next to the gram fields, so the same
- *     number existed twice and the two could disagree. This one holds
- *     nothing. The percentage comes from the grams and the drag writes the
- *     grams back; there is one value and both controls are views onto it.
+ *  - The first claimed the gesture on touch-down, which inside a ScrollView
+ *    means eating every touch that begins on the control, including the
+ *    ones trying to scroll the page.
+ *  - The second refused to claim on start and waited for 6pt of horizontal
+ *    travel instead, which fixed scrolling and broke dragging. PanResponder
+ *    cannot negotiate with a ScrollView's native scroll: by the time that
+ *    threshold was crossed the ScrollView had already taken the responder.
+ *    It also rebuilt itself on every render — its only dependency was an
+ *    inline arrow from the parent — so each move swapped a fresh responder
+ *    in underneath the gesture already in flight.
  *
- *  2. onStartShouldSetPanResponder returned true, which claims the gesture
- *     the instant a finger lands. Inside a ScrollView that means the slider
- *     eats every touch that happens to begin on it, including the ones that
- *     were trying to scroll the page. This one never claims on start and
- *     claims on move only once the finger has travelled further across than
- *     down — a vertical drag scrolls, a horizontal drag slides, and the
- *     decision is made from the gesture rather than from where it started.
+ * activeOffsetX and failOffsetY are the thing neither attempt had. They are
+ * declarations to the native gesture system rather than guesses made in JS:
+ * claim once the finger has gone 6pt sideways, give up the moment it goes
+ * 12pt down. The ScrollView and this slider then arbitrate natively, which
+ * is the only place that decision can be made correctly.
  *
- *     The cost is that a tap on the track does nothing. That is the right
- *     trade: a tap that jumps the value is worth less than a page that
- *     scrolls wherever you put your finger.
- *
- *  3. It rebalanced the two macros you were not touching, silently. It still
- *     rebalances — that is the point of a split — but during a drag all
- *     three rows move together under your finger, which is the difference
- *     between a thing that is explained and a thing that is hidden.
+ * The gesture is built once. Its callback reaches the current onChange
+ * through a ref, so a re-render mid-drag — and there is one on every
+ * percent, since the parent rebalances the other two macros — cannot
+ * replace the gesture that is running.
  */
 export function MacroSlider({ percent, color, onChange, accessibilityLabel }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
 
-  const [width, setWidth] = useState(0);
-  // Read inside the responder callbacks, which are created once and would
-  // otherwise close over the first render's values forever.
-  const widthRef = useRef(0);
-  const startPct = useRef(0);
-  const pctRef = useRef(percent);
-  pctRef.current = percent;
+  const width = useSharedValue(0);
+  const startPct = useSharedValue(0);
+  // Last value handed to JS, so a drag across one percent does not fire a
+  // state update for every frame it spends there.
+  const lastSent = useSharedValue(-1);
+  // The prop, readable from the UI thread at the moment a drag begins.
+  // Mirrored in an effect rather than assigned during render, which
+  // Reanimated warns about and which can land in the wrong frame.
+  const live = useSharedValue(percent);
+  useEffect(() => {
+    live.value = percent;
+  }, [percent, live]);
 
-  const onLayout = useCallback((e: LayoutChangeEvent) => {
-    widthRef.current = e.nativeEvent.layout.width;
-    setWidth(e.nativeEvent.layout.width);
-  }, []);
+  const cb = useRef(onChange);
+  cb.current = onChange;
+  const emit = useCallback((v: number) => cb.current(v), []);
 
-  const responder = useMemo(
+  const onLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      width.value = e.nativeEvent.layout.width;
+    },
+    [width]
+  );
+
+  const pan = useMemo(
     () =>
-      PanResponder.create({
-        // Never on start. See the note above: this is the whole reason the
-        // page scrolls normally with a slider under the finger.
-        onStartShouldSetPanResponder: () => false,
-        onStartShouldSetPanResponderCapture: () => false,
-        onMoveShouldSetPanResponder: (_, gs) =>
-          Math.abs(gs.dx) > 6 && Math.abs(gs.dx) > Math.abs(gs.dy),
-        onMoveShouldSetPanResponderCapture: (_, gs) =>
-          Math.abs(gs.dx) > 6 && Math.abs(gs.dx) > Math.abs(gs.dy),
-        onPanResponderGrant: () => {
-          startPct.current = pctRef.current;
-        },
-        onPanResponderMove: (_, gs) => {
-          const w = widthRef.current;
-          if (w <= 0) return;
-          // Relative to where the drag began rather than absolute to the
-          // finger: the gesture is only claimed after 6pt of travel, so an
-          // absolute reading would jump the value by that much the moment
-          // it engaged.
-          const next = startPct.current + (gs.dx / w) * 100;
-          onChange(Math.max(0, Math.min(100, Math.round(next))));
-        },
-        // The parent owns the value, so there is nothing to settle here.
-        onPanResponderTerminationRequest: () => false,
-      }),
-    [onChange]
+      Gesture.Pan()
+        .activeOffsetX([-6, 6])
+        .failOffsetY([-12, 12])
+        .onBegin(() => {
+          startPct.value = live.value;
+          lastSent.value = -1;
+        })
+        .onUpdate((e) => {
+          if (width.value <= 0) return;
+          const next = startPct.value + (e.translationX / width.value) * 100;
+          const rounded = Math.round(Math.max(0, Math.min(100, next)));
+          if (rounded !== lastSent.value) {
+            lastSent.value = rounded;
+            runOnJS(emit)(rounded);
+          }
+        }),
+    [emit, lastSent, live, startPct, width]
   );
 
   const clamped = Math.max(0, Math.min(100, percent));
 
   return (
-    <View
-      style={styles.wrap}
-      onLayout={onLayout}
-      accessible
-      accessibilityRole="adjustable"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped) }}
-      // VoiceOver and TalkBack cannot drag, so they get the same control
-      // through the increment/decrement actions every adjustable exposes.
-      onAccessibilityAction={(e) => {
-        if (e.nativeEvent.actionName === 'increment') onChange(Math.min(100, clamped + 1));
-        if (e.nativeEvent.actionName === 'decrement') onChange(Math.max(0, clamped - 1));
-      }}
-      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-      {...responder.panHandlers}
-    >
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${clamped}%` as any, backgroundColor: color }]} />
-      </View>
-      {width > 0 && (
+    <GestureDetector gesture={pan}>
+      <View
+        style={styles.wrap}
+        onLayout={onLayout}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped) }}
+        // VoiceOver and TalkBack cannot drag, so they get the same control
+        // through the actions every adjustable exposes.
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === 'increment') onChange(Math.min(100, clamped + 1));
+          if (e.nativeEvent.actionName === 'decrement') onChange(Math.max(0, clamped - 1));
+        }}
+      >
+        <View style={styles.track}>
+          <View style={[styles.fill, { width: `${clamped}%` as any, backgroundColor: color }]} />
+        </View>
         <View
           pointerEvents="none"
-          style={[
-            styles.knob,
-            { borderColor: color, left: (clamped / 100) * width - KNOB / 2 },
-          ]}
+          style={[styles.knob, { borderColor: color, left: `${clamped}%` as any }]}
         />
-      )}
-    </View>
+      </View>
+    </GestureDetector>
   );
 }
 
-const KNOB = 18;
+const KNOB = 20;
 
 const makeStyles = (c: Theme) =>
   StyleSheet.create({
-    // 44 tall even though the track is 6: the touch target is the row, not
-    // the line, and a 6pt drag target is unusable.
+    // 44 tall though the track is 6: the target is the row, not the line.
     wrap: { height: 44, justifyContent: 'center', marginTop: space.xs },
     track: {
       height: 6,
@@ -142,6 +140,9 @@ const makeStyles = (c: Theme) =>
       position: 'absolute',
       width: KNOB,
       height: KNOB,
+      // Percentage left with a half-width pull-back, so the knob tracks the
+      // fill without needing the measured width in JS.
+      marginLeft: -KNOB / 2,
       borderRadius: radius.pill,
       borderWidth: 3,
       backgroundColor: c.card,

@@ -508,25 +508,35 @@ export function CalculatorScreen({ navigation }: { navigation?: any }) {
    * old version feel broken. The reconciliation row below is the typed
    * path's answer.
    */
-  function handleSlide(field: GoalKey, percent: number) {
-    const budget = parseInt(form.calories || '0');
-    if (budget <= 0) return;
-    const macro = field as MacroKey;
-    const current = {
-      protein: parseInt(form.protein || '0'),
-      carbs: parseInt(form.carbs || '0'),
-      fat: parseInt(form.fat || '0'),
-    };
-    const perGram = macro === 'fat' ? 9 : 4;
-    const grams = (percent / 100) * budget / perGram;
-    const next = rebalanceMacros(budget, current, macro, grams);
-    setForm((prev) => ({
-      ...prev,
-      protein: String(next.protein),
-      carbs: String(next.carbs),
-      fat: String(next.fat),
-    }));
-  }
+  const handleSlide = useCallback((field: GoalKey, percent: number) => {
+    // Reads the live values out of the updater rather than closing over
+    // `form`. A callback that closes over state has to list it as a
+    // dependency, which would hand GoalField a new function on every
+    // keystroke and make memoising it worthless — and would rebuild the
+    // gesture under a drag already in progress.
+    setForm((prev) => {
+      const budget = parseInt(prev.calories || '0');
+      if (budget <= 0) return prev;
+      const macro = field as MacroKey;
+      const perGram = macro === 'fat' ? KCAL_PER_GRAM.fat : KCAL_PER_GRAM.protein;
+      const next = rebalanceMacros(
+        budget,
+        {
+          protein: parseInt(prev.protein || '0'),
+          carbs: parseInt(prev.carbs || '0'),
+          fat: parseInt(prev.fat || '0'),
+        },
+        macro,
+        ((percent / 100) * budget) / perGram
+      );
+      return {
+        ...prev,
+        protein: String(next.protein),
+        carbs: String(next.carbs),
+        fat: String(next.fat),
+      };
+    });
+  }, []);
 
   /**
    * Close the gap after the macros have been edited by hand.
