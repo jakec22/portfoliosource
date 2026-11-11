@@ -113,6 +113,11 @@ function FoodStack() {
         options={{ presentation: 'modal' }}
       />
       <Stack.Screen name="KeyInsights" component={KeyInsightsScreen as any} />
+      {/* Also in HomeStack. Food's date header opens it to pick another day,
+          the same way Home's week strip does — and this app registers a
+          shared screen in every stack that reaches it rather than relying on
+          React Navigation finding the name in a sibling navigator. */}
+      <Stack.Screen name="History" component={HistoryScreen as any} />
     </Stack.Navigator>
   );
 }

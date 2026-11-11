@@ -102,6 +102,18 @@ export function HistoryScreen({ navigation }: Props) {
    * cards, each with its own macro rows and workout rows, alive and laid out
    * at once. A FlatList keeps roughly a screenful.
    */
+  /**
+   * Open a day in the food log.
+   *
+   * Addressed through the tab rather than the stack, because History is
+   * registered in two of them — Home's, where the week strip opens it, and
+   * Food's, where the date header does. The tab form lands on FoodHome from
+   * either one.
+   */
+  function openDay(date: string) {
+    navigation.navigate('Food', { screen: 'FoodHome', params: { date } });
+  }
+
   const renderDay = ({ item: date }: { item: string }) => {
     const totals = sumMacros(logs[date] ?? []);
     const hasData = totals.calories > 0;
@@ -110,7 +122,21 @@ export function HistoryScreen({ navigation }: Props) {
 
     return (
       <View style={styles.dayCard}>
-        <View style={styles.dayHeader}>
+        {/* The header is the door, not the whole card: the workouts below it
+            are their own targets, and a card-wide press would fire whenever
+            one of those was missed.
+
+            This screen could only ever be read before — you scrolled back to
+            a day, saw what was on it, and had no way to open it. Every row
+            here is a day you might want to correct or add to, and only the
+            Food tab can do that. */}
+        <TouchableOpacity
+          style={styles.dayHeader}
+          onPress={() => openDay(date)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${displayDate(date)} in the food log`}
+        >
           <Text style={styles.dayLabel}>{displayDate(date)}</Text>
           {hasData ? (
             <Text
@@ -126,7 +152,8 @@ export function HistoryScreen({ navigation }: Props) {
           ) : (
             <Text style={styles.noData}>No data</Text>
           )}
-        </View>
+          <Icon name="forward" size="sm" color={c.textFaint} style={styles.dayChevron} />
+        </TouchableOpacity>
 
         {hasData && (
           <>
@@ -325,9 +352,11 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: space.sm,
   },
+  dayChevron: { marginLeft: space.sm },
   dayLabel: {
     ...type.bodyStrong(c),
     color: c.text,
+    flex: 1,
   },
   dayCalories: {
     ...type.body(c),

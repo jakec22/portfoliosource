@@ -23,6 +23,7 @@ import { Icon } from '../components/Icon';
 
 interface Props {
   navigation: any;
+  route?: { params?: { date?: string } };
 }
 
 const MEALS: MealType[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
@@ -40,7 +41,7 @@ const ratio = (value: number, goal: number) => (goal > 0 ? Math.min(value / goal
 //
 // The date lives here rather than on Home: picking a day is only ever in
 // service of logging to it or reading what was logged. Home is always today.
-export function FoodScreen({ navigation }: Props) {
+export function FoodScreen({ navigation, route }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const today = useToday();
@@ -59,6 +60,15 @@ export function FoodScreen({ navigation }: Props) {
     setSelectedDate((d) => (d === shownAsToday.current ? today : d));
     shownAsToday.current = today;
   }, [today]);
+
+  // A day handed over from History. Picking one there means "show me that
+  // day", which is this screen's job — History can only show it, not log to
+  // it. Treated like stepping back with the arrows: deliberate, so the
+  // midnight rule above leaves it alone.
+  const handedDate = route?.params?.date;
+  useEffect(() => {
+    if (handedDate) setSelectedDate(handedDate);
+  }, [handedDate]);
 
   const goals = useStore((s) => s.goals);
   const dateEntries = useStore((s) => s.logs[selectedDate]);
@@ -143,7 +153,23 @@ export function FoodScreen({ navigation }: Props) {
           >
             <Icon name="back" size="lg" color={c.gray700} />
           </TouchableOpacity>
-          <Text style={styles.dateLabel}>{displayDate(selectedDate)}</Text>
+          {/* The date is the way to a different day.
+              Stepping back one arrow-tap at a time is fine for yesterday and
+              useless for last Tuesday, and this was the only control on the
+              screen that looked like a date and did nothing. The calendar
+              glyph is what says so — a bare tappable label reads as a
+              heading. */}
+          <TouchableOpacity
+            style={styles.dateBtn}
+            onPress={() => navigation.navigate('History')}
+            hitSlop={8}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${displayDate(selectedDate)}. Pick another day`}
+          >
+            <Text style={styles.dateLabel}>{displayDate(selectedDate)}</Text>
+            <Icon name="calendar" size="sm" color={c.textFaint} />
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => goDay(1)}
             style={[styles.navBtn, isToday && styles.navBtnDisabled]}
@@ -250,7 +276,8 @@ const makeStyles = (c: Theme) =>
     },
     navBtn: { padding: space.sm },
     navBtnDisabled: { opacity: 0.3 },
-    dateLabel: {
+    dateBtn: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  dateLabel: {
       ...type.heading(c),
       color: c.text,
       minWidth: 120,
