@@ -17,6 +17,8 @@ import { DEFAULT_WORKOUT_HK, recoveryType } from '../utils/workoutTypes';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
 import { progressHighlights } from '../utils/exerciseHistory';
 import { consistencyStats, trainingCalendar, trainingSplit } from '../utils/trainingSplit';
+import { recoverySummaries } from '../utils/recovery';
+import { RecoveryTrend } from '../components/RecoveryTrend';
 import { formatDuration as formatSetTime } from '../utils/duration';
 import { ConsistencyRing } from '../components/ConsistencyRing';
 import { ProgressExplorer } from '../components/ProgressExplorer';
@@ -37,6 +39,10 @@ interface Props {
 const SPLIT_DAYS = 30;
 // Weeks shown in the consistency grid.
 const CALENDAR_WEEKS = 12;
+// Weeks of heat/cold behind the current one. Eight rather than the grid's
+// twelve: these bars are a quarter of the width, and a week of sauna is a
+// habit that changes over a month or two rather than over a season.
+const RECOVERY_WEEKS = 8;
 
 export function ExerciseScreen({ navigation }: Props) {
   const c = useTheme();
@@ -62,6 +68,14 @@ export function ExerciseScreen({ navigation }: Props) {
   const split = useMemo(() => trainingSplit(history, SPLIT_DAYS, c), [history, c]);
   const calendar = useMemo(() => trainingCalendar(history, CALENDAR_WEEKS), [history]);
   const hasTrained = consistency.totalSessions > 0;
+
+  // Heat and cold, counted in minutes against the weeks behind them. Only
+  // the kinds that have actually been logged: a plunge card on the screen of
+  // someone who has only ever used the sauna is an advert, not a summary.
+  const recovery = useMemo(
+    () => recoverySummaries(history, RECOVERY_WEEKS),
+    [history]
+  );
 
   // Ask what's starting, then go. Strength opens the set-logging screen; a
   // sauna or plunge opens a timer and nothing else, which is the whole of
@@ -317,6 +331,23 @@ export function ExerciseScreen({ navigation }: Props) {
                 <BodyHeatMap slices={split} days={SPLIT_DAYS} />
               </View>
             )}
+          </>
+        )}
+
+        {/* Recovery, in its own section rather than folded into Training.
+            It is excluded from every figure above on purpose — a week of
+            saunas must not read as a week of training — and a thing held
+            out of the count needs somewhere it *is* counted, or logging it
+            goes nowhere. Sits directly under Training because both answer
+            for the same week. */}
+        {recovery.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recovery</Text>
+            </View>
+            {recovery.map((r) => (
+              <RecoveryTrend key={r.kind} summary={r} />
+            ))}
           </>
         )}
 

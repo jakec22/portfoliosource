@@ -31,6 +31,7 @@ import {
 import { HeartRateGraph } from '../components/HeartRateGraph';
 import { isRecoverySession } from '../utils/workoutTypes';
 import { weekStartMs } from '../utils/trainingSplit';
+import { totalLabel } from '../utils/recovery';
 import { parseDate, addDays } from '../utils/date';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
@@ -475,21 +476,6 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
  * saying 110 reads as two measurements that happen to agree rather than one
  * stated twice.
  */
-/**
- * A running total, rounded to the minute.
- *
- * Not formatDuration, which renders a clock: "48:00" is the right shape for
- * one session's stopwatch and the wrong one for a week's accumulation, where
- * it invites being read as a time of day.
- */
-function totalLabel(ms: number): string {
-  const minutes = Math.round(ms / 60000);
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m === 0 ? `${h} hr` : `${h}h ${m}m`;
-}
-
 function RecoverySummary({
   session,
   previousSession,
