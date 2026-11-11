@@ -35,12 +35,16 @@ const COPY: Record<ReminderKey, { title: string; body: string; fallback: Reminde
  * from its own.
  *
  * There are several of them because a notification is not an alarm. iOS
- * plays a notification's sound once, caps it at 30 seconds, and then stops —
- * there is no "ring until dismissed" for anything but the Clock app, which
- * holds entitlements no third-party app is given. So the ring is faked the
- * only way it can be: a short series, each one a fresh notification, with
- * the rest cancelled the moment the user shows up (see cancelRecoveryAlert
- * and useRecoveryAlert). Four at 30s covers about two minutes.
+ * plays a notification's sound once and then stops — there is no "ring
+ * until dismissed" for anything but the Clock app, which holds entitlements
+ * no third-party app is given. So the ring is faked the only way it can be:
+ * a short series, each one a fresh notification, with the rest cancelled the
+ * moment the user shows up (see cancelRecoveryAlert and useRecoveryAlert).
+ *
+ * Four at 30s covers about a minute and a half. These two numbers carry the
+ * whole weight of the alert now that the sound is a half-second ding rather
+ * than a ringtone — one ding is genuinely easy to sleep through, four is
+ * hard to. They are also the numbers to turn down first if it nags.
  */
 const RECOVERY_ALERT_IDS = [0, 1, 2, 3].map((i) => `recovery-target-${i}`);
 const RECOVERY_REPEAT_GAP = 30;
@@ -134,10 +138,18 @@ export async function scheduleRecoveryAlert(
       content: {
         title: `${label} — time`,
         body: "You've hit your target. Open the app to save the session.",
-        // The ringtone, not the notification ding. Both are free and need no
-        // entitlement, but the ding is a half-second chirp designed not to
-        // intrude and this has to be heard from a bench across a hot room.
-        sound: 'defaultRingtone',
+        // The standard ding, which on iOS also brings the standard alert
+        // haptic — the two are one thing there, with no API to ask for the
+        // buzz without the sound or to change either.
+        //
+        // 'defaultRingtone' was tried and dropped. It is louder, but a
+        // ringtone takes its volume and behaviour from the ringer rather
+        // than from notification settings, so it lands somewhere between
+        // what the user configured for calls and what they configured for
+        // alerts, and obeys neither. A short ding that behaves exactly like
+        // every other notification on the phone is the more predictable
+        // thing to be woken by; the repeats below are what make it carry.
+        sound: 'default',
         // Breaks through Focus and Do Not Disturb, and keeps the alert on
         // the lock screen rather than letting it summarise. This needs the
         // com.apple.developer.usernotifications.time-sensitive entitlement,
