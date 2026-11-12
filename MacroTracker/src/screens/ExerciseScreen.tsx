@@ -6,20 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  Alert,
-  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store/useStore';
-import { useSnackbar } from '../store/useSnackbar';
-import { WorkoutTemplate } from '../types';
-import { DEFAULT_WORKOUT_HK, recoveryType } from '../utils/workoutTypes';
-import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
+import { recoveryType } from '../utils/workoutTypes';
 import { progressHighlights } from '../utils/exerciseHistory';
 import { consistencyStats, trainingCalendar, trainingSplit } from '../utils/trainingSplit';
 import { recoverySummaries } from '../utils/recovery';
 import { RecoveryTrend } from '../components/RecoveryTrend';
-import { formatDuration as formatSetTime } from '../utils/duration';
 import { ConsistencyRing } from '../components/ConsistencyRing';
 import { ProgressExplorer } from '../components/ProgressExplorer';
 import { TrainingCalendar } from '../components/TrainingCalendar';
@@ -29,7 +23,7 @@ import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { StartSessionSheet, type StartChoice } from '../components/StartSessionSheet';
-import { showPrompt } from '../store/usePrompt';
+import { useTemplateActions } from '../hooks/useTemplateActions';
 
 interface Props {
   navigation: any;
@@ -48,14 +42,11 @@ export function ExerciseScreen({ navigation }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const templates = useStore((s) => s.workoutTemplates);
+  const { startTemplate } = useTemplateActions(navigation);
   const activeWorkout = useStore((s) => s.activeWorkout);
   const activeRecovery = useStore((s) => s.activeRecovery);
   const history = useStore((s) => s.workoutHistory);
   const startWorkout = useStore((s) => s.startWorkout);
-  const deleteTemplate = useStore((s) => s.deleteTemplate);
-  const restoreTemplate = useStore((s) => s.restoreTemplate);
-  const showSnackbar = useSnackbar((s) => s.show);
-  const saveTemplate = useStore((s) => s.saveTemplate);
 
   // One merged progress list — PR'd lifts first, then biggest improvers.
   // Full browsing lives under Key Insights.
@@ -90,6 +81,15 @@ export function ExerciseScreen({ navigation }: Props) {
       navigation.navigate('RecoveryTimer', { kind: choice.recovery });
       return;
     }
+    if (choice.kind === 'library') {
+      navigation.navigate('WorkoutLibrary');
+      return;
+    }
+    if (choice.kind === 'template') {
+      const t = templates.find((x) => x.id === choice.templateId);
+      if (t) startTemplate(t);
+      return;
+    }
     startWorkout(undefined, choice.hk);
     navigation.navigate('ActiveWorkout');
   }
@@ -106,91 +106,6 @@ export function ExerciseScreen({ navigation }: Props) {
       return;
     }
     setStartSheet(true);
-  }
-
-  function handleStartTemplate(t: WorkoutTemplate) {
-    if (activeRecovery) {
-      Alert.alert(
-        `${recoveryType(activeRecovery.kind).label} in progress`,
-        'Finish it first — your watch can only track one session at a time.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-    if (activeWorkout) {
-      Alert.alert(
-        'Workout in progress',
-        'Finish or cancel your current workout before starting a new one.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-    // The template already carries its workout type — start straight away.
-    startWorkout(t, t.activityType ?? DEFAULT_WORKOUT_HK);
-    navigation.navigate('ActiveWorkout');
-  }
-
-  function handleDeleteTemplate(t: WorkoutTemplate) {
-    deleteTemplate(t.id);
-    showSnackbar(`Deleted ${t.name}`, { label: 'Undo', onPress: () => restoreTemplate(t) });
-  }
-
-  function handleShareTemplate(t: WorkoutTemplate) {
-    const typeLabel: Record<string, string> = {
-      warmup: ' (Warm-up)',
-      failure: ' (Failure)',
-      dropset: ' (Drop set)',
-    };
-    const lines: string[] = [t.name, ''];
-    for (const ex of t.exercises) {
-      lines.push(ex.name || 'Exercise');
-      ex.sets.forEach((s, i) => {
-        const weight = s.weight ? `${s.weight} lbs` : 'BW';
-        const tag = s.type && s.type !== 'normal' ? typeLabel[s.type] ?? '' : '';
-        let detail: string;
-        if ((ex.mode ?? 'reps') === 'time') {
-          const t = formatSetTime(s.durationSeconds ?? 0);
-          detail = s.weight ? `${s.weight} lbs × ${t}` : t;
-        } else {
-          detail = `${weight} × ${s.reps} rep${s.reps === 1 ? '' : 's'}`;
-        }
-        lines.push(`  ${i + 1}. ${detail}${tag}`);
-      });
-      lines.push('');
-    }
-    // Append a deep link that imports the template into the recipient's app.
-    lines.push('Open in HolyMacro to add this workout:');
-    lines.push(encodeTemplateLink(t));
-    Share.share({ message: lines.join('\n').trim() });
-  }
-
-  // Fallback for when tapping a shared link doesn't auto-open the app: let the
-  // user paste the link text and import it manually.
-  function handleImportFromLink() {
-    showPrompt({
-      title: 'Add from link',
-      message: 'Paste a shared HolyMacro workout link.',
-      placeholder: 'https://…',
-      submitLabel: 'Import',
-      autoCapitalize: 'none',
-      // A link carries the whole template, so this is the one field here that
-      // is legitimately long. Generous, but still bounded.
-      maxLength: 4000,
-      // Decoded before the dialog closes. It used to close, raise a second
-      // alert, and leave the user to find and paste the link again — the
-      // worst possible place to throw away what someone pasted.
-      validate: (v) =>
-        decodeTemplateLink(v)
-          ? null
-          : 'That isn’t a HolyMacro workout link. Copy the whole link and try again.',
-      onSubmit: (text) => {
-        const template = decodeTemplateLink(text);
-        // Validated a moment ago; this is the type guard, not a second check.
-        if (!template) return;
-        saveTemplate(template);
-        Alert.alert('Imported', `“${template.name}” was added to My Workouts.`);
-      },
-    });
   }
 
   return (
@@ -245,68 +160,12 @@ export function ExerciseScreen({ navigation }: Props) {
               {activeWorkout ? 'Resume Workout' : 'Start a Workout'}
             </Text>
             <Text style={styles.startBtnSub}>
-              {activeWorkout ? 'Continue where you left off' : 'Begin a blank session, add exercises as you go'}
+              {activeWorkout
+                ? 'Continue where you left off'
+                : 'Your saved workouts, an empty session, or a timer'}
             </Text>
           </View>
         </TouchableOpacity>
-
-        {/* Templates */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>My Workouts</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={handleImportFromLink}>
-              <Text style={styles.importLink}>Add from link</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('WorkoutTemplate', {})}>
-              <Text style={styles.createLink}>+ Create</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {templates.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>
-              No saved workouts yet. Tap “+ Create” to build a template with your
-              go-to exercises, sets, and reps.
-            </Text>
-          </View>
-        ) : (
-          templates.map((t) => (
-            <View key={t.id} style={styles.templateCard}>
-              <TouchableOpacity
-                style={styles.templateMain}
-                onPress={() => handleStartTemplate(t)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.templateName}>{t.name}</Text>
-                <Text style={styles.templateMeta}>
-                  {t.exercises.length} exercise{t.exercises.length === 1 ? '' : 's'}
-                  {t.exercises.length > 0 && ` · ${t.exercises.map((e) => e.name).slice(0, 3).join(', ')}${t.exercises.length > 3 ? '…' : ''}`}
-                </Text>
-              </TouchableOpacity>
-              <View style={styles.templateActions}>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('WorkoutTemplate', { templateId: t.id })}
-                  style={styles.templateActionBtn}
-                >
-                  <Text style={styles.editText}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleShareTemplate(t)}
-                  style={styles.templateActionBtn}
-                >
-                  <Text style={styles.shareText}>Share</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeleteTemplate(t)}
-                  style={styles.templateActionBtn}
-                >
-                  <Text style={styles.deleteText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        )}
 
         {/* Training summary — consistency ring and where the volume went.
             Full browsing lives in Key Insights. */}
@@ -451,44 +310,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     marginBottom: space.md,
   },
   chartTitle: { ...type.bodyStrong(c), color: c.text, marginBottom: space.md },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
-  importLink: { ...type.bodyStrong(c), color: c.accent },
-  createLink: { ...type.bodyStrong(c), color: c.primary },
-
-  emptyCard: {
-    backgroundColor: c.card,
-    borderRadius: radius.card,
-    padding: space.xl,
-    marginBottom: space.lg,
-  },
-  emptyText: { ...type.body(c), fontFamily: c.fontBody, color: c.textMuted },
-
-  templateCard: {
-    backgroundColor: c.card,
-    borderRadius: radius.card,
-    padding: space.lg,
-    marginBottom: space.md,
-    shadowColor: c.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  templateMain: {},
-  templateName: { ...type.bodyStrong(c), color: c.text },
-  templateMeta: { ...type.caption(c), fontFamily: c.fontBody, color: c.textFaint, marginTop: space.xs },
-  templateActions: {
-    flexDirection: 'row',
-    gap: space.lg,
-    marginTop: space.md,
-    paddingTop: space.md,
-    borderTopWidth: 1,
-    borderTopColor: c.border,
-  },
-  templateActionBtn: {},
 
 
-  editText: { ...type.captionStrong(c), color: c.primary },
-  shareText: { ...type.captionStrong(c), color: c.accent },
-  deleteText: { ...type.captionStrong(c), color: c.danger },
+
+
 });

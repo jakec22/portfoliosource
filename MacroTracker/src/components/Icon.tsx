@@ -47,6 +47,11 @@ const GLYPH = {
 
   // Progress
   goal: 'target',
+  plus: 'plus',
+  share: 'share-variant',
+  delete: 'trash-can-outline',
+  // The saved-workout library, as opposed to a single workout.
+  library: 'format-list-bulleted',
   // Rebuilding something that already exists, not reloading a page.
   refresh: 'autorenew',
   trends: 'trending-up',

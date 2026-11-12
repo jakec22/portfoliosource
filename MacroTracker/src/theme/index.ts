@@ -96,6 +96,13 @@ export interface Theme {
   info: string;
   infoSoft: string;
   accent: string;
+  /**
+   * Ink on `accent`, for the same reason onDanger exists: both accents are
+   * light — a warm orange and a hot pink — so white sits around 2.5:1 on
+   * them and fails outright. Each is its own hue driven almost to black,
+   * which keeps the button reading as one colour rather than a dark chip.
+   */
+  onAccent: string;
   accentSoft: string;
 
   // Macro ring colors (Home screen)
@@ -199,6 +206,7 @@ export const editorialTheme: Theme = {
   info: '#68A7D8',
   infoSoft: '#2D3943',
   accent: '#E7835E',
+  onAccent: '#2A1206',
   accentSoft: '#43302A',
 
   macroProtein: '#E2683C',
@@ -263,6 +271,7 @@ export const sportTechTheme: Theme = {
   info: '#22D3EE',
   infoSoft: '#193843',
   accent: '#F4569C',
+  onAccent: '#2E0718',
   accentSoft: '#3A2134',
 
   macroProtein: '#C9F04D',

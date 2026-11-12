@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   Modal,
+  ScrollView,
   Platform,
   TouchableOpacity,
   Pressable,
@@ -15,6 +16,7 @@ import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { formatDuration } from '../utils/duration';
 import { Icon, type IconName } from './Icon';
+import { templateRows, templateSubtitle } from '../utils/templateOrder';
 import {
   RECOVERY_TYPES,
   WORKOUT_TYPES,
@@ -23,7 +25,9 @@ import {
 
 export type StartChoice =
   | { kind: 'workout'; hk: number }
-  | { kind: 'recovery'; recovery: RecoveryKind };
+  | { kind: 'template'; templateId: string }
+  | { kind: 'recovery'; recovery: RecoveryKind }
+  | { kind: 'library' };
 
 interface Props {
   visible: boolean;
@@ -68,12 +72,29 @@ const RECOVERY_TINT: Record<RecoveryKind, (c: Theme) => string> = {
  * remembered target that is worth seeing *before* you commit to the timer.
  * A sheet of our own says all three things in one tap's worth of reading,
  * and looks like the rest of the app on both platforms.
+ *
+ * It now lists the saved workouts too, which is the larger change. "Strength"
+ * used to sit here as though it were a choice; WORKOUT_TYPES has exactly one
+ * entry, so it was a default wearing the costume of one, and it always began
+ * an empty session. The workouts people actually do were not in this flow at
+ * all — you dismissed the sheet and scrolled the tab to find them. They are
+ * the first thing now, above a rule, with the three the app provides beneath
+ * it: yours, then ours.
+ *
+ * The rule is also why the template list scrolls on its own. Sauna and Cold
+ * Plunge must stay reachable without scrolling however many workouts someone
+ * has saved, and capping the list instead would mean a newly created workout
+ * never appearing — they are ordered by creation, so a cap would always cut
+ * from the wrong end.
  */
 export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const sheetAnimation = useSheetAnimation();
   const presets = useStore((s) => s.recoveryPresets);
+  const templates = useStore((s) => s.workoutTemplates);
+  const history = useStore((s) => s.workoutHistory);
+  const saved = useMemo(() => templateRows(templates, history), [templates, history]);
 
   // Close first, act after the sheet is really gone.
   //
@@ -100,11 +121,13 @@ export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
   );
 
   const rows: Row[] = useMemo(() => {
+    // One row, whatever WORKOUT_TYPES holds — and it holds one. Named for
+    // what it does rather than for the Health category it files under.
     const training: Row[] = WORKOUT_TYPES.map((t) => ({
       key: `w-${t.hk}`,
-      icon: 'workout' as IconName,
-      title: t.label,
-      subtitle: 'Log sets, reps and weight',
+      icon: 'plus' as IconName,
+      title: 'Empty workout',
+      subtitle: 'Add exercises as you go',
       tint: (c: Theme) => c.primary,
       fill: (c: Theme) => c.primarySoft,
       choice: { kind: 'workout', hk: t.hk } as StartChoice,
@@ -145,6 +168,67 @@ export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
       <View style={styles.panel}>
         <View style={styles.grabber} />
         <Text style={styles.title}>What are you starting?</Text>
+
+        {/* Yours. Scrolls on its own so that however many are saved, the
+            three below the rule stay where they are. */}
+        {saved.length > 0 && (
+          <ScrollView
+            style={styles.savedList}
+            contentContainerStyle={styles.savedContent}
+            showsVerticalScrollIndicator={false}
+            // The list is short in the common case; bouncing an eight-row
+            // sheet around inside a modal is motion for its own sake.
+            bounces={saved.length > 3}
+          >
+            {saved.map(({ template, count, ...rest }) => (
+              <Pressable
+                key={template.id}
+                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                onPress={() => pick({ kind: 'template', templateId: template.id })}
+                accessibilityRole="button"
+                accessibilityLabel={`Start ${template.name}. ${count} exercises.`}
+              >
+                <View style={styles.numTile}>
+                  <Text style={styles.num}>{count}</Text>
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {template.name}
+                  </Text>
+                  <Text style={styles.rowSub} numberOfLines={1}>
+                    {templateSubtitle({ template, count, ...rest })}
+                  </Text>
+                </View>
+                <Icon name="forward" size="md" color={c.textFaint} />
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* Always present, whatever is saved. It is the only way to reach
+            Create and Add from link now that the tab has no template
+            section — without it a new user could never make one. */}
+        <Pressable
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+          onPress={() => pick({ kind: 'library' })}
+          accessibilityRole="button"
+          accessibilityLabel="My workouts. Edit, share or create."
+        >
+          <View style={styles.numTile}>
+            <Icon name="library" size="md" color={c.gray700} />
+          </View>
+          <View style={styles.rowText}>
+            <Text style={styles.rowTitle}>My workouts</Text>
+            <Text style={styles.rowSub}>
+              {saved.length > 0
+                ? `${saved.length} saved · edit, share or create`
+                : 'Create your first'}
+            </Text>
+          </View>
+          <Icon name="forward" size="md" color={c.textFaint} />
+        </Pressable>
+
+        <View style={styles.rule} />
 
         {rows.map((row) => (
           <Pressable
@@ -216,6 +300,22 @@ const makeStyles = (c: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    // Capped at three and a half rows, so a fourth peeks and says there is
+    // more without the sheet growing to fill the screen.
+    savedList: { maxHeight: 268 },
+    savedContent: { paddingBottom: 0 },
+    numTile: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.control,
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    num: { ...type.heading(c), color: c.text, lineHeight: 24 },
+    rule: { height: 1, backgroundColor: c.border, marginVertical: space.md },
     rowText: { flex: 1 },
     rowTitle: { ...type.bodyStrong(c), color: c.text },
     rowSub: {
