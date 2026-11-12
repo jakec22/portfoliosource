@@ -39,6 +39,13 @@ function blankSet(): TemplateSet {
   return { id: uid('ts'), weight: 0, reps: 0, type: undefined };
 }
 
+/**
+ * Sentinel for "the picker is choosing an exercise that does not exist yet",
+ * as opposed to renaming one that does. A uid would work and would also be a
+ * value that could collide with a real card; this cannot.
+ */
+const ADD_NEW = '__add_new__';
+
 function blankExercise(): TemplateExercise {
   return { id: uid('te'), name: '', sets: [blankSet()] };
 }
@@ -77,15 +84,35 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
       ? existing.exercises.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s })) }))
       : [blankExercise()]
   );
-  // Which exercise card the picker modal is currently filling in, if any.
+  /**
+   * Which exercise the picker is filling in: a card's id to rename that one,
+   * ADD_NEW to append a fresh one, null when it is closed.
+   */
   const [pickerExId, setPickerExId] = useState<string | null>(null);
 
   function updateExercise(id: string, patch: Partial<TemplateExercise>) {
     setExercises((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   }
 
+  /**
+   * Opens the picker rather than appending an empty row to type into.
+   *
+   * The free-text field was the default and the catalog was a small "List"
+   * button beside it, which had it backwards: almost every exercise someone
+   * adds is a bench press or a back squat, and typing one out — correctly
+   * and consistently enough that the history and the body map recognise it
+   * later — is work the catalog exists to remove.
+   *
+   * Nothing is lost by leading with it. The picker searches the catalog and
+   * offers `Use "<whatever you typed>"` underneath, so a machine at your gym
+   * that Apple has never heard of is still one tap away; it is reached by
+   * typing the name rather than by finding the button that lets you.
+   *
+   * The row is created on selection, not before, so cancelling leaves no
+   * empty card behind.
+   */
   function addExercise() {
-    setExercises((prev) => [...prev, blankExercise()]);
+    setPickerExId(ADD_NEW);
   }
 
   function removeExercise(id: string) {
@@ -339,7 +366,11 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
         visible={pickerExId !== null}
         onClose={() => setPickerExId(null)}
         onSelect={(name) => {
-          if (pickerExId) updateExercise(pickerExId, { name });
+          if (pickerExId === ADD_NEW) {
+            setExercises((prev) => [...prev, { ...blankExercise(), name }]);
+          } else if (pickerExId) {
+            updateExercise(pickerExId, { name });
+          }
         }}
       />
     </SafeAreaView>
