@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Modal,
-  ScrollView,
   Platform,
   TouchableOpacity,
   Pressable,
@@ -16,7 +15,6 @@ import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { formatDuration } from '../utils/duration';
 import { Icon, type IconName } from './Icon';
-import { templateRows, templateSubtitle } from '../utils/templateOrder';
 import {
   RECOVERY_TYPES,
   WORKOUT_TYPES,
@@ -93,8 +91,6 @@ export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
   const sheetAnimation = useSheetAnimation();
   const presets = useStore((s) => s.recoveryPresets);
   const templates = useStore((s) => s.workoutTemplates);
-  const history = useStore((s) => s.workoutHistory);
-  const saved = useMemo(() => templateRows(templates, history), [templates, history]);
 
   // Close first, act after the sheet is really gone.
   //
@@ -169,43 +165,13 @@ export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
         <View style={styles.grabber} />
         <Text style={styles.title}>What are you starting?</Text>
 
-        {/* Yours. Scrolls on its own so that however many are saved, the
-            three below the rule stay where they are. */}
-        {saved.length > 0 && (
-          <ScrollView
-            style={styles.savedList}
-            contentContainerStyle={styles.savedContent}
-            showsVerticalScrollIndicator={false}
-            // The list is short in the common case; bouncing an eight-row
-            // sheet around inside a modal is motion for its own sake.
-            bounces={saved.length > 3}
-          >
-            {saved.map(({ template, count, ...rest }) => (
-              <Pressable
-                key={template.id}
-                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-                onPress={() => pick({ kind: 'template', templateId: template.id })}
-                accessibilityRole="button"
-                accessibilityLabel={`Start ${template.name}. ${count} exercises.`}
-              >
-                <View style={styles.numTile}>
-                  <Text style={styles.num}>{count}</Text>
-                </View>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {template.name}
-                  </Text>
-                  <Text style={styles.rowSub} numberOfLines={1}>
-                    {templateSubtitle({ template, count, ...rest })}
-                  </Text>
-                </View>
-                <Icon name="forward" size="md" color={c.textFaint} />
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Always present, whatever is saved. It is the only way to reach
+        {/* Every saved workout, behind one row.
+            They were listed out here for a while, one row each, which made
+            starting the one you wanted a single tap. It also meant the
+            sheet's length was set by how many workouts you had saved, and
+            it put a count numeral on each row that read as a quantity of
+            nothing in particular. One row costs a second tap and the sheet
+            is the same height forever. It is also the only way to reach
             Create and Add from link now that the tab has no template
             section — without it a new user could never make one. */}
         <Pressable
@@ -220,8 +186,8 @@ export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
           <View style={styles.rowText}>
             <Text style={styles.rowTitle}>My workouts</Text>
             <Text style={styles.rowSub}>
-              {saved.length > 0
-                ? `${saved.length} saved · edit, share or create`
+              {templates.length > 0
+                ? `${templates.length} saved · tap to start one`
                 : 'Create your first'}
             </Text>
           </View>
@@ -300,10 +266,6 @@ const makeStyles = (c: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    // Capped at three and a half rows, so a fourth peeks and says there is
-    // more without the sheet growing to fill the screen.
-    savedList: { maxHeight: 268 },
-    savedContent: { paddingBottom: 0 },
     numTile: {
       width: 44,
       height: 44,

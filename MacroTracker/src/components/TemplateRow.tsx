@@ -18,9 +18,9 @@ interface Props {
 /**
  * A saved workout in the library: tap to start, swipe left to manage.
  *
- * Deliberately the same anatomy as the start sheet's rows — count tile, name,
- * when it was last done, chevron — because it is the same thing. A workout
- * should not look like one object in the sheet and a different one here.
+ * The same anatomy as the start sheet's rows — tinted tile, name, a line of
+ * detail, chevron — so a saved workout reads as the same kind of thing as
+ * the Empty workout and the two timers it sits beside there.
  *
  * Which is also why tapping starts it rather than opening it for editing.
  * The row looks like a thing you start, so it is; editing moved behind the
@@ -80,8 +80,8 @@ export function TemplateRow({ row, onStart, onEdit, onShare, onDelete }: Props) 
         accessibilityRole="button"
         accessibilityLabel={`Start ${template.name}. ${count} exercises.`}
       >
-        <View style={styles.numTile}>
-          <Text style={styles.num}>{count}</Text>
+        <View style={styles.tile}>
+          <Icon name="workout" size="lg" color={c.primary} />
         </View>
         <View style={styles.rowText}>
           <Text style={styles.rowTitle} numberOfLines={1}>
@@ -109,17 +109,16 @@ const makeStyles = (c: Theme) =>
       marginBottom: space.sm,
     },
     rowPressed: { opacity: 0.6 },
-    numTile: {
+    // The same tinted tile the sheet's Empty workout row uses, so a saved
+    // workout and a new one read as the same kind of thing.
+    tile: {
       width: 44,
       height: 44,
       borderRadius: radius.control,
-      backgroundColor: c.card,
-      borderWidth: 1,
-      borderColor: c.border,
+      backgroundColor: c.primarySoft,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    num: { ...type.heading(c), color: c.text, lineHeight: 24 },
     rowText: { flex: 1, minWidth: 0 },
     rowTitle: { ...type.bodyStrong(c), color: c.text },
     rowSub: {

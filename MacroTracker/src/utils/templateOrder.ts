@@ -48,8 +48,17 @@ export function templateRows(
     });
 }
 
-/** The row's second line: when it was last done, or what is in it. */
+/**
+ * The row's second line.
+ *
+ * The count is spelled out here rather than shown as a numeral on the row's
+ * tile, which is where it was. "8" in a serif face, alone in a box, is a
+ * quantity of nothing in particular — the reader has to work out what is
+ * being counted before the figure means anything, and by then they have
+ * read the name anyway. The name is what tells one workout from another;
+ * the tile is just the row's left anchor.
+ */
 export function templateSubtitle(row: TemplateRow): string {
-  if (row.lastLabel) return row.lastLabel;
-  return `${row.count} exercise${row.count === 1 ? '' : 's'} · never done`;
+  const n = `${row.count} exercise${row.count === 1 ? '' : 's'}`;
+  return row.lastLabel ? `${n} · ${row.lastLabel}` : `${n} · never done`;
 }
