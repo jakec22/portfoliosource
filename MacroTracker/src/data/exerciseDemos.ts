@@ -339,8 +339,8 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
   "Weighted Dip": {
     source: "Weighted Dip",
     equipment: "Bodyweight",
-    primary: ["Triceps"],
-    secondary: ["Chest", "Shoulders"],
+    primary: ["Chest"],
+    secondary: ["Triceps", "Shoulders"],
     steps: [
       "Belt on, or a dumbbell between your feet, arms locked.",
       "Lean forward about 30° and lower under control.",
@@ -355,8 +355,8 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
   "Landmine Press": {
     source: "Landmine Press",
     equipment: "Barbell",
-    primary: ["Shoulders"],
-    secondary: ["Chest", "Triceps"],
+    primary: ["Chest"],
+    secondary: ["Shoulders", "Triceps"],
     steps: [
       "One end of the bar in a corner, the other at your shoulder.",
       "Press up and slightly forward until the arm locks.",
@@ -371,8 +371,8 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
   "Deadlift": {
     source: "Deadlift",
     equipment: "Barbell",
-    primary: ["Posterior Chain"],
-    secondary: ["Back", "Grip"],
+    primary: ["Back"],
+    secondary: ["Posterior Chain", "Grip"],
     steps: [
       "Bar over mid-foot, shins close, back flat.",
       "Push the floor away and stand, bar against your legs.",
@@ -611,8 +611,8 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
   "Chin-up": {
     source: "Chin-up",
     equipment: "Bodyweight",
-    primary: ["Biceps"],
-    secondary: ["Lats"],
+    primary: ["Lats"],
+    secondary: ["Biceps"],
     steps: [
       "Hang at full stretch, palms facing you, hands close.",
       "Pull until your chin clears the bar.",
@@ -691,8 +691,8 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
   "Reverse Pec Deck": {
     source: "Reverse Pec Deck",
     equipment: "Machine",
-    primary: ["Rear Delts"],
-    secondary: ["Upper Back"],
+    primary: ["Upper Back"],
+    secondary: ["Rear Delts"],
     steps: [
       "Chest on the pad, handles at shoulder height.",
       "Sweep your arms back and out in an arc.",
@@ -723,8 +723,8 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
   "Good Morning": {
     source: "Good Morning",
     equipment: "Barbell",
-    primary: ["Hamstrings"],
-    secondary: ["Glutes", "Lower Back"],
+    primary: ["Lower Back"],
+    secondary: ["Hamstrings", "Glutes"],
     steps: [
       "Bar across your rear delts, knees soft.",
       "Push your hips back until your torso is near parallel.",

@@ -83,6 +83,35 @@ const PNGQUANT = require('pngquant-bin').default || require('pngquant-bin');
 
 const artMap = JSON.parse(fs.readFileSync(ART_MAP, 'utf8'));
 const cues = JSON.parse(fs.readFileSync(CUES, 'utf8'));
+
+/**
+ * Six exercises where the muscle chip contradicted the group the exercise is
+ * filed under, and the promotion that fixes it.
+ *
+ * The catalog groups by the part of the body you went to the gym to train;
+ * workout-guide labels by the prime mover, which is finer and sometimes
+ * answers a different question. Usually that is a bonus. In six cases it
+ * reads as a bug: you tap into Chest, open Weighted Dip, and the chip says
+ * Triceps.
+ *
+ * Nothing is invented to fix it. In all six the label wanted is already in
+ * that entry's own secondary list, so this promotes it and demotes the old
+ * primary into second place — a reordering of what the source says, not a
+ * correction of it. The generator checks that the named muscle really is in
+ * the secondary list and stops if it is not, so this cannot quietly start
+ * asserting something the data does not.
+ *
+ * Both facts stay on screen either way: the sheet shows the primary as a
+ * chip and the rest as "Also works …".
+ */
+const PRIMARY_OVERRIDES = {
+  'Weighted Dip': 'Chest',        // leaning forward, as the Chest group means it
+  'Landmine Press': 'Chest',
+  'Chin-up': 'Lats',              // as with every other pull in the group
+  'Good Morning': 'Lower Back',
+  'Deadlift': 'Back',
+  'Reverse Pec Deck': 'Upper Back',
+};
 const wgByName = new Map(WG.map((e) => [e.name, e]));
 
 // Fail loudly rather than silently dropping an exercise: a mapping that has
@@ -141,13 +170,25 @@ for (const [name, source] of Object.entries(artMap)) {
     return file;
   });
 
+  let primary = e.primaryMuscle ? [e.primaryMuscle] : [];
+  let secondary = e.secondaryMuscles || [];
+  const promote = PRIMARY_OVERRIDES[name];
+  if (promote) {
+    if (!secondary.includes(promote)) {
+      console.error(`${name}: cannot promote "${promote}" — it is not in that entry's secondary muscles (${secondary.join(', ') || 'none'}).`);
+      process.exit(1);
+    }
+    secondary = [...primary, ...secondary.filter((m) => m !== promote)];
+    primary = [promote];
+  }
+
   entries.push({
     name,
     source: e.name,
     slug: e.slug,
     equipment: e.equipment || null,
-    primary: e.primaryMuscle ? [e.primaryMuscle] : [],
-    secondary: e.secondaryMuscles || [],
+    primary,
+    secondary,
     steps: cues[name],
     frames,
   });
