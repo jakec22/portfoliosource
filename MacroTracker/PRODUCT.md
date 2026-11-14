@@ -72,7 +72,7 @@ Confirmed, shipping:
   adaptive updates driven by logged body weight, hydration target.
 - **Training** — workout templates, live session with sets, reps, weight and
   set type, exercise reordering, editable completed workouts, body-region
-  coverage heat map, per-exercise progress charts.
+  coverage heat map, per-exercise progress charts, per-exercise demos.
 - **Physiology** — heart rate with training zones, active energy read from the
   platform health store.
 - **Review** — history by day, key insights (streak, logged days, weight
@@ -91,6 +91,15 @@ Constraints:
   recovery sessions alike land in Fitness, recovery as "Other".
 - `BodyHeatMap` replaced an earlier training-split donut; the donut must not
   return.
+- **The exercise demos are someone else's photographs.** They come from the
+  free-exercise-db dataset, which carries an Unlicense badge on the repository
+  but says nothing about where its media came from; the step text reads like
+  bodybuilding.com's exercise database. Shipping them was a deliberate call
+  made with that known, not an oversight, and the app credits the dataset in
+  the sheet. Every call site goes through `EXERCISE_DEMOS`, so replacing the
+  set with a licensed one is a change to `assets/demos` and one generated
+  file. 140 of the catalog's 156 exercises have one; the other 16, and every
+  name a user types, show no demo affordance at all rather than an apology.
 - Watch functionality is iOS-only; the Android port deliberately ships without
   it, and without the home-screen widget.
 - **iPad runs the phone layout in a 560pt column, and has to.** Dropping

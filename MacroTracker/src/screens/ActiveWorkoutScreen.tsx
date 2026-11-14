@@ -24,6 +24,8 @@ import { sanitizeDecimal } from '../utils/numberInput';
 import { DurationInput } from '../components/DurationInput';
 import { WorkoutStatusBar } from '../components/WorkoutStatusBar';
 import { ExercisePickerModal } from '../components/ExercisePickerModal';
+import { ExerciseDemoSheet } from '../components/ExerciseDemoSheet';
+import { exerciseDemo } from '../data/exerciseDemos';
 import { getHeartRateMonitor } from '../services/heartRate';
 import { subscribeWatchHeartRate, getWorkoutHrSamples } from '../services/watch';
 import { useTheme } from '../theme/useTheme';
@@ -77,6 +79,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
 
   // Live heart rate from the Apple Watch (via HealthKit) during the workout.
   const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [demoFor, setDemoFor] = useState<string | null>(null);
   const [liveBpm, setLiveBpm] = useState<number | null>(null);
   const [bpmUpdatedAt, setBpmUpdatedAt] = useState<number | null>(null);
   const monitorRef = useRef(getHeartRateMonitor());
@@ -297,6 +300,21 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
                   {ex.name}
                 </Text>
                 <View style={styles.exHeaderActions}>
+                  {/* Here because this is the screen you are on when the
+                      question comes up: standing at the machine, between
+                      sets, having forgotten where the bar is supposed to
+                      sit. Only drawn when there is a demo behind it. */}
+                  {exerciseDemo(ex.name) && (
+                    <TouchableOpacity
+                      onPress={() => setDemoFor(ex.name)}
+                      style={styles.reorderBtn}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`How to do ${ex.name}`}
+                    >
+                      <Icon name="demo" size="sm" color={c.gray700} />
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     onPress={() => reorderWorkoutExercise(ex.id, 'up')}
                     disabled={exIdx === 0}
@@ -513,6 +531,7 @@ export function ActiveWorkoutScreen({ navigation }: Props) {
         onClose={() => setShowExercisePicker(false)}
         onSelect={(name) => addWorkoutExercise(name)}
       />
+      <ExerciseDemoSheet name={demoFor} onClose={() => setDemoFor(null)} />
     </SafeAreaView>
   );
 }

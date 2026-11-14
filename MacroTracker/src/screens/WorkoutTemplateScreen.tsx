@@ -19,6 +19,8 @@ import { DEFAULT_WORKOUT_HK } from '../utils/workoutTypes';
 import { DurationInput } from '../components/DurationInput';
 import { KeyboardDoneAccessory, DONE_ACCESSORY_ID } from '../components/KeyboardDoneAccessory';
 import { ExercisePickerModal } from '../components/ExercisePickerModal';
+import { ExerciseDemoSheet } from '../components/ExerciseDemoSheet';
+import { exerciseDemo } from '../data/exerciseDemos';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
@@ -89,6 +91,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
    * ADD_NEW to append a fresh one, null when it is closed.
    */
   const [pickerExId, setPickerExId] = useState<string | null>(null);
+  const [demoFor, setDemoFor] = useState<string | null>(null);
 
   function updateExercise(id: string, patch: Partial<TemplateExercise>) {
     setExercises((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
@@ -237,6 +240,16 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
                   placeholder={`Exercise ${idx + 1}`}
                   placeholderTextColor={c.textFaint}
                 />
+                {exerciseDemo(e.name) && (
+                  <TouchableOpacity
+                    onPress={() => setDemoFor(e.name)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`How to do ${e.name}`}
+                  >
+                    <Icon name="demo" size="sm" color={c.gray700} />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => setPickerExId(e.id)} style={styles.exListBtn} hitSlop={8}>
                   <Text style={styles.exListBtnText}>List</Text>
                 </TouchableOpacity>
@@ -373,6 +386,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
           }
         }}
       />
+      <ExerciseDemoSheet name={demoFor} onClose={() => setDemoFor(null)} />
     </SafeAreaView>
   );
 }

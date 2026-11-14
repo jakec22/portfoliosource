@@ -12,6 +12,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EXERCISE_CATALOG, type ExerciseCategory } from '../utils/exerciseList';
+import { exerciseDemo } from '../data/exerciseDemos';
+import { ExerciseDemoSheet } from './ExerciseDemoSheet';
+import { Icon } from './Icon';
 import { categoryForExercise } from '../utils/trainingSplit';
 import { useStore } from '../store/useStore';
 import { useSheetAnimation } from '../hooks/useSheetAnimation';
@@ -33,6 +36,11 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
   const styles = useMemo(() => makeStyles(c), [c]);
   const sheetAnimation = useSheetAnimation();
   const [query, setQuery] = useState('');
+
+  // Which exercise's demo is open, if any. Separate from selection: looking
+  // at how a movement is done is how you decide whether to pick it, so the
+  // demo must not also choose it.
+  const [demoFor, setDemoFor] = useState<string | null>(null);
 
   const customExercises = useStore((s) => s.customExercises);
   const addCustomExercise = useStore((s) => s.addCustomExercise);
@@ -139,14 +147,27 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
                 <View key={group.category} style={styles.group}>
                   <Text style={styles.groupTitle}>{group.category}</Text>
                   {group.exercises.map((name) => (
-                    <TouchableOpacity
-                      key={name}
-                      style={styles.row}
-                      onPress={() => handleSelect(name)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.rowText}>{name}</Text>
-                    </TouchableOpacity>
+                    <View key={name} style={styles.row}>
+                      <TouchableOpacity
+                        style={styles.rowMain}
+                        onPress={() => handleSelect(name)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.rowText}>{name}</Text>
+                      </TouchableOpacity>
+                      {/* Only where there is one. A button that opens an
+                          apology is worse than no button. */}
+                      {exerciseDemo(name) && (
+                        <TouchableOpacity
+                          onPress={() => setDemoFor(name)}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={`How to do ${name}`}
+                        >
+                          <Icon name="demo" size="md" color={c.textFaint} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   ))}
                 </View>
               ))
@@ -154,6 +175,8 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <ExerciseDemoSheet name={demoFor} onClose={() => setDemoFor(null)} />
     </Modal>
   );
 }
@@ -214,6 +237,9 @@ const makeStyles = (c: Theme) =>
       marginBottom: space.sm,
     },
     row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
       backgroundColor: c.card,
       borderRadius: radius.card,
       borderWidth: 1,
@@ -222,5 +248,8 @@ const makeStyles = (c: Theme) =>
       paddingHorizontal: space.lg,
       marginBottom: space.sm,
     },
+    // The name takes the whole row minus the demo button, so the tap target
+    // for choosing stays the row rather than the text.
+    rowMain: { flex: 1 },
     rowText: { ...type.body(c), color: c.text },
   });

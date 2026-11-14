@@ -70,6 +70,10 @@ const GLYPH = {
   edit: 'pencil-outline',
   remove: 'delete-outline',
   settings: 'cog-outline',
+  // "How is this done?" — the exercise demo. An outline i, not a play
+  // triangle: there is no video behind it, only two photographs and the
+  // steps, and promising a film you do not have is the worse affordance.
+  demo: 'information-outline',
   key: 'key',
   add: 'plus',
   subtract: 'minus',
