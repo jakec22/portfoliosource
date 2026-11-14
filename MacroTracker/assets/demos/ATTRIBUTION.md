@@ -2,16 +2,23 @@
 # Exercise demo illustrations
 
 The 378 PNGs in this folder are 136 exercises × 3 frames from
-[@bryllim/workout-guide](https://github.com/bryllim/workout-guide) v1.0.0.
+[@bryllim/workout-guide](https://github.com/bryllim/workout-guide) v1.0.0,
+plus 126 thumbnails in `thumbs/` derived from them.
 
 - Illustrations by [Bryl Lim](https://bryllim.com), licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - 70 of the 136 are built on poses from [Everkinetic](https://github.com/everkinetic/data), licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Per the package's own attribution, those were "Rasterized on a transparent 512 × 512 canvas and recolored for monochrome display."
 
 ## Changes made
 
-Each file was re-encoded with `pngquant --quality 65-92` and nothing else:
+The frames were re-encoded with `pngquant --quality 65-92` and nothing else:
 no resize, no recolour, no crop. That takes the set from 11.95 MB to
 6.78 MB, which is invisible at the size the app draws them.
+
+The thumbnails in `thumbs/` are each exercise's **second** frame scaled to
+128 × 128 and re-encoded the same way. Nothing else is altered.
+
+The app draws both tinted to the theme's text colour. The files on disk are
+unchanged white.
 
 These assets remain under CC BY-SA 4.0. That applies to the illustrations in
 this folder, not to the rest of the application.

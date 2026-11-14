@@ -7,12 +7,13 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Image,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EXERCISE_CATALOG, type ExerciseCategory } from '../utils/exerciseList';
-import { exerciseDemo } from '../data/exerciseDemos';
+import { exerciseDemo, type ExerciseDemo } from '../data/exerciseDemos';
 import { ExerciseDemoSheet } from './ExerciseDemoSheet';
 import { Icon } from './Icon';
 import { categoryForExercise } from '../utils/trainingSplit';
@@ -26,6 +27,21 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSelect: (name: string) => void;
+}
+
+/**
+ * The line under an exercise's name: what you pick it up, and what it works.
+ *
+ * The muscle is dropped when it only repeats the group heading above it.
+ * Inside Chest every row would otherwise read "… · Chest", which is a word
+ * spent saying where you already are. Inside Legs the same field earns its
+ * place — Quads, Hamstrings, Glutes, Calves and Adductors all live there,
+ * and that is exactly the distinction you came to the list to make.
+ */
+function rowSubtitle(demo: ExerciseDemo, category: string): string {
+  const muscle = demo.primary[0];
+  const parts = [demo.equipment, muscle && muscle !== category ? muscle : null];
+  return parts.filter(Boolean).join(' · ');
 }
 
 // Search + browse a curated exercise catalog, or type any name of your own —
@@ -81,6 +97,15 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
     [trimmed, catalog]
   );
 
+  // Which children of the ScrollView are group headings. They alternate with
+  // their cards, after the optional "Use …" row, so: 0 or 1, then every
+  // second child from there.
+  const showCustomRow = trimmed.length > 0 && !exactMatch;
+  const stickyHeadings = useMemo(() => {
+    const first = showCustomRow ? 1 : 0;
+    return filtered.map((_, i) => first + i * 2);
+  }, [filtered, showCustomRow]);
+
   function handleSelect(name: string) {
     setQuery('');
     onSelect(name);
@@ -120,8 +145,15 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
             />
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
-            {trimmed.length > 0 && !exactMatch && (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.content}
+            // The headings stay put while their own group scrolls past. In a
+            // list 153 exercises long, a heading that scrolls away leaves you
+            // reading names with no idea which part of the body you are in.
+            stickyHeaderIndices={stickyHeadings}
+          >
+            {showCustomRow && (
               <TouchableOpacity
                 style={styles.customRow}
                 onPress={() => {
@@ -143,34 +175,62 @@ export function ExercisePickerModal({ visible, onClose, onSelect }: Props) {
             {filtered.length === 0 ? (
               <Text style={styles.emptyText}>No matches — tap “Use” above to keep it.</Text>
             ) : (
-              filtered.map((group) => (
+              filtered.flatMap((group) => [
+                <Text key={`h-${group.category}`} style={styles.groupTitle}>
+                  {group.category}
+                </Text>,
                 <View key={group.category} style={styles.group}>
-                  <Text style={styles.groupTitle}>{group.category}</Text>
-                  {group.exercises.map((name) => (
-                    <View key={name} style={styles.row}>
-                      <TouchableOpacity
-                        style={styles.rowMain}
-                        onPress={() => handleSelect(name)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.rowText}>{name}</Text>
-                      </TouchableOpacity>
-                      {/* Only where there is one. A button that opens an
-                          apology is worse than no button. */}
-                      {exerciseDemo(name) && (
-                        <TouchableOpacity
-                          onPress={() => setDemoFor(name)}
-                          hitSlop={8}
-                          accessibilityRole="button"
-                          accessibilityLabel={`How to do ${name}`}
-                        >
-                          <Icon name="demo" size="md" color={c.textFaint} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              ))
+                  <View style={styles.card}>
+                    {group.exercises.map((name, i) => {
+                      const demo = exerciseDemo(name);
+                      return (
+                        <View key={name} style={[styles.row, i > 0 && styles.rowDivided]}>
+                          <TouchableOpacity
+                            style={styles.rowMain}
+                            onPress={() => handleSelect(name)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={styles.tile}>
+                              {demo ? (
+                                <Image
+                                  source={demo.thumb}
+                                  style={styles.thumb}
+                                  resizeMode="contain"
+                                  tintColor={c.text}
+                                />
+                              ) : (
+                                <Icon name="workout" size="md" color={c.borderStrong} />
+                              )}
+                            </View>
+                            <View style={styles.rowText}>
+                              <Text style={styles.rowTitle} numberOfLines={1}>
+                                {name}
+                              </Text>
+                              {demo && (
+                                <Text style={styles.rowSub} numberOfLines={1}>
+                                  {rowSubtitle(demo, group.category)}
+                                </Text>
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                          {/* Only where there is one. A button that opens an
+                              apology is worse than no button. */}
+                          {demo && (
+                            <TouchableOpacity
+                              onPress={() => setDemoFor(name)}
+                              hitSlop={8}
+                              accessibilityRole="button"
+                              accessibilityLabel={`How to do ${name}`}
+                            >
+                              <Icon name="demo" size="md" color={c.textMuted} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>,
+              ])
             )}
           </ScrollView>
         </KeyboardAvoidingView>
@@ -234,22 +294,58 @@ const makeStyles = (c: Theme) =>
     groupTitle: {
       ...type.overline(c),
       color: c.textFaint,
-      marginBottom: space.sm,
+      paddingLeft: space.xs,
+      paddingTop: space.sm,
+      paddingBottom: space.sm,
+      // Sticky, so it is drawn over the rows passing beneath it and needs a
+      // ground rather than inheriting the one it happens to be sitting on.
+      backgroundColor: c.bg,
+    },
+    // One card per group, not one per exercise.
+    //
+    // Every exercise used to be its own bordered card, which is what a card
+    // means everywhere else in this app: a thing with contents — a saved
+    // workout, a meal, a chart. Wrapped around a single name, 153 times, it
+    // was a wall of identical pills that belonged to no screen in particular.
+    // The group is the object; the exercises are its contents, divided by
+    // hairlines the way a settings list divides its rows.
+    card: {
+      backgroundColor: c.card,
+      borderRadius: radius.card,
+      borderWidth: 1,
+      borderColor: c.border,
+      overflow: 'hidden',
     },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: space.md,
-      backgroundColor: c.card,
-      borderRadius: radius.card,
-      borderWidth: 1,
-      borderColor: c.border,
-      paddingVertical: space.md,
-      paddingHorizontal: space.lg,
-      marginBottom: space.sm,
+      paddingVertical: space.sm,
+      paddingHorizontal: space.md,
     },
-    // The name takes the whole row minus the demo button, so the tap target
-    // for choosing stays the row rather than the text.
-    rowMain: { flex: 1 },
-    rowText: { ...type.body(c), color: c.text },
+    rowDivided: { borderTopWidth: 1, borderTopColor: c.border },
+    // The name and the drawing take the whole row minus the demo button, so
+    // the tap target for choosing is the row rather than the text.
+    rowMain: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
+      minWidth: 0,
+    },
+    // The same tinted tile TemplateRow and the start sheet open with, so a
+    // row here reads as the same kind of thing as a row there.
+    tile: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.control,
+      backgroundColor: c.cardMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 2,
+    },
+    thumb: { width: '100%', height: '100%' },
+    rowText: { flex: 1, minWidth: 0 },
+    rowTitle: { ...type.body(c), fontFamily: c.fontBody, color: c.text },
+    rowSub: { ...type.caption(c), color: c.textFaint, marginTop: space.xxs },
   });

@@ -20,6 +20,8 @@ export interface ExerciseDemo {
   secondary: string[];
   /** Three lines: set-up, the working half, and the thing people get wrong. */
   steps: [string, string, string];
+  /** The middle frame at 128px, for the picker's rows. See the generator. */
+  thumb: ImageSourcePropType;
   /**
    * Three positions through the movement, in the order the set numbers them.
    *
@@ -42,6 +44,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower to mid-chest, elbows tucked to about 45°.",
       "Press back up and lock out.",
     ],
+    thumb: require('../../assets/demos/thumbs/bench-press.png'),
     frames: [
       require('../../assets/demos/bench-press-1.png'),
       require('../../assets/demos/bench-press-2.png'),
@@ -58,6 +61,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower to your upper chest, elbows tucked.",
       "Press back up and lock out.",
     ],
+    thumb: require('../../assets/demos/thumbs/incline-bench-press.png'),
     frames: [
       require('../../assets/demos/incline-bench-press-1.png'),
       require('../../assets/demos/incline-bench-press-2.png'),
@@ -74,6 +78,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower to the lower chest, elbows tucked.",
       "Press back up and lock out.",
     ],
+    thumb: require('../../assets/demos/thumbs/decline-bench-press.png'),
     frames: [
       require('../../assets/demos/decline-bench-press-1.png'),
       require('../../assets/demos/decline-bench-press-2.png'),
@@ -90,6 +95,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Unrack, lower to the chest, elbows tucked.",
       "Press up, then twist the bar to re-lock.",
     ],
+    thumb: require('../../assets/demos/thumbs/smith-machine-bench-press.png'),
     frames: [
       require('../../assets/demos/smith-machine-bench-press-1.png'),
       require('../../assets/demos/smith-machine-bench-press-2.png'),
@@ -106,6 +112,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower until they sit level with your chest.",
       "Press up until they nearly touch.",
     ],
+    thumb: require('../../assets/demos/thumbs/dumbbell-bench-press.png'),
     frames: [
       require('../../assets/demos/dumbbell-bench-press-1.png'),
       require('../../assets/demos/dumbbell-bench-press-2.png'),
@@ -122,6 +129,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower to the sides of your upper chest.",
       "Press up until they nearly touch.",
     ],
+    thumb: require('../../assets/demos/thumbs/incline-dumbbell-press.png'),
     frames: [
       require('../../assets/demos/incline-dumbbell-press-1.png'),
       require('../../assets/demos/incline-dumbbell-press-2.png'),
@@ -138,6 +146,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower to the sides of your lower chest.",
       "Press up until they nearly touch.",
     ],
+    thumb: require('../../assets/demos/thumbs/decline-dumbbell-press.png'),
     frames: [
       require('../../assets/demos/decline-dumbbell-press-1.png'),
       require('../../assets/demos/decline-dumbbell-press-2.png'),
@@ -154,6 +163,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Shoulder blades back and down against the pad.",
       "Press out, then return without resting the stack.",
     ],
+    thumb: require('../../assets/demos/thumbs/machine-chest-press.png'),
     frames: [
       require('../../assets/demos/machine-chest-press-1.png'),
       require('../../assets/demos/machine-chest-press-2.png'),
@@ -170,6 +180,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Shoulder blades back against the pad.",
       "Press out, then return without resting the stack.",
     ],
+    thumb: require('../../assets/demos/thumbs/machine-chest-press.png'),
     frames: [
       require('../../assets/demos/machine-chest-press-1.png'),
       require('../../assets/demos/machine-chest-press-2.png'),
@@ -186,6 +197,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Shoulder blades back against the pad.",
       "Press out, then return without resting the stack.",
     ],
+    thumb: require('../../assets/demos/thumbs/machine-chest-press.png'),
     frames: [
       require('../../assets/demos/machine-chest-press-1.png'),
       require('../../assets/demos/machine-chest-press-2.png'),
@@ -202,6 +214,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Bring the handles together in front of your chest.",
       "Open slowly until you feel the stretch.",
     ],
+    thumb: require('../../assets/demos/thumbs/pec-deck.png'),
     frames: [
       require('../../assets/demos/pec-deck-1.png'),
       require('../../assets/demos/pec-deck-2.png'),
@@ -218,6 +231,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Open out in a wide arc until your chest stretches.",
       "Bring them back on the same arc — don't press.",
     ],
+    thumb: require('../../assets/demos/thumbs/dumbbell-fly.png'),
     frames: [
       require('../../assets/demos/dumbbell-fly-1.png'),
       require('../../assets/demos/dumbbell-fly-2.png'),
@@ -234,6 +248,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Open out in a wide arc until your chest stretches.",
       "Bring them back on the same arc — don't press.",
     ],
+    thumb: require('../../assets/demos/thumbs/dumbbell-fly.png'),
     frames: [
       require('../../assets/demos/dumbbell-fly-1.png'),
       require('../../assets/demos/dumbbell-fly-2.png'),
@@ -250,6 +265,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Bring your hands together in front of your chest.",
       "Open back out on the same arc, arms nearly straight.",
     ],
+    thumb: require('../../assets/demos/thumbs/cable-fly.png'),
     frames: [
       require('../../assets/demos/cable-fly-1.png'),
       require('../../assets/demos/cable-fly-2.png'),
@@ -266,6 +282,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sweep down and together in front of your waist.",
       "Open back out on the same arc.",
     ],
+    thumb: require('../../assets/demos/thumbs/cable-fly.png'),
     frames: [
       require('../../assets/demos/cable-fly-1.png'),
       require('../../assets/demos/cable-fly-2.png'),
@@ -282,6 +299,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sweep up and together in front of your chest.",
       "Lower back out on the same arc.",
     ],
+    thumb: require('../../assets/demos/thumbs/cable-fly.png'),
     frames: [
       require('../../assets/demos/cable-fly-1.png'),
       require('../../assets/demos/cable-fly-2.png'),
@@ -298,6 +316,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower until your chest nearly touches the floor.",
       "Press back up, body in one straight line.",
     ],
+    thumb: require('../../assets/demos/thumbs/push-up.png'),
     frames: [
       require('../../assets/demos/push-up-1.png'),
       require('../../assets/demos/push-up-2.png'),
@@ -314,6 +333,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower your chest to the edge, body straight.",
       "Press back up to locked arms.",
     ],
+    thumb: require('../../assets/demos/thumbs/incline-push-up.png'),
     frames: [
       require('../../assets/demos/incline-push-up-1.png'),
       require('../../assets/demos/incline-push-up-2.png'),
@@ -330,6 +350,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lean forward about 30° and lower until the chest stretches.",
       "Press back up — the lean is what keeps it on the chest.",
     ],
+    thumb: require('../../assets/demos/thumbs/chest-dip.png'),
     frames: [
       require('../../assets/demos/chest-dip-1.png'),
       require('../../assets/demos/chest-dip-2.png'),
@@ -346,6 +367,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lean forward about 30° and lower under control.",
       "Press back up without bouncing out of the bottom.",
     ],
+    thumb: require('../../assets/demos/thumbs/weighted-dip.png'),
     frames: [
       require('../../assets/demos/weighted-dip-1.png'),
       require('../../assets/demos/weighted-dip-2.png'),
@@ -362,6 +384,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press up and slightly forward until the arm locks.",
       "Lower back to the shoulder, ribs down.",
     ],
+    thumb: require('../../assets/demos/thumbs/landmine-press.png'),
     frames: [
       require('../../assets/demos/landmine-press-1.png'),
       require('../../assets/demos/landmine-press-2.png'),
@@ -378,6 +401,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push the floor away and stand, bar against your legs.",
       "Hinge back down the same way — don't round.",
     ],
+    thumb: require('../../assets/demos/thumbs/deadlift.png'),
     frames: [
       require('../../assets/demos/deadlift-1.png'),
       require('../../assets/demos/deadlift-2.png'),
@@ -394,6 +418,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Flat back, drive the hips through to lockout.",
       "Pull the shoulders back, then lower to the pins.",
     ],
+    thumb: require('../../assets/demos/thumbs/rack-pull.png'),
     frames: [
       require('../../assets/demos/rack-pull-1.png'),
       require('../../assets/demos/rack-pull-2.png'),
@@ -410,6 +435,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull the bar to your belly, elbows close.",
       "Lower under control without rounding.",
     ],
+    thumb: require('../../assets/demos/thumbs/barbell-row.png'),
     frames: [
       require('../../assets/demos/barbell-row-1.png'),
       require('../../assets/demos/barbell-row-2.png'),
@@ -426,6 +452,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull explosively to your lower ribs.",
       "Set the bar down and reset every rep.",
     ],
+    thumb: require('../../assets/demos/thumbs/pendlay-row.png'),
     frames: [
       require('../../assets/demos/pendlay-row-1.png'),
       require('../../assets/demos/pendlay-row-2.png'),
@@ -442,6 +469,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull the dumbbell to your hip, elbow close.",
       "Lower until the arm is straight — no twisting.",
     ],
+    thumb: require('../../assets/demos/thumbs/one-arm-dumbbell-row.png'),
     frames: [
       require('../../assets/demos/one-arm-dumbbell-row-1.png'),
       require('../../assets/demos/one-arm-dumbbell-row-2.png'),
@@ -458,6 +486,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull to your ribs, squeezing the shoulder blades.",
       "Lower until your arms are straight.",
     ],
+    thumb: require('../../assets/demos/thumbs/chest-supported-row.png'),
     frames: [
       require('../../assets/demos/chest-supported-row-1.png'),
       require('../../assets/demos/chest-supported-row-2.png'),
@@ -474,6 +503,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull to your upper belly, blades together.",
       "Lower under control — no jerking.",
     ],
+    thumb: require('../../assets/demos/thumbs/t-bar-row.png'),
     frames: [
       require('../../assets/demos/t-bar-row-1.png'),
       require('../../assets/demos/t-bar-row-2.png'),
@@ -490,6 +520,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull to your belly, elbows past your ribs.",
       "Let it out until you feel the stretch, torso still.",
     ],
+    thumb: require('../../assets/demos/thumbs/seated-row.png'),
     frames: [
       require('../../assets/demos/seated-row-1.png'),
       require('../../assets/demos/seated-row-2.png'),
@@ -506,6 +537,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull to your torso, shoulder blades back.",
       "Return without letting the stack touch down.",
     ],
+    thumb: require('../../assets/demos/thumbs/machine-row.png'),
     frames: [
       require('../../assets/demos/machine-row-1.png'),
       require('../../assets/demos/machine-row-2.png'),
@@ -522,6 +554,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull the bar to your upper chest, elbows down.",
       "Let it rise until your arms are straight.",
     ],
+    thumb: require('../../assets/demos/thumbs/lat-pulldown.png'),
     frames: [
       require('../../assets/demos/lat-pulldown-1.png'),
       require('../../assets/demos/lat-pulldown-2.png'),
@@ -538,6 +571,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull to your upper chest, driving the elbows down.",
       "Rise until the arms straighten and the lats stretch.",
     ],
+    thumb: require('../../assets/demos/thumbs/wide-grip-lat-pulldown.png'),
     frames: [
       require('../../assets/demos/wide-grip-lat-pulldown-1.png'),
       require('../../assets/demos/wide-grip-lat-pulldown-2.png'),
@@ -554,6 +588,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull to your upper chest, elbows into your sides.",
       "Rise until your arms are straight.",
     ],
+    thumb: require('../../assets/demos/thumbs/close-grip-lat-pulldown.png'),
     frames: [
       require('../../assets/demos/close-grip-lat-pulldown-1.png'),
       require('../../assets/demos/close-grip-lat-pulldown-2.png'),
@@ -570,6 +605,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull until the bar nearly touches your chest.",
       "Rise until your arms are straight.",
     ],
+    thumb: require('../../assets/demos/thumbs/lat-pulldown.png'),
     frames: [
       require('../../assets/demos/lat-pulldown-1.png'),
       require('../../assets/demos/lat-pulldown-2.png'),
@@ -586,6 +622,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sweep the bar down to your thighs using your lats.",
       "Let it rise to shoulder height — arms stay straight.",
     ],
+    thumb: require('../../assets/demos/thumbs/straight-arm-pulldown.png'),
     frames: [
       require('../../assets/demos/straight-arm-pulldown-1.png'),
       require('../../assets/demos/straight-arm-pulldown-2.png'),
@@ -602,6 +639,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull until your chin clears the bar, chest up.",
       "Lower all the way down — no swinging.",
     ],
+    thumb: require('../../assets/demos/thumbs/pull-up.png'),
     frames: [
       require('../../assets/demos/pull-up-1.png'),
       require('../../assets/demos/pull-up-2.png'),
@@ -618,6 +656,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull until your chin clears the bar.",
       "Lower all the way down under control.",
     ],
+    thumb: require('../../assets/demos/thumbs/chin-up.png'),
     frames: [
       require('../../assets/demos/chin-up-1.png'),
       require('../../assets/demos/chin-up-2.png'),
@@ -634,6 +673,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull until your chin clears the bar.",
       "Lower all the way down.",
     ],
+    thumb: require('../../assets/demos/thumbs/assisted-pull-up.png'),
     frames: [
       require('../../assets/demos/assisted-pull-up-1.png'),
       require('../../assets/demos/assisted-pull-up-2.png'),
@@ -650,6 +690,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lift your shoulders straight up toward your ears.",
       "Lower slowly — no rolling, no pulling with the arms.",
     ],
+    thumb: require('../../assets/demos/thumbs/shrug.png'),
     frames: [
       require('../../assets/demos/shrug-1.png'),
       require('../../assets/demos/shrug-2.png'),
@@ -666,6 +707,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lift your shoulders straight up toward your ears.",
       "Lower slowly — the arms stay straight throughout.",
     ],
+    thumb: require('../../assets/demos/thumbs/dumbbell-shrug.png'),
     frames: [
       require('../../assets/demos/dumbbell-shrug-1.png'),
       require('../../assets/demos/dumbbell-shrug-2.png'),
@@ -682,6 +724,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull to your face, hands splitting apart.",
       "Keep your upper arms level with the floor.",
     ],
+    thumb: require('../../assets/demos/thumbs/face-pull.png'),
     frames: [
       require('../../assets/demos/face-pull-1.png'),
       require('../../assets/demos/face-pull-2.png'),
@@ -698,6 +741,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sweep your arms back and out in an arc.",
       "Pause at the back, return slowly.",
     ],
+    thumb: require('../../assets/demos/thumbs/reverse-pec-deck.png'),
     frames: [
       require('../../assets/demos/reverse-pec-deck-1.png'),
       require('../../assets/demos/reverse-pec-deck-2.png'),
@@ -714,6 +758,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Bend at the waist until your torso hangs down.",
       "Lift back to straight — don't arch past it.",
     ],
+    thumb: require('../../assets/demos/thumbs/back-extension.png'),
     frames: [
       require('../../assets/demos/back-extension-1.png'),
       require('../../assets/demos/back-extension-2.png'),
@@ -730,6 +775,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push your hips back until your torso is near parallel.",
       "Drive the hips forward to stand — back stays flat.",
     ],
+    thumb: require('../../assets/demos/thumbs/good-morning.png'),
     frames: [
       require('../../assets/demos/good-morning-1.png'),
       require('../../assets/demos/good-morning-2.png'),
@@ -746,6 +792,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sit down between your hips until the thighs pass parallel.",
       "Drive up through mid-foot, chest up.",
     ],
+    thumb: require('../../assets/demos/thumbs/squat.png'),
     frames: [
       require('../../assets/demos/squat-1.png'),
       require('../../assets/demos/squat-2.png'),
@@ -762,6 +809,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sit straight down, torso upright, knees tracking your toes.",
       "Drive up through mid-foot — elbows stay up.",
     ],
+    thumb: require('../../assets/demos/thumbs/front-squat.png'),
     frames: [
       require('../../assets/demos/front-squat-1.png'),
       require('../../assets/demos/front-squat-2.png'),
@@ -778,6 +826,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower until your knees reach about 90°.",
       "Drive through the heels without locking the knees.",
     ],
+    thumb: require('../../assets/demos/thumbs/hack-squat.png'),
     frames: [
       require('../../assets/demos/hack-squat-1.png'),
       require('../../assets/demos/hack-squat-2.png'),
@@ -794,6 +843,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sit down between your hips, torso upright.",
       "Drive up through mid-foot.",
     ],
+    thumb: require('../../assets/demos/thumbs/belt-squat.png'),
     frames: [
       require('../../assets/demos/belt-squat-1.png'),
       require('../../assets/demos/belt-squat-2.png'),
@@ -810,6 +860,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Unlock and sit down until the thighs pass parallel.",
       "Drive through the heels, then twist to re-lock.",
     ],
+    thumb: require('../../assets/demos/thumbs/smith-machine-squat.png'),
     frames: [
       require('../../assets/demos/smith-machine-squat-1.png'),
       require('../../assets/demos/smith-machine-squat-2.png'),
@@ -826,6 +877,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sit straight down between your knees.",
       "Push your knees out with your elbows at the bottom.",
     ],
+    thumb: require('../../assets/demos/thumbs/goblet-squat.png'),
     frames: [
       require('../../assets/demos/goblet-squat-1.png'),
       require('../../assets/demos/goblet-squat-2.png'),
@@ -842,6 +894,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower until the front thigh is parallel.",
       "Drive through the front heel to stand.",
     ],
+    thumb: require('../../assets/demos/thumbs/bulgarian-split-squat.png'),
     frames: [
       require('../../assets/demos/bulgarian-split-squat-1.png'),
       require('../../assets/demos/bulgarian-split-squat-2.png'),
@@ -858,6 +911,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower straight down until the rear knee nearly touches.",
       "Drive through the front heel, knee over the foot.",
     ],
+    thumb: require('../../assets/demos/thumbs/split-squat.png'),
     frames: [
       require('../../assets/demos/split-squat-1.png'),
       require('../../assets/demos/split-squat-2.png'),
@@ -874,6 +928,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower until your knees reach about 90°.",
       "Press through the heels — don't lock out hard.",
     ],
+    thumb: require('../../assets/demos/thumbs/leg-press.png'),
     frames: [
       require('../../assets/demos/leg-press-1.png'),
       require('../../assets/demos/leg-press-2.png'),
@@ -890,6 +945,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Straighten your legs and pause at the top.",
       "Lower slowly — don't let the stack drop.",
     ],
+    thumb: require('../../assets/demos/thumbs/leg-extension.png'),
     frames: [
       require('../../assets/demos/leg-extension-1.png'),
       require('../../assets/demos/leg-extension-2.png'),
@@ -906,6 +962,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl your heels toward your glutes.",
       "Lower slowly, hips staying on the bench.",
     ],
+    thumb: require('../../assets/demos/thumbs/lying-leg-curl.png'),
     frames: [
       require('../../assets/demos/lying-leg-curl-1.png'),
       require('../../assets/demos/lying-leg-curl-2.png'),
@@ -922,6 +979,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl your heels under the seat as far as they go.",
       "Return slowly, torso still.",
     ],
+    thumb: require('../../assets/demos/thumbs/seated-leg-curl.png'),
     frames: [
       require('../../assets/demos/seated-leg-curl-1.png'),
       require('../../assets/demos/seated-leg-curl-2.png'),
@@ -938,6 +996,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push the hips back, bar close, until the hamstrings stretch.",
       "Drive the hips forward to stand — back stays flat.",
     ],
+    thumb: require('../../assets/demos/thumbs/romanian-deadlift.png'),
     frames: [
       require('../../assets/demos/romanian-deadlift-1.png'),
       require('../../assets/demos/romanian-deadlift-2.png'),
@@ -954,6 +1013,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Hinge at the hips, lowering the bar over your feet.",
       "Stand by extending the hips — don't round the back.",
     ],
+    thumb: require('../../assets/demos/thumbs/romanian-deadlift.png'),
     frames: [
       require('../../assets/demos/romanian-deadlift-1.png'),
       require('../../assets/demos/romanian-deadlift-2.png'),
@@ -970,6 +1030,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Chest up, drive the floor apart and stand.",
       "Lower by pushing the hips back under control.",
     ],
+    thumb: require('../../assets/demos/thumbs/sumo-deadlift.png'),
     frames: [
       require('../../assets/demos/sumo-deadlift-1.png'),
       require('../../assets/demos/sumo-deadlift-2.png'),
@@ -986,6 +1047,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Step forward and drop until the rear knee nearly touches.",
       "Drive through the front heel and step straight through.",
     ],
+    thumb: require('../../assets/demos/thumbs/walking-lunge.png'),
     frames: [
       require('../../assets/demos/walking-lunge-1.png'),
       require('../../assets/demos/walking-lunge-2.png'),
@@ -1002,6 +1064,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Step back and lower until the rear knee nearly touches.",
       "Push off the front heel to stand.",
     ],
+    thumb: require('../../assets/demos/thumbs/reverse-lunge.png'),
     frames: [
       require('../../assets/demos/reverse-lunge-1.png'),
       require('../../assets/demos/reverse-lunge-2.png'),
@@ -1018,6 +1081,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Drive through that heel to stand up on the box.",
       "Lower under control — don't push off the floor.",
     ],
+    thumb: require('../../assets/demos/thumbs/step-up.png'),
     frames: [
       require('../../assets/demos/step-up-1.png'),
       require('../../assets/demos/step-up-2.png'),
@@ -1034,6 +1098,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Drive through your heels until the hips are level.",
       "Squeeze at the top, lower under control.",
     ],
+    thumb: require('../../assets/demos/thumbs/hip-thrust.png'),
     frames: [
       require('../../assets/demos/hip-thrust-1.png'),
       require('../../assets/demos/hip-thrust-2.png'),
@@ -1050,6 +1115,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push through your heels and lift the hips.",
       "Squeeze at the top, lower slowly.",
     ],
+    thumb: require('../../assets/demos/thumbs/glute-bridge.png'),
     frames: [
       require('../../assets/demos/glute-bridge-1.png'),
       require('../../assets/demos/glute-bridge-2.png'),
@@ -1066,6 +1132,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Drive the leg back until it lines up with your torso.",
       "Return slowly — keep your back flat.",
     ],
+    thumb: require('../../assets/demos/thumbs/machine-glute-kickback.png'),
     frames: [
       require('../../assets/demos/machine-glute-kickback-1.png'),
       require('../../assets/demos/machine-glute-kickback-2.png'),
@@ -1082,6 +1149,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press your knees apart, torso still.",
       "Return slowly against the resistance.",
     ],
+    thumb: require('../../assets/demos/thumbs/hip-abduction-machine.png'),
     frames: [
       require('../../assets/demos/hip-abduction-machine-1.png'),
       require('../../assets/demos/hip-abduction-machine-2.png'),
@@ -1098,6 +1166,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Squeeze your knees together, torso still.",
       "Return slowly until you feel the stretch.",
     ],
+    thumb: require('../../assets/demos/thumbs/hip-adduction-machine.png'),
     frames: [
       require('../../assets/demos/hip-adduction-machine-1.png'),
       require('../../assets/demos/hip-adduction-machine-2.png'),
@@ -1114,6 +1183,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push up onto your toes as high as you can.",
       "Lower until your heels drop below the step.",
     ],
+    thumb: require('../../assets/demos/thumbs/standing-calf-raise.png'),
     frames: [
       require('../../assets/demos/standing-calf-raise-1.png'),
       require('../../assets/demos/standing-calf-raise-2.png'),
@@ -1130,6 +1200,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push up onto your toes as high as you can.",
       "Lower slowly until the calves stretch.",
     ],
+    thumb: require('../../assets/demos/thumbs/seated-calf-raise.png'),
     frames: [
       require('../../assets/demos/seated-calf-raise-1.png'),
       require('../../assets/demos/seated-calf-raise-2.png'),
@@ -1146,6 +1217,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push the platform away with your toes.",
       "Lower until your heels drop and the calves stretch.",
     ],
+    thumb: require('../../assets/demos/thumbs/leg-press-calf-raise.png'),
     frames: [
       require('../../assets/demos/leg-press-calf-raise-1.png'),
       require('../../assets/demos/leg-press-calf-raise-2.png'),
@@ -1162,6 +1234,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Bend the knees and lean back, hips travelling forward.",
       "Pull yourself upright with the quads.",
     ],
+    thumb: require('../../assets/demos/thumbs/sissy-squat.png'),
     frames: [
       require('../../assets/demos/sissy-squat-1.png'),
       require('../../assets/demos/sissy-squat-2.png'),
@@ -1178,6 +1251,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower forward as slowly as you can, hips straight.",
       "Catch with your hands and push back up.",
     ],
+    thumb: require('../../assets/demos/thumbs/nordic-hamstring-curl.png'),
     frames: [
       require('../../assets/demos/nordic-hamstring-curl-1.png'),
       require('../../assets/demos/nordic-hamstring-curl-2.png'),
@@ -1194,6 +1268,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press overhead, moving your head back out of the way.",
       "Lock out with the bar over your mid-foot.",
     ],
+    thumb: require('../../assets/demos/thumbs/overhead-press.png'),
     frames: [
       require('../../assets/demos/overhead-press-1.png'),
       require('../../assets/demos/overhead-press-2.png'),
@@ -1210,6 +1285,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press up until they nearly touch overhead.",
       "Lower to ear height under control.",
     ],
+    thumb: require('../../assets/demos/thumbs/seated-dumbbell-press.png'),
     frames: [
       require('../../assets/demos/seated-dumbbell-press-1.png'),
       require('../../assets/demos/seated-dumbbell-press-2.png'),
@@ -1226,6 +1302,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press up while rotating the palms to face forward.",
       "Reverse the rotation on the way down.",
     ],
+    thumb: require('../../assets/demos/thumbs/arnold-press.png'),
     frames: [
       require('../../assets/demos/arnold-press-1.png'),
       require('../../assets/demos/arnold-press-2.png'),
@@ -1242,6 +1319,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press up until the arms extend.",
       "Lower slowly to the start.",
     ],
+    thumb: require('../../assets/demos/thumbs/machine-shoulder-press.png'),
     frames: [
       require('../../assets/demos/machine-shoulder-press-1.png'),
       require('../../assets/demos/machine-shoulder-press-2.png'),
@@ -1258,6 +1336,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Dip at the knees, then drive the bar up with your legs.",
       "Lock out overhead, then lower to the shoulders.",
     ],
+    thumb: require('../../assets/demos/thumbs/push-press.png'),
     frames: [
       require('../../assets/demos/push-press-1.png'),
       require('../../assets/demos/push-press-2.png'),
@@ -1274,6 +1353,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lift out to the sides until level with your shoulders.",
       "Lower slowly — no swinging.",
     ],
+    thumb: require('../../assets/demos/thumbs/lateral-raise.png'),
     frames: [
       require('../../assets/demos/lateral-raise-1.png'),
       require('../../assets/demos/lateral-raise-2.png'),
@@ -1290,6 +1370,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Raise out to the side to shoulder height.",
       "Lower slowly against the cable.",
     ],
+    thumb: require('../../assets/demos/thumbs/cable-lateral-raise.png'),
     frames: [
       require('../../assets/demos/cable-lateral-raise-1.png'),
       require('../../assets/demos/cable-lateral-raise-2.png'),
@@ -1306,6 +1387,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lift out to the sides to shoulder height.",
       "Lower slowly — torso still.",
     ],
+    thumb: require('../../assets/demos/thumbs/machine-lateral-raise.png'),
     frames: [
       require('../../assets/demos/machine-lateral-raise-1.png'),
       require('../../assets/demos/machine-lateral-raise-2.png'),
@@ -1322,6 +1404,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lift straight out in front to shoulder height.",
       "Lower slowly — no leaning back.",
     ],
+    thumb: require('../../assets/demos/thumbs/front-raise.png'),
     frames: [
       require('../../assets/demos/front-raise-1.png'),
       require('../../assets/demos/front-raise-2.png'),
@@ -1338,6 +1421,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Sweep out to the sides until level with your shoulders.",
       "Lower slowly, elbows fixed.",
     ],
+    thumb: require('../../assets/demos/thumbs/rear-delt-fly.png'),
     frames: [
       require('../../assets/demos/rear-delt-fly-1.png'),
       require('../../assets/demos/rear-delt-fly-2.png'),
@@ -1354,6 +1438,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull back and out until your arms are wide.",
       "Return slowly, arms nearly straight.",
     ],
+    thumb: require('../../assets/demos/thumbs/cable-rear-delt-fly.png'),
     frames: [
       require('../../assets/demos/cable-rear-delt-fly-1.png'),
       require('../../assets/demos/cable-rear-delt-fly-2.png'),
@@ -1370,6 +1455,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull the bar up your body, elbows leading.",
       "Stop at chest height, lower slowly.",
     ],
+    thumb: require('../../assets/demos/thumbs/upright-row.png'),
     frames: [
       require('../../assets/demos/upright-row-1.png'),
       require('../../assets/demos/upright-row-2.png'),
@@ -1386,6 +1472,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press up until they nearly touch overhead.",
       "Lower to ear height under control.",
     ],
+    thumb: require('../../assets/demos/thumbs/standing-dumbbell-press.png'),
     frames: [
       require('../../assets/demos/standing-dumbbell-press-1.png'),
       require('../../assets/demos/standing-dumbbell-press-2.png'),
@@ -1402,6 +1489,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height — only the forearms move.",
       "Lower slowly to full extension.",
     ],
+    thumb: require('../../assets/demos/thumbs/ez-bar-curl.png'),
     frames: [
       require('../../assets/demos/ez-bar-curl-1.png'),
       require('../../assets/demos/ez-bar-curl-2.png'),
@@ -1418,6 +1506,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height, upper arms still.",
       "Lower slowly to full extension.",
     ],
+    thumb: require('../../assets/demos/thumbs/ez-bar-curl.png'),
     frames: [
       require('../../assets/demos/ez-bar-curl-1.png'),
       require('../../assets/demos/ez-bar-curl-2.png'),
@@ -1434,6 +1523,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height, elbows pinned.",
       "Lower slowly to full extension.",
     ],
+    thumb: require('../../assets/demos/thumbs/bicep-curl.png'),
     frames: [
       require('../../assets/demos/bicep-curl-1.png'),
       require('../../assets/demos/bicep-curl-2.png'),
@@ -1450,6 +1540,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height, palms still facing in.",
       "Lower slowly to full extension.",
     ],
+    thumb: require('../../assets/demos/thumbs/hammer-curl.png'),
     frames: [
       require('../../assets/demos/hammer-curl-1.png'),
       require('../../assets/demos/hammer-curl-2.png'),
@@ -1466,6 +1557,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height, elbows staying back.",
       "Lower all the way for the stretch.",
     ],
+    thumb: require('../../assets/demos/thumbs/incline-dumbbell-curl.png'),
     frames: [
       require('../../assets/demos/incline-dumbbell-curl-1.png'),
       require('../../assets/demos/incline-dumbbell-curl-2.png'),
@@ -1482,6 +1574,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height.",
       "Lower until the arms extend — don't bounce.",
     ],
+    thumb: require('../../assets/demos/thumbs/preacher-curl.png'),
     frames: [
       require('../../assets/demos/preacher-curl-1.png'),
       require('../../assets/demos/preacher-curl-2.png'),
@@ -1498,6 +1591,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height, upper arm still.",
       "Lower slowly — no swinging.",
     ],
+    thumb: require('../../assets/demos/thumbs/concentration-curl.png'),
     frames: [
       require('../../assets/demos/concentration-curl-1.png'),
       require('../../assets/demos/concentration-curl-2.png'),
@@ -1514,6 +1608,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height, upper arms still.",
       "Lower slowly against the cable.",
     ],
+    thumb: require('../../assets/demos/thumbs/cable-curl.png'),
     frames: [
       require('../../assets/demos/cable-curl-1.png'),
       require('../../assets/demos/cable-curl-2.png'),
@@ -1530,6 +1625,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl up, upper arms pointing at the floor.",
       "Lower slowly to full extension.",
     ],
+    thumb: require('../../assets/demos/thumbs/spider-curl.png'),
     frames: [
       require('../../assets/demos/spider-curl-1.png'),
       require('../../assets/demos/spider-curl-2.png'),
@@ -1546,6 +1642,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl to shoulder height, elbows at your sides.",
       "Lower slowly — wrists stay firm.",
     ],
+    thumb: require('../../assets/demos/thumbs/reverse-curl.png'),
     frames: [
       require('../../assets/demos/reverse-curl-1.png'),
       require('../../assets/demos/reverse-curl-2.png'),
@@ -1562,6 +1659,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Curl the bar up using the wrists only.",
       "Lower until you feel the stretch.",
     ],
+    thumb: require('../../assets/demos/thumbs/wrist-curl.png'),
     frames: [
       require('../../assets/demos/wrist-curl-1.png'),
       require('../../assets/demos/wrist-curl-2.png'),
@@ -1578,6 +1676,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push down until your arms are straight.",
       "Let it rise to chest height — elbows don't move.",
     ],
+    thumb: require('../../assets/demos/thumbs/tricep-pushdown.png'),
     frames: [
       require('../../assets/demos/tricep-pushdown-1.png'),
       require('../../assets/demos/tricep-pushdown-2.png'),
@@ -1594,6 +1693,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push down and split the rope apart at the bottom.",
       "Let it rise to chest height, elbows still.",
     ],
+    thumb: require('../../assets/demos/thumbs/rope-tricep-pushdown.png'),
     frames: [
       require('../../assets/demos/rope-tricep-pushdown-1.png'),
       require('../../assets/demos/rope-tricep-pushdown-2.png'),
@@ -1610,6 +1710,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower behind your head until the triceps stretch.",
       "Extend back overhead — upper arms stay put.",
     ],
+    thumb: require('../../assets/demos/thumbs/overhead-tricep-extension.png'),
     frames: [
       require('../../assets/demos/overhead-tricep-extension-1.png'),
       require('../../assets/demos/overhead-tricep-extension-2.png'),
@@ -1626,6 +1727,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower to your forehead by bending the elbows only.",
       "Extend back up without moving the upper arms.",
     ],
+    thumb: require('../../assets/demos/thumbs/skull-crusher.png'),
     frames: [
       require('../../assets/demos/skull-crusher-1.png'),
       require('../../assets/demos/skull-crusher-2.png'),
@@ -1642,6 +1744,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower to mid-chest with the elbows tucked tight.",
       "Press up with the triceps and lock out.",
     ],
+    thumb: require('../../assets/demos/thumbs/close-grip-bench-press.png'),
     frames: [
       require('../../assets/demos/close-grip-bench-press-1.png'),
       require('../../assets/demos/close-grip-bench-press-2.png'),
@@ -1658,6 +1761,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lower with your elbows close to your body.",
       "Press back up — staying upright keeps it on the triceps.",
     ],
+    thumb: require('../../assets/demos/thumbs/dip.png'),
     frames: [
       require('../../assets/demos/dip-1.png'),
       require('../../assets/demos/dip-2.png'),
@@ -1674,6 +1778,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Straighten the arms back — forearms only.",
       "Return slowly, upper arms not dropping.",
     ],
+    thumb: require('../../assets/demos/thumbs/tricep-kickback.png'),
     frames: [
       require('../../assets/demos/tricep-kickback-1.png'),
       require('../../assets/demos/tricep-kickback-2.png'),
@@ -1690,6 +1795,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Hold a straight line from head to heels.",
       "Brace your ribs down — don't let the hips sag.",
     ],
+    thumb: require('../../assets/demos/thumbs/plank.png'),
     frames: [
       require('../../assets/demos/plank-1.png'),
       require('../../assets/demos/plank-2.png'),
@@ -1706,6 +1812,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lift your hips to a straight line.",
       "Hold without dropping the hips or rolling forward.",
     ],
+    thumb: require('../../assets/demos/thumbs/side-plank.png'),
     frames: [
       require('../../assets/demos/side-plank-1.png'),
       require('../../assets/demos/side-plank-2.png'),
@@ -1722,6 +1829,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press your lower back down and roll the shoulders up.",
       "Lower slowly — the lower back stays on the floor.",
     ],
+    thumb: require('../../assets/demos/thumbs/crunch.png'),
     frames: [
       require('../../assets/demos/crunch-1.png'),
       require('../../assets/demos/crunch-2.png'),
@@ -1738,6 +1846,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Crunch down, driving your elbows toward your thighs.",
       "Rise slowly — the hips stay fixed.",
     ],
+    thumb: require('../../assets/demos/thumbs/cable-crunch.png'),
     frames: [
       require('../../assets/demos/cable-crunch-1.png'),
       require('../../assets/demos/cable-crunch-2.png'),
@@ -1754,6 +1863,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Raise your legs until they're level with the floor.",
       "Lower slowly — don't swing.",
     ],
+    thumb: require('../../assets/demos/thumbs/hanging-leg-raise.png'),
     frames: [
       require('../../assets/demos/hanging-leg-raise-1.png'),
       require('../../assets/demos/hanging-leg-raise-2.png'),
@@ -1770,6 +1880,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Raise your legs to vertical.",
       "Lower slowly without touching down.",
     ],
+    thumb: require('../../assets/demos/thumbs/lying-leg-raise.png'),
     frames: [
       require('../../assets/demos/lying-leg-raise-1.png'),
       require('../../assets/demos/lying-leg-raise-2.png'),
@@ -1786,6 +1897,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Raise your legs until they're level with the floor.",
       "Lower slowly — don't swing.",
     ],
+    thumb: require('../../assets/demos/thumbs/captains-chair-knee-raise.png'),
     frames: [
       require('../../assets/demos/captains-chair-knee-raise-1.png'),
       require('../../assets/demos/captains-chair-knee-raise-2.png'),
@@ -1802,6 +1914,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Rotate your torso side to side, arms following.",
       "Turn from the ribs, not the arms.",
     ],
+    thumb: require('../../assets/demos/thumbs/russian-twist.png'),
     frames: [
       require('../../assets/demos/russian-twist-1.png'),
       require('../../assets/demos/russian-twist-2.png'),
@@ -1818,6 +1931,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Roll out as far as you can with a flat back.",
       "Pull back with your abs — don't let the hips sag.",
     ],
+    thumb: require('../../assets/demos/thumbs/ab-wheel.png'),
     frames: [
       require('../../assets/demos/ab-wheel-1.png'),
       require('../../assets/demos/ab-wheel-2.png'),
@@ -1834,6 +1948,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Flatten your back, then extend one leg toward the floor.",
       "Return and alternate — the back never arches.",
     ],
+    thumb: require('../../assets/demos/thumbs/dead-bug.png'),
     frames: [
       require('../../assets/demos/dead-bug-1.png'),
       require('../../assets/demos/dead-bug-2.png'),
@@ -1850,6 +1965,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Drive one knee to your chest.",
       "Switch legs quickly, hips staying low.",
     ],
+    thumb: require('../../assets/demos/thumbs/mountain-climber.png'),
     frames: [
       require('../../assets/demos/mountain-climber-1.png'),
       require('../../assets/demos/mountain-climber-2.png'),
@@ -1866,6 +1982,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Press straight out and resist the twist.",
       "Hold, then return to your chest.",
     ],
+    thumb: require('../../assets/demos/thumbs/pallof-press.png'),
     frames: [
       require('../../assets/demos/pallof-press-1.png'),
       require('../../assets/demos/pallof-press-2.png'),
@@ -1882,6 +1999,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull down and across to the opposite knee, turning your torso.",
       "Return slowly, arms straight.",
     ],
+    thumb: require('../../assets/demos/thumbs/cable-woodchop.png'),
     frames: [
       require('../../assets/demos/cable-woodchop-1.png'),
       require('../../assets/demos/cable-woodchop-2.png'),
@@ -1898,6 +2016,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lift your arms, head and legs just off the ground.",
       "Hold — lower the legs if the back lifts.",
     ],
+    thumb: require('../../assets/demos/thumbs/hollow-body-hold.png'),
     frames: [
       require('../../assets/demos/hollow-body-hold-1.png'),
       require('../../assets/demos/hollow-body-hold-2.png'),
@@ -1914,6 +2033,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Lift the arms and legs to meet over your hips.",
       "Lower slowly without touching down.",
     ],
+    thumb: require('../../assets/demos/thumbs/v-up.png'),
     frames: [
       require('../../assets/demos/v-up-1.png'),
       require('../../assets/demos/v-up-2.png'),
@@ -1930,6 +2050,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Bring one elbow toward the opposite knee as that leg extends.",
       "Alternate slowly — don't pull on your neck.",
     ],
+    thumb: require('../../assets/demos/thumbs/bicycle-crunch.png'),
     frames: [
       require('../../assets/demos/bicycle-crunch-1.png'),
       require('../../assets/demos/bicycle-crunch-2.png'),
@@ -1946,6 +2067,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Start it slow and step on from the rails.",
       "Run tall with a short, quick stride.",
     ],
+    thumb: require('../../assets/demos/thumbs/running.png'),
     frames: [
       require('../../assets/demos/running-1.png'),
       require('../../assets/demos/running-2.png'),
@@ -1962,6 +2084,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Land under your hips with a short, quick stride.",
       "Hold a pace you could still speak a sentence at.",
     ],
+    thumb: require('../../assets/demos/thumbs/running.png'),
     frames: [
       require('../../assets/demos/running-1.png'),
       require('../../assets/demos/running-2.png'),
@@ -1978,6 +2101,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push off through the toes.",
       "Brisk enough to talk but not to sing.",
     ],
+    thumb: require('../../assets/demos/thumbs/walking.png'),
     frames: [
       require('../../assets/demos/walking-1.png'),
       require('../../assets/demos/walking-2.png'),
@@ -1994,6 +2118,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Walk tall — don't hang off the rails.",
       "Let the hill do the work rather than the pace.",
     ],
+    thumb: require('../../assets/demos/thumbs/treadmill-incline-walk.png'),
     frames: [
       require('../../assets/demos/treadmill-incline-walk-1.png'),
       require('../../assets/demos/treadmill-incline-walk-2.png'),
@@ -2010,6 +2135,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pedal in smooth circles rather than stamps.",
       "Keep your shoulders relaxed.",
     ],
+    thumb: require('../../assets/demos/thumbs/cycling.png'),
     frames: [
       require('../../assets/demos/cycling-1.png'),
       require('../../assets/demos/cycling-2.png'),
@@ -2026,6 +2152,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pedal in smooth circles against the resistance.",
       "Sit up — don't hang off the bars.",
     ],
+    thumb: require('../../assets/demos/thumbs/cycling.png'),
     frames: [
       require('../../assets/demos/cycling-1.png'),
       require('../../assets/demos/cycling-2.png'),
@@ -2042,6 +2169,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Drive with the legs and pull with the arms together.",
       "Settle on a pace you can hold for the whole interval.",
     ],
+    thumb: require('../../assets/demos/thumbs/assault-bike.png'),
     frames: [
       require('../../assets/demos/assault-bike-1.png'),
       require('../../assets/demos/assault-bike-2.png'),
@@ -2058,6 +2186,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Drive with the legs, swing back, then pull to the ribs.",
       "Reverse it in order: arms, body, legs.",
     ],
+    thumb: require('../../assets/demos/thumbs/rowing.png'),
     frames: [
       require('../../assets/demos/rowing-1.png'),
       require('../../assets/demos/rowing-2.png'),
@@ -2074,6 +2203,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Push and pull the handles in time with your stride.",
       "Hold a steady cadence rather than coasting.",
     ],
+    thumb: require('../../assets/demos/thumbs/elliptical.png'),
     frames: [
       require('../../assets/demos/elliptical-1.png'),
       require('../../assets/demos/elliptical-2.png'),
@@ -2090,6 +2220,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Drive each pedal down without bottoming it out.",
       "Land your whole foot on the step.",
     ],
+    thumb: require('../../assets/demos/thumbs/stair-climber.png'),
     frames: [
       require('../../assets/demos/stair-climber-1.png'),
       require('../../assets/demos/stair-climber-2.png'),
@@ -2106,6 +2237,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Turn it from the wrists, not the shoulders.",
       "Small jumps, landing on the balls of your feet.",
     ],
+    thumb: require('../../assets/demos/thumbs/jump-rope.png'),
     frames: [
       require('../../assets/demos/jump-rope-1.png'),
       require('../../assets/demos/jump-rope-2.png'),
@@ -2122,6 +2254,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Roll to breathe rather than lifting your head.",
       "Count strokes per length to keep the pace honest.",
     ],
+    thumb: require('../../assets/demos/thumbs/swimming.png'),
     frames: [
       require('../../assets/demos/swimming-1.png'),
       require('../../assets/demos/swimming-2.png'),
@@ -2138,6 +2271,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Whip one arm to shoulder height as the other drops.",
       "Keep alternating fast — the hips stay braced.",
     ],
+    thumb: require('../../assets/demos/thumbs/battle-ropes.png'),
     frames: [
       require('../../assets/demos/battle-ropes-1.png'),
       require('../../assets/demos/battle-ropes-2.png'),
@@ -2154,6 +2288,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Pull down and through, hinging at the hips.",
       "Finish past your thighs, then rise and reset.",
     ],
+    thumb: require('../../assets/demos/thumbs/skierg.png'),
     frames: [
       require('../../assets/demos/skierg-1.png'),
       require('../../assets/demos/skierg-2.png'),
@@ -2170,6 +2305,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Jump the feet back in under your hips.",
       "Stand and jump, then straight into the next.",
     ],
+    thumb: require('../../assets/demos/thumbs/burpee.png'),
     frames: [
       require('../../assets/demos/burpee-1.png'),
       require('../../assets/demos/burpee-2.png'),
@@ -2186,6 +2322,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Snap the hips forward to float it to chest height.",
       "Let it swing back — the arms only steer.",
     ],
+    thumb: require('../../assets/demos/thumbs/kettlebell-swing.png'),
     frames: [
       require('../../assets/demos/kettlebell-swing-1.png'),
       require('../../assets/demos/kettlebell-swing-2.png'),
@@ -2202,6 +2339,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
       "Walk tall with short, quick steps.",
       "Brace your ribs down — no leaning.",
     ],
+    thumb: require('../../assets/demos/thumbs/farmer-carry.png'),
     frames: [
       require('../../assets/demos/farmer-carry-1.png'),
       require('../../assets/demos/farmer-carry-2.png'),
