@@ -69,11 +69,26 @@ const PROTEIN_FLOOR_G_PER_LB = 0.5;
  *
  * The baselines are the published ranges, converted from g/kg: general
  * active intake is 1.2–1.6 g/kg (0.54–0.73 g/lb), building muscle 1.6–2.2
- * (0.73–1.0), and holding onto it in a deficit 2.0–2.4 (0.91–1.09). A cut
- * starts highest because that is the only one of the three where the protein
- * is defending tissue that is actively at risk; a gain sits between, since
- * building needs more than maintaining but has surplus calories doing some
- * of the work.
+ * (0.73–1.0), and holding onto it in a deficit 2.0–2.4 (0.91–1.09).
+ *
+ * A cut and a bulk both start at 0.90, for different reasons, and the pace
+ * term then puts the cut above. In a deficit the protein is defending tissue
+ * that is actively at risk, which is why that range starts highest. A bulk
+ * has surplus calories doing some of the work and needs less per pound in
+ * principle — but somebody who has deliberately chosen "Gain Muscle" and
+ * trains is exactly the population those muscle-building trials recruited,
+ * the top half of their range is the right default for them, and in a surplus
+ * the extra protein is close to free. 0.80 was defensible and too quiet: it
+ * put a moderately active bulker at 19% of calories, which is both below
+ * where that population should sit and low enough to read as a bug.
+ *
+ * Not 1.0 g/lb, the gym heuristic. Morton 2018 puts the plateau at 1.6 g/kg
+ * (0.73 g/lb) with the upper confidence bound at 2.2 (1.0), so 1 g/lb is the
+ * ceiling of the evidence rather than its middle. Setting it as the base
+ * would also push every active bulker into the 1.1 cap, which would make the
+ * cap the answer again instead of the limit. Activity still carries the
+ * keenest of them to 1.04, and anyone who wants the round number can type it
+ * on the Goals screen.
  *
  * Then four adjustments, each small enough that no single answer swings the
  * result and none of them can reach the ceiling alone:
@@ -100,7 +115,7 @@ export function proteinTargetGPerLb(
   rateLbPerWeek: number,
   who: { sex: Sex; age: number; activityMultiplier: number },
 ): number {
-  const base = goalType === 'lose' ? 0.9 : goalType === 'gain' ? 0.8 : 0.7;
+  const base = goalType === 'lose' ? 0.9 : goalType === 'gain' ? 0.9 : 0.7;
 
   // Referenced to Moderate (1.55), so this is 0 for the middle answer and
   // runs −0.14 (Not Active) to +0.14 (Very Active).
