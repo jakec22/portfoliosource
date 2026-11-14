@@ -44,6 +44,7 @@ import { KeyInsightsScreen } from './src/screens/KeyInsightsScreen';
 import { BuildMealScreen } from './src/screens/BuildMealScreen';
 import { GoalWizardScreen } from './src/screens/GoalWizardScreen';
 import { WorkoutLibraryScreen } from './src/screens/WorkoutLibraryScreen';
+import { ExerciseLibraryScreen } from './src/screens/ExerciseLibraryScreen';
 import { RecoveryTimerScreen } from './src/screens/RecoveryTimerScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
@@ -129,6 +130,7 @@ function ExerciseStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ExerciseHome" component={ExerciseScreen as any} />
       <Stack.Screen name="WorkoutLibrary" component={WorkoutLibraryScreen as any} />
+      <Stack.Screen name="ExerciseLibrary" component={ExerciseLibraryScreen as any} />
       <Stack.Screen
         name="WorkoutTemplate"
         component={WorkoutTemplateScreen as any}

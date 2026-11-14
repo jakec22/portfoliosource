@@ -10,58 +10,22 @@ leave it ticked.
 
 ---
 
-## Browse the exercise library from the Exercise tab
-
-**What.** A screen reached from the Exercise tab that lists the whole exercise
-catalog to read rather than to pick from — the same 156 exercises, the same
-rows the picker now draws, but as somewhere to go and look.
-
-**Why.** The catalog and its demos currently only exist inside a modal you
-open in order to answer a different question. You cannot browse the library
-unless you are already mid-way through building a workout, which means the
-demos — the drawings, the cues, the muscles — are only reachable by someone
-who has already decided what they are doing. The obvious use is the opposite:
-not sure what to train, open the list, read.
-
-**What makes it cheap.** Nearly all of it exists.
-
-- `EXERCISE_CATALOG` in `utils/exerciseList.ts` is the data, already grouped.
-- `EXERCISE_DEMOS` in `data/exerciseDemos.ts` has a drawing, equipment,
-  muscles and cues for 136 of them.
-- `ExerciseDemoSheet` is the detail view, already built.
-- The picker's rows — group card, thumbnail tile, "Barbell · Quads" subtitle,
-  sticky headings — are the design this should match. They are currently
-  inline in `ExercisePickerModal`; lifting them into a shared `ExerciseRow`
-  is the first step, and the picker should then use it too rather than the
-  two drifting apart.
-
-**What is actually new.** The route and screen; a search field that filters
-without the picker's "use as typed" row, which has no meaning here; and the
-question of what tapping a row does. In the picker a tap selects. Here it
-should open the demo, which means `ExerciseRow` needs to take its press
-behaviour from the caller rather than assuming.
-
-**Worth deciding first.** Whether this replaces the picker's own browsing or
-sits beside it. Two lists of the same 156 things, reached differently, is the
-kind of thing that looks fine when built and confusing a month later.
-
----
-
 ## Nothing in the demo feature has been seen on a device
 
 Everything below rendered correctly in a mock and type-checks, and none of it
 has been run on hardware. These are the specific things a mock cannot answer.
 
-- **40pt thumbnails in the picker.** Line art at that size is exactly what
-  reads fine in a render and poorly in a gym. If they do not hold up, the
-  fallback is the row without a tile, not a bigger tile.
+- **40pt thumbnails**, in the picker and the library both. Line art at that
+  size is exactly what reads fine in a render and poorly in a gym. If they do
+  not hold up, the fallback is the row without a tile, not a bigger tile.
 - **The demo loop.** 420ms a frame, 140ms crossfade, played 0,1,2,1. Tempo is
   a judgement call made without watching it.
 - **`tintColor` on `Animated.Image`.** Types accept it; behaviour on both
   platforms is unverified.
-- **153 rows mounting at once.** The thumbnails were cut to 128px to keep this
-  under ~10 MB of decoded bitmap. Worth confirming the picker opens without a
-  stall on an older phone, and moving to a `SectionList` if it does not.
+- **153 rows mounting at once**, now in two screens. The thumbnails were cut
+  to 128px to keep this under ~10 MB of decoded bitmap. Worth confirming both
+  the picker and the library open without a stall on an older phone, and
+  moving to a `SectionList` if either does not.
 - **The saved-workout swipe** (friction 1, open at a third of the tray,
   tap-to-close, one row open at a time).
 - **The recovery alert** with the phone locked and Focus on.

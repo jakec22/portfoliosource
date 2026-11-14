@@ -23,6 +23,7 @@ import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
 import { StartSessionSheet, type StartChoice } from '../components/StartSessionSheet';
+import { EXERCISE_CATALOG } from '../utils/exerciseList';
 import { useTemplateActions } from '../hooks/useTemplateActions';
 
 interface Props {
@@ -33,6 +34,10 @@ interface Props {
 const SPLIT_DAYS = 30;
 // Weeks shown in the consistency grid.
 const CALENDAR_WEEKS = 12;
+// How many exercises the library holds, for its one line of subtitle. Counted
+// rather than written down, so it cannot go stale the next time one is added.
+const CATALOG_SIZE = EXERCISE_CATALOG.reduce((n, g) => n + g.exercises.length, 0);
+
 // Weeks of heat/cold behind the current one. Eight rather than the grid's
 // twelve: these bars are a quarter of the width, and a week of sauna is a
 // habit that changes over a month or two rather than over a season.
@@ -167,6 +172,31 @@ export function ExerciseScreen({ navigation }: Props) {
           </View>
         </TouchableOpacity>
 
+        {/* The catalog, to read rather than to pick from.
+            Quieter than the start button on purpose: this is the thing you
+            open when you are not training, and it must not compete with the
+            thing you open when you are. It sits here rather than inside the
+            start sheet because the sheet is for starting, and looking up how
+            a movement is done is the opposite of committing to one. */}
+        <TouchableOpacity
+          style={styles.browseRow}
+          onPress={() => navigation.navigate('ExerciseLibrary')}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Browse exercises. ${CATALOG_SIZE} in the library.`}
+        >
+          <View style={styles.browseTile}>
+            <Icon name="library" size="md" color={c.primary} />
+          </View>
+          <View style={styles.browseText}>
+            <Text style={styles.browseTitle}>Exercises</Text>
+            <Text style={styles.browseSub}>
+              {CATALOG_SIZE} in the library, most with a demo
+            </Text>
+          </View>
+          <Icon name="forward" size="md" color={c.textFaint} />
+        </TouchableOpacity>
+
         {/* Training summary — consistency ring and where the volume went.
             Full browsing lives in Key Insights. */}
         {hasTrained && (
@@ -281,7 +311,7 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     backgroundColor: c.primary,
     borderRadius: radius.card,
     padding: space.lg,
-    marginBottom: space.xl,
+    marginBottom: space.md,
     shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -290,6 +320,27 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   },
   startBtnTitle: { ...type.subhead(c), fontFamily: c.fontBodyBold, color: c.onPrimary },
   startBtnSub: { ...type.caption(c), fontFamily: c.fontBody, color: `${c.onPrimary}CC`, marginTop: space.xxs, maxWidth: 240 },
+
+  browseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: c.cardMuted,
+    borderRadius: radius.card,
+    padding: space.md,
+    marginBottom: space.xl,
+  },
+  browseTile: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.control,
+    backgroundColor: c.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  browseText: { flex: 1, minWidth: 0 },
+  browseTitle: { ...type.bodyStrong(c), color: c.text },
+  browseSub: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted, marginTop: space.xxs },
 
   sectionHeader: {
     flexDirection: 'row',
