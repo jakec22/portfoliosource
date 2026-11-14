@@ -53,42 +53,47 @@ const LB_PER_KG = 2.2046;
 /**
  * The band the protein target lives in, in grams per pound of body weight.
  *
- * 1.1 g/lb (≈2.4 g/kg) is the upper end of what the literature supports for
- * preserving muscle in a deficit, and it is a ceiling rather than a
- * destination: it exists to stop the terms below compounding into a number
- * nobody can eat, and it should bind for the few people who genuinely sit at
- * the top of every one of them. The floor (≈1.1 g/kg) sits above the 0.8 g/kg
- * RDA, because somebody tracking macros in a fitness app is not the sedentary
- * reference adult the RDA was set for.
+ * 1.2 g/lb (≈2.65 g/kg) is a ceiling rather than a destination: it exists to
+ * stop the terms below compounding into a number nobody can eat, and it
+ * should bind only for the few people who sit at the top of every one of
+ * them. It is set above the ~2.4 g/kg where the evidence for added benefit
+ * runs out, deliberately — a cap that sits *at* the top of the useful range
+ * ends up being the answer for everyone near it rather than the limit on a
+ * few, which is what happened when this was a flat 1.1 and bound in nearly
+ * half of all plans. Intakes at this level remain well inside what is safe
+ * for healthy adults; they are simply past where more is known to help.
+ *
+ * The floor (≈1.1 g/kg) sits above the 0.8 g/kg RDA, because somebody
+ * tracking macros in a fitness app is not the sedentary reference adult the
+ * RDA was set for.
  */
-const PROTEIN_CAP_G_PER_LB = 1.1;
+const PROTEIN_CAP_G_PER_LB = 1.2;
 const PROTEIN_FLOOR_G_PER_LB = 0.5;
 
 /**
  * Protein, in grams per pound of body weight, for this person and this goal.
  *
- * The baselines are the published ranges, converted from g/kg: general
- * active intake is 1.2–1.6 g/kg (0.54–0.73 g/lb), building muscle 1.6–2.2
- * (0.73–1.0), and holding onto it in a deficit 2.0–2.4 (0.91–1.09).
+ * A cut and a bulk both start at 1.0 g/lb — the round number most lifters
+ * already have in their head — and the pace term then puts the cut above it.
+ * Moderate is the reference level for activity, so a moderately active
+ * person training toward either goal lands on exactly 1.0.
  *
- * A cut and a bulk both start at 0.90, for different reasons, and the pace
- * term then puts the cut above. In a deficit the protein is defending tissue
- * that is actively at risk, which is why that range starts highest. A bulk
- * has surplus calories doing some of the work and needs less per pound in
- * principle — but somebody who has deliberately chosen "Gain Muscle" and
- * trains is exactly the population those muscle-building trials recruited,
- * the top half of their range is the right default for them, and in a surplus
- * the extra protein is close to free. 0.80 was defensible and too quiet: it
- * put a moderately active bulker at 19% of calories, which is both below
- * where that population should sit and low enough to read as a bug.
+ * This is a product decision taken knowingly against the centre of the
+ * evidence, and it is worth writing down which is which. Morton 2018 puts
+ * the plateau for lean mass gain at 1.6 g/kg (0.73 g/lb), with the upper
+ * confidence bound at 2.2 (1.0); the ISSN range for building muscle is
+ * 1.4–2.0 g/kg and for a deficit 2.0–2.4. So 1.0 g/lb is the top of what the
+ * data supports rather than its middle: nobody is short-changed by it and
+ * nobody is harmed by it, but the marginal gram above ~0.75 is not doing
+ * demonstrable work. It is chosen anyway because a target the user does not
+ * believe is a target they override, and 1 g/lb is the number this audience
+ * trusts.
  *
- * Not 1.0 g/lb, the gym heuristic. Morton 2018 puts the plateau at 1.6 g/kg
- * (0.73 g/lb) with the upper confidence bound at 2.2 (1.0), so 1 g/lb is the
- * ceiling of the evidence rather than its middle. Setting it as the base
- * would also push every active bulker into the 1.1 cap, which would make the
- * cap the answer again instead of the limit. Activity still carries the
- * keenest of them to 1.04, and anyone who wants the round number can type it
- * on the Goals screen.
+ * Maintain stays at 0.70 (1.54 g/kg), inside the 1.2–1.6 band for general
+ * active intake. Holding muscle is not building it and is not defending it
+ * under a deficit, so it is the one goal here with no reason to climb. That
+ * does leave a visible step between maintaining and either training goal,
+ * which is honest rather than tidy.
  *
  * Then four adjustments, each small enough that no single answer swings the
  * result and none of them can reach the ceiling alone:
@@ -115,7 +120,7 @@ export function proteinTargetGPerLb(
   rateLbPerWeek: number,
   who: { sex: Sex; age: number; activityMultiplier: number },
 ): number {
-  const base = goalType === 'lose' ? 0.9 : goalType === 'gain' ? 0.9 : 0.7;
+  const base = goalType === 'maintain' ? 0.7 : 1.0;
 
   // Referenced to Moderate (1.55), so this is 0 for the middle answer and
   // runs −0.14 (Not Active) to +0.14 (Very Active).
