@@ -68,6 +68,13 @@ entitlement, which only takes effect in a new binary — pushing 1.0.7 over the
 air would ship the recovery alert without the thing that lets it through
 Focus, which is the whole point of it.
 
+The widget is now a second reason. `targets/widget/index.swift` is compiled
+into the extension, so no amount of JS pushed over the air changes a pixel of
+it; the redesigned layout and the over-state fix only exist in a new build.
+The payload is unchanged, so an old binary keeps working against new JS — it
+just keeps the old layout, and keeps showing "0 cal left" in the accent color
+on a day somebody went over.
+
 ---
 
 ## Rotate the USDA API key
