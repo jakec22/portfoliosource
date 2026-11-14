@@ -233,6 +233,57 @@ chart lives on `WorkoutSummaryScreen`, not on the live workout screen — an
 earlier pass put it on the set logger, where the app only ever shows a bpm
 readout in the status bar.
 
+## Apple Watch screenshots
+
+`marketing/appstore/appstore-watch-{1..5}.png`, 422 × 514 — the Apple Watch
+Ultra 3 (49mm) slot, which is the only Watch size App Store Connect asks for.
+
+| # | Shows |
+|---|-------|
+| 1 | The glance: calorie ring, Protein / Carbs / Fat |
+| 2 | Live workout: rest timer, elapsed, heart rate, active calories |
+| 3 | The set list, checked off from the wrist |
+| 4 | Recovery timer counting down, with heart rate |
+| 5 | Workout Complete recap |
+
+```sh
+node marketing/appstore/watch.js
+```
+
+These are **not** marketing compositions like the phone slides. At 211 points
+across there is no room for a headline, a device frame or an interpretation:
+the screen is the screenshot. So every size, weight, colour, string and
+spacing in `watch.js` is copied out of `targets/watch/content.swift`, and the
+faces are the `.ttf` files the watch target itself ships. The page is authored
+at 211 × 257 CSS and rendered at `deviceScaleFactor: 2`, so one CSS pixel is
+one SwiftUI point and 211 × 2 lands exactly on 422.
+
+Three things to hold on to:
+
+* **Calibrate, don't guess.** The 58pt top inset, the 54pt button height, the
+  white (not dark) label on a `.borderedProminent` button and the status clock
+  were all measured against a real simulator grab. `SCREENS.calib` rebuilds the
+  empty state for exactly that purpose — render it beside a fresh grab and the
+  chrome should land on the same pixels.
+* **Two screens are shown slightly scrolled**, because the glance and the
+  recovery timer both run past 257 points on the device. Scrolled is a state
+  the watch reaches with one notch of the crown; a half-cut row at the bottom
+  edge is not a layout to ship a picture of.
+* **The numbers add up.** The day's calorie goal is derived from the macro
+  grams at 4/4/9 the way `buildPlan` derives it, and what has been eaten is
+  the sum of what the bars show. A screenshot whose arithmetic the app could
+  never produce is a small lie that someone will check.
+
+What this replaced: the listing's only Watch screenshot was the unsynced
+empty state — a sync glyph and "Open Holy Macro on your iPhone to sync." The
+store was advertising a watch app that could not do anything.
+
+One face is substituted. `WatchType.readout` is SF Rounded, which cannot be
+embedded here, so the clocks and heart rates use Manrope Bold — the nearest
+geometric face the app already ships. SF Rounded tabularises its digits but
+not its colon; Manrope's `tnum` widens both, so the colons opt out
+individually or the clock gains a gap the device does not have.
+
 ## Versioning
 
 `version` in `app.json` is the marketing version and is the only one a human

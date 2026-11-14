@@ -1,5 +1,7 @@
-# Intermediates: gen.py rewrites these, shoot.js reads them.
+# Intermediates: gen.py rewrites these, shoot.js reads them, and watch.js
+# writes its own (several MB of embedded fonts) on every run.
 slide*.html
+watch.html
 # Anything rendered at a prefix other than the committed `appstore-*`.
 preview-*.png
 check-*.png
