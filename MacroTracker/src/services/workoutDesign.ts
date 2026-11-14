@@ -51,15 +51,34 @@ export interface DesignedPlan {
 /**
  * The equipment tags each answer admits.
  *
- * Cardio is in every set because a rower is a rower whether or not there is a
- * squat rack beside it, and a program that cannot include conditioning for
- * someone training at home is worse for exactly the person this feature is
- * for. Kettlebell rides with the home set, which is where one usually is.
+ * Cardio is in every set because a program that cannot include conditioning
+ * for someone training at home is worse for exactly the person this feature
+ * is for. Kettlebell rides with the home set, which is where one usually is.
  */
 const EQUIPMENT_FOR: Record<EquipmentAccess, string[]> = {
   gym: ['Barbell', 'Dumbbell', 'Machine', 'Cable', 'Bodyweight', 'Kettlebell', 'Cardio'],
   home: ['Dumbbell', 'Bodyweight', 'Kettlebell', 'Cardio'],
   bodyweight: ['Bodyweight', 'Cardio'],
+};
+
+/**
+ * Which cardio each answer can actually do.
+ *
+ * The `Cardio` tag covers both a pair of trainers and a Concept2 rower, and
+ * that distinction does not matter for "a gym" and matters entirely for the
+ * other two. Without this, "Just me — no equipment at all" admitted fourteen
+ * cardio exercises of which twelve need a machine, and a generated bodyweight
+ * program duly finished its session on a Rowing Machine. Observed in a real
+ * response, not guessed at.
+ *
+ * Split by what each answer promises rather than by what is plausible:
+ * "no equipment at all" means exactly that, so it gets the two that need
+ * nothing; "dumbbells at home" implies a rope but not an Assault Bike.
+ * Everything else stays behind the gym answer, where there is one.
+ */
+const CARDIO_FOR: Partial<Record<EquipmentAccess, string[]>> = {
+  bodyweight: ['Running', 'Walking'],
+  home: ['Running', 'Walking', 'Jump Rope'],
 };
 
 /**
@@ -74,11 +93,17 @@ const EQUIPMENT_FOR: Record<EquipmentAccess, string[]> = {
  */
 export function allowedExercises(equipment: EquipmentAccess): string[] {
   const ok = new Set(EQUIPMENT_FOR[equipment]);
+  const cardio = CARDIO_FOR[equipment];
+  const okCardio = cardio ? new Set(cardio) : null;
   const out: string[] = [];
   for (const group of EXERCISE_CATALOG) {
     for (const name of group.exercises) {
       const demo = exerciseDemo(name);
-      if (demo?.equipment && ok.has(demo.equipment)) out.push(name);
+      if (!demo?.equipment || !ok.has(demo.equipment)) continue;
+      // Cardio is the one tag that does not say what it needs, so for the two
+      // answers that promise no machines it is narrowed by name.
+      if (demo.equipment === 'Cardio' && okCardio && !okCardio.has(name)) continue;
+      out.push(name);
     }
   }
   return out;
