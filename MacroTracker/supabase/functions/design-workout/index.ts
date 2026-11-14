@@ -50,6 +50,22 @@ Rules you must not break:
 - Across the week, cover the whole body. Do not give three days that are all chest.
 - Respect the session length. Roughly one exercise per 7-9 minutes, including rest.
 
+Program for the goal they picked. This is what the week is for, so it decides
+rep ranges and how the days are built:
+- "muscle": mostly 6-12 reps, 3-4 sets, compounds led by enough isolation work to
+  cover each muscle group across the week.
+- "strength": 3-6 reps on the main compound lifts, 4-5 sets, fewer exercises per
+  session so there is room to rest between them. Isolation only in support.
+- "fatloss": keep the resistance work that protects muscle — 8-15 reps — and
+  finish sessions with conditioning. Favor compounds over isolation; the lifting
+  is there so they lose fat rather than muscle.
+- "fitness": 8-12 reps, balanced across the body, with some conditioning each week.
+
+If a sex is given, use it only to choose sensible starting variations where
+average strength differs — a beginner may need an assisted or inclined version
+of a pulling or pressing movement. Never use it to assume which muscles someone
+wants to train, or to write a different kind of program.
+
 Name each day for what it trains ("Push", "Pull", "Legs", "Full Body A"), not
 "Day 1". Name the program for what it is.
 
@@ -70,7 +86,8 @@ Deno.serve(async (req: Request) => {
   try {
     if (!GEMINI_API_KEY) return json({ error: 'GEMINI_API_KEY not configured' }, 500);
 
-    const { allowed, days, minutes, experience, goal, recent } = await req.json();
+    const { allowed, days, minutes, experience, goal, sex, age, nutritionGoal, recent } =
+      await req.json();
 
     if (!Array.isArray(allowed) || allowed.length === 0) {
       return json({ error: 'No exercises available' }, 400);
@@ -81,6 +98,19 @@ Deno.serve(async (req: Request) => {
     const vocabulary = allowed.map(String);
     const dayCount = Math.max(1, Math.min(MAX_DAYS, Math.round(Number(days) || 3)));
     const sessionMinutes = Math.max(15, Math.min(120, Math.round(Number(minutes) || 45)));
+
+    // Everything below here goes into a prompt, so each field is matched
+    // against a known set rather than interpolated as it arrives. The client
+    // is our own app, but a body is a body: an unrecognized value becomes
+    // absent context instead of a sentence somebody else wrote.
+    const pick = <T extends string>(v: unknown, allowedValues: readonly T[]): T | null =>
+      allowedValues.includes(v as T) ? (v as T) : null;
+
+    const trainingGoal = pick(goal, ['muscle', 'strength', 'fatloss', 'fitness'] as const);
+    const theirSex = pick(sex, ['male', 'female'] as const);
+    const theirExperience = pick(experience, ['new', 'returning', 'experienced'] as const);
+    const eating = pick(nutritionGoal, ['lose', 'maintain', 'gain'] as const);
+    const theirAge = Number(age) >= 13 && Number(age) <= 100 ? Math.round(Number(age)) : null;
 
     // The enum is what makes the vocabulary binding rather than advisory.
     const responseSchema = {
@@ -118,10 +148,21 @@ Deno.serve(async (req: Request) => {
     // Everything the app already knows, so the program is about this person
     // rather than about nobody. All of it optional — a first-run user has none.
     const context = [
+      // First, because it is the one the program is built around.
+      `Training goal: ${trainingGoal ?? 'fitness'}`,
       `Days per week: ${dayCount}`,
       `Session length: about ${sessionMinutes} minutes`,
-      experience ? `Experience: ${String(experience)}` : null,
-      goal ? `Their nutrition goal is to ${String(goal)} weight` : null,
+      theirExperience ? `Experience: ${theirExperience}` : null,
+      theirSex ? `Sex: ${theirSex}` : null,
+      theirAge ? `Age: ${theirAge}` : null,
+      // Secondary, and named as what it is. It says how much food there is to
+      // recover on, not what the training is for — if the two disagree, the
+      // training goal above is the one they chose for this program.
+      eating
+        ? `They are eating to ${eating} weight, so recovery capacity is ` +
+          `${eating === 'lose' ? 'limited' : eating === 'gain' ? 'good' : 'normal'}. ` +
+          `This is context, not the goal of the program.`
+        : null,
       recent && typeof recent === 'object' && Object.keys(recent).length > 0
         ? `What they have actually trained in the last 30 days, as a share of total ` +
           `volume: ${Object.entries(recent)

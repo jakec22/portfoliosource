@@ -11,7 +11,7 @@ import { TemplateRow } from '../components/TemplateRow';
 import { templateRows } from '../utils/templateOrder';
 import { useTemplateActions } from '../hooks/useTemplateActions';
 import { DesignWorkoutSheet } from '../components/DesignWorkoutSheet';
-import { designPlan } from '../services/workoutDesign';
+import { designPlan, type DesignRequest } from '../services/workoutDesign';
 import { trainingSplit } from '../utils/trainingSplit';
 
 interface Props {
@@ -59,7 +59,7 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
     openRow.current = methods;
   }, []);
 
-  async function handleDesign(req: { days: number; minutes: number; equipment: any }) {
+  async function handleDesign(req: Omit<DesignRequest, 'experience'>) {
     setBusy(true);
     try {
       // What they have actually trained, so the program can lean away from
@@ -177,6 +177,7 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
       <DesignWorkoutSheet
         visible={designing}
         busy={busy}
+        defaultSex={profile?.sex}
         onClose={() => setDesigning(false)}
         onSubmit={handleDesign}
       />

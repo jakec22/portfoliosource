@@ -2,15 +2,37 @@ import { supabase } from './supabase';
 import { EXERCISE_CATALOG } from '../utils/exerciseList';
 import { exerciseDemo } from '../data/exerciseDemos';
 import { lastPerformance } from '../utils/exerciseHistory';
+import type { Sex } from '../utils/tdee';
 import type { TemplateExercise, UserProfile, WorkoutSession, WorkoutTemplate } from '../types';
 
 /** What the user can lift with, as the sheet asks it. */
 export type EquipmentAccess = 'gym' | 'home' | 'bodyweight';
 
+/**
+ * What they want out of training — which is not what they want out of eating.
+ *
+ * The function was already being told the nutrition goal from the profile, and
+ * that is not the same question: somebody holding their weight steady can
+ * still want to add 40 lb to their squat, and somebody in a deficit still has
+ * to decide whether the lifting is there to build or to protect. Conflating
+ * the two meant the single most important input to a program — what it is for
+ * — was being inferred from a calorie target.
+ *
+ * These four drive rep ranges, how much isolation work appears, and whether
+ * conditioning is in the week at all. The nutrition goal still goes too, as
+ * secondary context about the calories available to recover on.
+ */
+export type TrainingGoal = 'muscle' | 'strength' | 'fatloss' | 'fitness';
+
 export interface DesignRequest {
   days: number;
   minutes: number;
   equipment: EquipmentAccess;
+  goal: TrainingGoal;
+  // Prefilled from the profile where the Goal Wizard has run, and shown in
+  // the sheet so it can be corrected. Optional because the wizard is skippable
+  // and a missing answer is better than a guessed one.
+  sex?: Sex;
   experience: 'new' | 'returning' | 'experienced';
 }
 
@@ -76,7 +98,14 @@ export async function designPlan(
       days: req.days,
       minutes: req.minutes,
       experience: req.experience,
-      goal: opts.profile?.goalType,
+      // `goal` is the training goal they chose. The nutrition goal travels
+      // under its own name now — the two were previously one field, which is
+      // what made the program unable to tell "eating at a deficit" apart from
+      // "training for fat loss".
+      goal: req.goal,
+      sex: req.sex,
+      age: opts.profile?.age,
+      nutritionGoal: opts.profile?.goalType,
       recent: opts.recentSplit,
     },
   });
