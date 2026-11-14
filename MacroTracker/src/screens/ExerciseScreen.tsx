@@ -173,11 +173,18 @@ export function ExerciseScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         {/* The catalog, to read rather than to pick from.
-            Quieter than the start button on purpose: this is the thing you
-            open when you are not training, and it must not compete with the
-            thing you open when you are. It sits here rather than inside the
-            start sheet because the sheet is for starting, and looking up how
-            a movement is done is the opposite of committing to one. */}
+            It sits here rather than inside the start sheet because the sheet
+            is for starting, and looking up how a movement is done is the
+            opposite of committing to one.
+
+            One line, with the count at the trailing edge where a settings row
+            puts its value. It was two lines with a sentence under the name,
+            and at that height it read as a second button a few points below
+            the first — the page opened with a pair rather than with one
+            action. Quiet has to be weight, not only colour. The sentence said
+            "most with a demo", which is a feature pitch on a navigation row;
+            the library's own footnote says it more precisely to someone who
+            has arrived and can act on it. */}
         <TouchableOpacity
           style={styles.browseRow}
           onPress={() => navigation.navigate('ExerciseLibrary')}
@@ -188,12 +195,8 @@ export function ExerciseScreen({ navigation }: Props) {
           <View style={styles.browseTile}>
             <Icon name="library" size="md" color={c.primary} />
           </View>
-          <View style={styles.browseText}>
-            <Text style={styles.browseTitle}>Exercises</Text>
-            <Text style={styles.browseSub}>
-              {CATALOG_SIZE} in the library, most with a demo
-            </Text>
-          </View>
+          <Text style={styles.browseTitle}>Exercises</Text>
+          <Text style={styles.browseCount}>{CATALOG_SIZE}</Text>
           <Icon name="forward" size="md" color={c.textFaint} />
         </TouchableOpacity>
 
@@ -327,7 +330,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     gap: space.md,
     backgroundColor: c.cardMuted,
     borderRadius: radius.card,
-    padding: space.md,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
     marginBottom: space.xl,
   },
   browseTile: {
@@ -338,9 +342,8 @@ const makeStyles = (c: Theme) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  browseText: { flex: 1, minWidth: 0 },
-  browseTitle: { ...type.bodyStrong(c), color: c.text },
-  browseSub: { ...type.caption(c), fontFamily: c.fontBody, color: c.textMuted, marginTop: space.xxs },
+  browseTitle: { ...type.bodyStrong(c), color: c.text, flex: 1, minWidth: 0 },
+  browseCount: { ...type.body(c), fontFamily: c.fontBody, color: c.textMuted },
 
   sectionHeader: {
     flexDirection: 'row',
