@@ -72,7 +72,8 @@ Confirmed, shipping:
   adaptive updates driven by logged body weight, hydration target.
 - **Training** — workout templates, live session with sets, reps, weight and
   set type, exercise reordering, editable completed workouts, body-region
-  coverage heat map, per-exercise progress charts, per-exercise demos.
+  coverage heat map, per-exercise progress charts, per-exercise demos,
+  AI-designed training programmes.
 - **Physiology** — heart rate with training zones, active energy read from the
   platform health store.
 - **Review** — history by day, key insights (streak, logged days, weight
@@ -91,6 +92,15 @@ Constraints:
   recovery sessions alike land in Fitness, recovery as "Other".
 - `BodyHeatMap` replaced an earlier training-split donut; the donut must not
   return.
+- **An AI-written programme is reviewed before it is saved, and never
+  prescribes a weight.** `design-workout` is constrained to the exercises the
+  app can illustrate, filtered to what the user says they have, by putting
+  that list in the response schema as an `enum` — so it cannot return a
+  movement with no demo, or a cable machine to somebody in a bedroom. It
+  returns sets and reps only; loads come from the user's own history or stay
+  blank. What comes back lands on a review screen as ordinary
+  `WorkoutTemplate`s, so everything else — starting, editing, sharing, the
+  watch — already works, and nothing reaches My Workouts unseen.
 - **The exercise demos are drawn, and only the drawings are borrowed.** The
   illustrations are @bryllim/workout-guide — three frames an exercise, by Bryl
   Lim building on Everkinetic, CC BY-SA 4.0, which permits commercial use

@@ -45,6 +45,7 @@ import { BuildMealScreen } from './src/screens/BuildMealScreen';
 import { GoalWizardScreen } from './src/screens/GoalWizardScreen';
 import { WorkoutLibraryScreen } from './src/screens/WorkoutLibraryScreen';
 import { ExerciseLibraryScreen } from './src/screens/ExerciseLibraryScreen';
+import { WorkoutPlanReviewScreen } from './src/screens/WorkoutPlanReviewScreen';
 import { RecoveryTimerScreen } from './src/screens/RecoveryTimerScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
@@ -131,6 +132,11 @@ function ExerciseStack() {
       <Stack.Screen name="ExerciseHome" component={ExerciseScreen as any} />
       <Stack.Screen name="WorkoutLibrary" component={WorkoutLibraryScreen as any} />
       <Stack.Screen name="ExerciseLibrary" component={ExerciseLibraryScreen as any} />
+      <Stack.Screen
+        name="WorkoutPlanReview"
+        component={WorkoutPlanReviewScreen as any}
+        options={{ presentation: 'modal' }}
+      />
       <Stack.Screen
         name="WorkoutTemplate"
         component={WorkoutTemplateScreen as any}

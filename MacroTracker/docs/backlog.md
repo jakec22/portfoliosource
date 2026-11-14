@@ -32,6 +32,27 @@ has been run on hardware. These are the specific things a mock cannot answer.
 
 ---
 
+## `design-workout` has to be deployed before it works
+
+The Edge Function is committed; it is not live. Until it is, "Build me a
+workout" returns an error.
+
+```sh
+supabase functions deploy design-workout
+```
+
+No new secret — it reads the same `GEMINI_API_KEY` that `analyze-meal`
+already uses, and shares that key's free-tier quota, which is worth
+remembering if meal analysis ever starts returning 429s after a day of
+programme generation.
+
+Worth doing once it is live: generate a few programmes against different
+answers and read them. Whether Flash writes a *sensible* three-day split is
+an empirical question and nothing here answers it — the enum guarantees every
+exercise is real and performable, not that the week is well put together.
+
+---
+
 ## 1.0.7 has to be a native build
 
 Not an OTA update. `app.json` declares the Time Sensitive notifications

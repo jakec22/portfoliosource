@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
@@ -10,6 +10,9 @@ import { Icon } from '../components/Icon';
 import { TemplateRow } from '../components/TemplateRow';
 import { templateRows } from '../utils/templateOrder';
 import { useTemplateActions } from '../hooks/useTemplateActions';
+import { DesignWorkoutSheet } from '../components/DesignWorkoutSheet';
+import { designPlan } from '../services/workoutDesign';
+import { trainingSplit } from '../utils/trainingSplit';
 
 interface Props {
   navigation: any;
@@ -43,11 +46,43 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
   // why the row sliding out from under its actions is acceptable — and until
   // now nothing enforced it, so a list could be left with three rows open
   // and no way to tell which one a tap belonged to.
+  // Generating a programme. The sheet stays up while it runs — it is a few
+  // seconds of somebody else's server, and sending them back to an unchanged
+  // list with a spinner somewhere else would read as nothing having happened.
+  const [designing, setDesigning] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const profile = useStore((s) => s.profile);
+
   const openRow = useRef<SwipeableMethods | null>(null);
   const handleOpen = useCallback((methods: SwipeableMethods) => {
     if (openRow.current && openRow.current !== methods) openRow.current.close();
     openRow.current = methods;
   }, []);
+
+  async function handleDesign(req: { days: number; minutes: number; equipment: any }) {
+    setBusy(true);
+    try {
+      // What they have actually trained, so the programme can lean away from
+      // it. Absent on a first run, which the function reads as a beginner.
+      const split = trainingSplit(history, 30, c);
+      const recent = Object.fromEntries(split.map((s) => [s.category, s.share]));
+
+      // Not asked for — the app has watched them and they would only guess.
+      const experience =
+        history.length === 0 ? 'new' : history.length < 10 ? 'returning' : 'experienced';
+
+      const plan = await designPlan({ ...req, experience }, { profile, recentSplit: recent });
+      setDesigning(false);
+      navigation.navigate('WorkoutPlanReview', { plan });
+    } catch (e) {
+      Alert.alert(
+        'Could not build a programme',
+        `${(e as Error)?.message ?? e}\n\nYou can try again, or build one yourself.`
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -92,6 +127,18 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
               No saved workouts yet. Tap “+ Create” to build one with your go-to
               exercises, sets and reps — or add one from a link someone shared.
             </Text>
+            {/* The moment this is for: nothing saved, and no idea what to
+                make. The offer belongs here rather than in a menu. */}
+            <TouchableOpacity
+              style={styles.designCta}
+              onPress={() => setDesigning(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Build me a workout"
+            >
+              <Icon name="aiEstimate" size="md" color={c.onPrimary} />
+              <Text style={styles.designCtaText}>Build me a workout</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <>
@@ -111,9 +158,28 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
             <Text style={styles.hint}>
               Tap to start · swipe left to edit, share or delete
             </Text>
+            {/* Quiet, at the foot, for somebody who has workouts but has run
+                out of ideas. Not a card competing with their own. */}
+            <TouchableOpacity
+              style={styles.designLink}
+              onPress={() => setDesigning(true)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Build me a workout"
+            >
+              <Icon name="aiEstimate" size="sm" color={c.primary} />
+              <Text style={styles.designLinkText}>Build me one</Text>
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
+
+      <DesignWorkoutSheet
+        visible={designing}
+        busy={busy}
+        onClose={() => setDesigning(false)}
+        onSubmit={handleDesign}
+      />
     </SafeAreaView>
   );
 }
@@ -154,4 +220,26 @@ const makeStyles = (c: Theme) =>
       textAlign: 'center',
       marginTop: space.md,
     },
+
+    designCta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: space.sm,
+      backgroundColor: c.primary,
+      borderRadius: radius.card,
+      paddingVertical: space.md,
+      marginTop: space.lg,
+    },
+    designCtaText: { ...type.bodyStrong(c), color: c.onPrimary },
+
+    designLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: space.xs,
+      paddingVertical: space.md,
+      marginTop: space.xs,
+    },
+    designLinkText: { ...type.bodyStrong(c), color: c.primary },
   });
