@@ -35,7 +35,7 @@ const EQUIPMENT: { key: EquipmentAccess; label: string; detail: string }[] = [
  * This is for somebody who does not know what to train, so every question is
  * one they can answer about their own life rather than about training: how
  * many days, what is in the room, how long they have. Nothing about splits,
- * volume, rep ranges or periodisation — if they could answer those they would
+ * volume, rep ranges or periodization — if they could answer those they would
  * not be here.
  *
  * Experience is not asked. It is inferred from how much the app has watched
@@ -60,7 +60,7 @@ export function DesignWorkoutSheet({ visible, busy, onClose, onSubmit }: Props) 
       />
       <View style={styles.panel}>
         <View style={styles.grabber} />
-        <Text style={styles.title}>Build me a workout</Text>
+        <Text style={styles.title}>Build me a program</Text>
         <Text style={styles.lede}>
           Three questions, then a week of workouts you can start, edit or throw
           away.

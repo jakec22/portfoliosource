@@ -35,7 +35,7 @@ function prescription(ex: PlannedDay['exercises'][number]): string {
 /**
  * What the model came back with, before any of it is saved.
  *
- * A generated programme does not go straight into My Workouts. Someone who
+ * A generated program does not go straight into My Workouts. Someone who
  * does not know what to train is exactly the person least able to tell when
  * the answer is wrong, so the least this screen can do is put the whole thing
  * in front of them, let them open any exercise and see how it is done, and
@@ -105,7 +105,7 @@ export function WorkoutPlanReviewScreen({ navigation, route }: Props) {
         >
           <Icon name="close" size="lg" color={c.gray700} />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>Your programme</Text>
+        <Text style={styles.navTitle}>Your program</Text>
         <View style={{ width: 24 }} />
       </View>
 

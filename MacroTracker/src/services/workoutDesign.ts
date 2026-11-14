@@ -30,7 +30,7 @@ export interface DesignedPlan {
  * The equipment tags each answer admits.
  *
  * Cardio is in every set because a rower is a rower whether or not there is a
- * squat rack beside it, and a programme that cannot include conditioning for
+ * squat rack beside it, and a program that cannot include conditioning for
  * someone training at home is worse for exactly the person this feature is
  * for. Kettlebell rides with the home set, which is where one usually is.
  */
@@ -62,7 +62,7 @@ export function allowedExercises(equipment: EquipmentAccess): string[] {
   return out;
 }
 
-/** Ask the `design-workout` Edge Function for a programme. */
+/** Ask the `design-workout` Edge Function for a program. */
 export async function designPlan(
   req: DesignRequest,
   opts: { profile?: UserProfile; recentSplit?: Record<string, number> } = {}
@@ -110,10 +110,10 @@ export async function designPlan(
     }))
     .filter((d: PlannedDay) => d.exercises.length > 0);
 
-  if (days.length === 0) throw new Error('The programme came back empty');
+  if (days.length === 0) throw new Error('The program came back empty');
 
   return {
-    name: String(data?.name ?? 'Training programme'),
+    name: String(data?.name ?? 'Training program'),
     note: String(data?.note ?? ''),
     days,
   };
@@ -124,7 +124,7 @@ export async function designPlan(
  *
  * The weight is the part worth reading. The model never sends one — it has
  * not seen this person lift, and a prescribed load is the one thing in a
- * generated programme that could actually hurt somebody. So it comes from
+ * generated program that could actually hurt somebody. So it comes from
  * their own last performance of that exercise, and where there is no history
  * it stays 0, which the app shows as blank and the watch as "BW". A number
  * they have lifted before, or no number at all.

@@ -1,4 +1,4 @@
-// Designs a training programme with Google Gemini and returns it as days of
+// Designs a training program with Google Gemini and returns it as days of
 // exercises drawn from a vocabulary the app supplies. The Gemini API key stays
 // server-side here — it is never shipped in the app bundle.
 //
@@ -36,8 +36,8 @@ const corsHeaders = {
 const MAX_ALLOWED = 400; // sanity bound on the vocabulary the client may send
 const MAX_DAYS = 6;
 
-const PROMPT = `You are a strength coach writing a training programme for someone who
-is not sure what to do in the gym. Write the programme they should follow.
+const PROMPT = `You are a strength coach writing a training program for someone who
+is not sure what to do in the gym. Write the program they should follow.
 
 Rules you must not break:
 - Use ONLY exercises from the provided list. You cannot invent, rename or vary one.
@@ -51,7 +51,7 @@ Rules you must not break:
 - Respect the session length. Roughly one exercise per 7-9 minutes, including rest.
 
 Name each day for what it trains ("Push", "Pull", "Legs", "Full Body A"), not
-"Day 1". Name the programme for what it is.
+"Day 1". Name the program for what it is.
 
 The note is 2-3 sentences for a beginner: how to run the week, and how to know
 when to add weight. Plain language, no jargon, no medical claims, no promises
@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
       required: ['name', 'note', 'days'],
     };
 
-    // Everything the app already knows, so the programme is about this person
+    // Everything the app already knows, so the program is about this person
     // rather than about nobody. All of it optional — a first-run user has none.
     const context = [
       `Days per week: ${dayCount}`,
@@ -141,7 +141,7 @@ Deno.serve(async (req: Request) => {
         responseMimeType: 'application/json',
         responseSchema,
         // Some variety between runs is wanted here — asking twice should not
-        // return the identical programme — but not so much that it starts
+        // return the identical program — but not so much that it starts
         // choosing oddly. Higher than the label transcription, which is 0.
         temperature: 0.7,
       },
@@ -170,13 +170,13 @@ Deno.serve(async (req: Request) => {
 
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return json({ error: 'No programme returned' }, 502);
+    if (!text) return json({ error: 'No program returned' }, 502);
 
     let parsed: { name?: unknown; note?: unknown; days?: unknown };
     try {
       parsed = JSON.parse(text);
     } catch {
-      return json({ error: 'Could not parse the programme' }, 502);
+      return json({ error: 'Could not parse the program' }, 502);
     }
 
     // Belt and braces: the enum should make this impossible, but a name the
@@ -197,10 +197,10 @@ Deno.serve(async (req: Request) => {
       }))
       .filter((d: any) => d.exercises.length > 0);
 
-    if (outDays.length === 0) return json({ error: 'The programme came back empty' }, 502);
+    if (outDays.length === 0) return json({ error: 'The program came back empty' }, 502);
 
     return json({
-      name: String(parsed.name ?? 'Training programme'),
+      name: String(parsed.name ?? 'Training program'),
       note: String(parsed.note ?? ''),
       days: outDays,
     });

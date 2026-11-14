@@ -46,7 +46,7 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
   // why the row sliding out from under its actions is acceptable — and until
   // now nothing enforced it, so a list could be left with three rows open
   // and no way to tell which one a tap belonged to.
-  // Generating a programme. The sheet stays up while it runs — it is a few
+  // Generating a program. The sheet stays up while it runs — it is a few
   // seconds of somebody else's server, and sending them back to an unchanged
   // list with a spinner somewhere else would read as nothing having happened.
   const [designing, setDesigning] = useState(false);
@@ -62,7 +62,7 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
   async function handleDesign(req: { days: number; minutes: number; equipment: any }) {
     setBusy(true);
     try {
-      // What they have actually trained, so the programme can lean away from
+      // What they have actually trained, so the program can lean away from
       // it. Absent on a first run, which the function reads as a beginner.
       const split = trainingSplit(history, 30, c);
       const recent = Object.fromEntries(split.map((s) => [s.category, s.share]));
@@ -76,7 +76,7 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
       navigation.navigate('WorkoutPlanReview', { plan });
     } catch (e) {
       Alert.alert(
-        'Could not build a programme',
+        'Could not build a program',
         `${(e as Error)?.message ?? e}\n\nYou can try again, or build one yourself.`
       );
     } finally {
@@ -134,10 +134,10 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
               onPress={() => setDesigning(true)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Build me a workout"
+              accessibilityLabel="Build me a program"
             >
               <Icon name="aiEstimate" size="md" color={c.onPrimary} />
-              <Text style={styles.designCtaText}>Build me a workout</Text>
+              <Text style={styles.designCtaText}>Build me a program</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -165,10 +165,10 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
               onPress={() => setDesigning(true)}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Build me a workout"
+              accessibilityLabel="Build me a program"
             >
               <Icon name="aiEstimate" size="sm" color={c.primary} />
-              <Text style={styles.designLinkText}>Build me one</Text>
+              <Text style={styles.designLinkText}>Build me a program</Text>
             </TouchableOpacity>
           </>
         )}
