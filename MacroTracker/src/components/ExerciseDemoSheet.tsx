@@ -103,8 +103,13 @@ export function ExerciseDemoSheet({ name, onClose }: Props) {
   // The secondary muscles are a sentence rather than more chips. As chips
   // they were four more green pills beside the one that matters, so a squat
   // advertised Calves and Lower back at the same weight as Quadriceps.
-  const alsoWorks = demo.secondary.length > 0
-    ? `Also works ${demo.secondary.join(', ').toLowerCase()}.`
+  // "Cardio" and "Grip" sit in the same list as Quads and Lats in the source
+  // data, and neither is a muscle. "Also works legs, cardio" is a sentence
+  // that stops making sense halfway through, so they come out — the
+  // equipment chip already says Cardio for the machines that carry it.
+  const worked = demo.secondary.filter((m) => m !== 'Cardio' && m !== 'Grip');
+  const alsoWorks = worked.length > 0
+    ? `Also works ${worked.join(', ').toLowerCase()}.`
     : null;
 
   return (
@@ -203,24 +208,20 @@ export function ExerciseDemoSheet({ name, onClose }: Props) {
 
           {alsoWorks && <Text style={styles.also}>{alsoWorks}</Text>}
 
-          {demo.steps.length > 0 && (
-            <View style={styles.steps}>
-              {demo.steps.map((s, i) => (
-                <View key={i} style={styles.step}>
-                  <Text style={styles.stepNum}>{i + 1}</Text>
-                  <Text style={styles.stepText}>{s}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+          <View style={styles.steps}>
+            {demo.steps.map((s, i) => (
+              <View key={i} style={styles.step}>
+                <Text style={styles.stepNum}>{i + 1}</Text>
+                <Text style={styles.stepText}>{s}</Text>
+              </View>
+            ))}
+          </View>
 
-          {/* Said plainly rather than buried in a settings screen. The
-              licence on the drawings asks for the credit and the link; the
-              step text comes from somewhere else entirely and is named
-              separately rather than folded in under one vague "sources". */}
+          {/* Said plainly rather than buried in a settings screen: the
+              licence on the drawings asks for the credit and the link. The
+              words are ours, so they need no line of their own. */}
           <Text style={styles.credit}>
             Illustrations by Bryl Lim and Everkinetic, CC BY-SA 4.0.
-            {demo.steps.length > 0 ? ' Steps from free-exercise-db.' : ''}
           </Text>
         </ScrollView>
       </View>

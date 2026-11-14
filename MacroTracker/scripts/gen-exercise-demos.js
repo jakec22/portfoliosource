@@ -6,9 +6,9 @@
  *   node scripts/gen-exercise-demos.js
  *
  * Writes assets/demos/*.png and src/data/exerciseDemos.ts, both committed.
- * Run by hand when the catalog or either mapping changes, never at build
- * time. Needs the devDependencies installed; the step text also needs
- * network, and is skipped with --no-steps.
+ * Run by hand when the catalog, the mapping or the cues change, never at
+ * build time. Needs the devDependencies installed and nothing else — no
+ * network.
  *
  * ## Two sources, deliberately
  *
@@ -26,13 +26,17 @@
  * rather than two, so the loop reads as a repetition instead of a before and
  * after.
  *
- * **The step text** is still free-exercise-db, mapped separately in
- * exercise-steps-map.json, because workout-guide ships no text of its own.
- * Worth being plain about: that text reads like bodybuilding.com's exercise
- * database and carries the same unstated provenance the photographs did.
- * It is kept because swapping the art was the change asked for and dropping
- * the words was not, and it is mapped separately so that replacing it is one
- * file and one field.
+ * **The words** are ours, in exercise-cues.json: three lines an exercise,
+ * set-up, the working half, and the thing people get wrong. They replaced
+ * free-exercise-db's instructions, which were four to six paragraphs of
+ * "breathe out as you perform this portion of the movement" and carried the
+ * same unstated provenance the photographs did. Nobody standing at a machine
+ * between sets reads six paragraphs. They were written from that text rather
+ * than from nothing, so the specifics — grip widths, bench angles, which
+ * part of the chest the bar touches — carry over.
+ *
+ * With that, nothing in this feature is borrowed except the drawings, and
+ * those are licensed for it.
  *
  * ## The mappings are by hand, and have to be
  *
@@ -62,26 +66,23 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { execFileSync, spawnSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const OUT_IMG = path.join(ROOT, 'assets', 'demos');
 const OUT_TS = path.join(ROOT, 'src', 'data', 'exerciseDemos.ts');
 const ART_MAP = path.join(__dirname, 'exercise-demo-map.json');
-const STEP_MAP = path.join(__dirname, 'exercise-steps-map.json');
+const CUES = path.join(__dirname, 'exercise-cues.json');
 
 const WG_DIR = path.dirname(require.resolve('@bryllim/workout-guide/manifest.json'));
 const WG = require('@bryllim/workout-guide/manifest.json');
 const WG_VERSION = require('@bryllim/workout-guide/package.json').version;
 const PNGQUANT = require('pngquant-bin').default || require('pngquant-bin');
 
-const FEDB_URL = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json';
-const skipSteps = process.argv.includes('--no-steps');
-
 // ---------------------------------------------------------------------------
 
 const artMap = JSON.parse(fs.readFileSync(ART_MAP, 'utf8'));
-const stepMap = JSON.parse(fs.readFileSync(STEP_MAP, 'utf8'));
+const cues = JSON.parse(fs.readFileSync(CUES, 'utf8'));
 const wgByName = new Map(WG.map((e) => [e.name, e]));
 
 // Fail loudly rather than silently dropping an exercise: a mapping that has
@@ -93,22 +94,19 @@ if (stale.length) {
   process.exit(1);
 }
 
-// Step text, keyed by catalog name. Absent entirely with --no-steps, which
-// keeps the pictures reproducible without the network.
-const steps = new Map();
-if (!skipSteps) {
-  console.log('fetching step text…');
-  const fedb = JSON.parse(execFileSync('curl', ['-sS', '--max-time', '60', FEDB_URL], {
-    encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
-  }));
-  const byName = new Map(fedb.map((e) => [e.name, e]));
-  for (const [name, source] of Object.entries(stepMap)) {
-    if (!source) continue;
-    const e = byName.get(source);
-    if (!e) { console.error(`step source gone: ${name} -> ${source}`); process.exit(1); }
-    const text = (e.instructions || []).map((s) => s.trim()).filter(Boolean);
-    if (text.length) steps.set(name, { source, text });
-  }
+// Every exercise with a drawing needs words to go with it. A demo that is
+// three pictures and nothing else is the half-built version of this.
+const mapped = Object.entries(artMap).filter(([, v]) => v).map(([k]) => k);
+const uncued = mapped.filter((n) => !cues[n] || cues[n].length === 0);
+if (uncued.length) {
+  console.error('These have art but no cues in exercise-cues.json:');
+  for (const n of uncued) console.error(`  ${n}`);
+  process.exit(1);
+}
+const orphanCues = Object.keys(cues).filter((n) => !mapped.includes(n));
+if (orphanCues.length) {
+  console.error(`Cues for exercises with no art: ${orphanCues.join(', ')}`);
+  process.exit(1);
 }
 
 fs.mkdirSync(OUT_IMG, { recursive: true });
@@ -143,7 +141,6 @@ for (const [name, source] of Object.entries(artMap)) {
     return file;
   });
 
-  const st = steps.get(name);
   entries.push({
     name,
     source: e.name,
@@ -151,8 +148,7 @@ for (const [name, source] of Object.entries(artMap)) {
     equipment: e.equipment || null,
     primary: e.primaryMuscle ? [e.primaryMuscle] : [],
     secondary: e.secondaryMuscles || [],
-    steps: st ? st.text : [],
-    stepSource: st ? st.source : null,
+    steps: cues[name],
     frames,
   });
 }
@@ -187,7 +183,6 @@ ${e.frames.map((f) => `      require('../../assets/demos/${f}'),`).join('\n')}
   .join('\n');
 
 const unmapped = Object.entries(artMap).filter(([, v]) => !v).map(([k]) => k);
-const noSteps = entries.filter((e) => e.steps.length === 0).map((e) => e.name);
 
 fs.writeFileSync(OUT_TS, `// GENERATED by scripts/gen-exercise-demos.js — do not edit by hand.
 //
@@ -197,9 +192,9 @@ fs.writeFileSync(OUT_TS, `// GENERATED by scripts/gen-exercise-demos.js — do n
 // ${unmapped.join(', ')}.
 //
 // Illustrations: @bryllim/workout-guide@${WG_VERSION} — Bryl Lim, building on
-// Everkinetic, CC BY-SA 4.0. Step text: free-exercise-db. See
-// assets/demos/ATTRIBUTION.md and the generator for both, and for why the
-// name mappings are written by hand.
+// Everkinetic, CC BY-SA 4.0; see assets/demos/ATTRIBUTION.md. The cues are
+// ours, in scripts/exercise-cues.json. See the generator for why the name
+// mapping is written by hand.
 import type { ImageSourcePropType } from 'react-native';
 
 export interface ExerciseDemo {
@@ -209,8 +204,8 @@ export interface ExerciseDemo {
   equipment: string | null;
   primary: string[];
   secondary: string[];
-  /** May be empty — ${noSteps.length} of these have art but no text. */
-  steps: string[];
+  /** Three lines: set-up, the working half, and the thing people get wrong. */
+  steps: [string, string, string];
   /**
    * Three positions through the movement, in the order the set numbers them.
    *
@@ -271,13 +266,11 @@ ${(keep.size ? (fs.readdirSync(OUT_IMG).filter((f) => f.endsWith('.png')).reduce
 These assets remain under CC BY-SA 4.0. That applies to the illustrations in
 this folder, not to the rest of the application.
 
-## Step text
+## The words are not from here
 
-The written steps in \`src/data/exerciseDemos.ts\` are **not** from
-workout-guide, which ships no text. They come from
-[free-exercise-db](https://github.com/yuhonas/free-exercise-db), whose
-repository carries an Unlicense badge but says nothing about the provenance
-of its content.
+workout-guide ships no text. The cues in \`src/data/exerciseDemos.ts\` are
+ours, written for this app and kept in \`scripts/exercise-cues.json\`. Nothing
+in this feature is borrowed except the drawings above.
 `);
 
 const bytes = fs.readdirSync(OUT_IMG)
@@ -286,4 +279,3 @@ const bytes = fs.readdirSync(OUT_IMG)
 
 console.log(`${entries.length} demos, ${keep.size} frames, ${(bytes / 1048576).toFixed(2)} MB`);
 console.log(`no demo for ${unmapped.length}: ${unmapped.join(', ')}`);
-if (noSteps.length) console.log(`art but no steps (${noSteps.length}): ${noSteps.join(', ')}`);

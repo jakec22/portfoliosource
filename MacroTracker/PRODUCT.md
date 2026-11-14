@@ -91,17 +91,17 @@ Constraints:
   recovery sessions alike land in Fitness, recovery as "Other".
 - `BodyHeatMap` replaced an earlier training-split donut; the donut must not
   return.
-- **The exercise demos are drawn, not photographed, and the art and the words
-  come from different places.** The illustrations are @bryllim/workout-guide —
-  three frames an exercise, by Bryl Lim building on Everkinetic, CC BY-SA 4.0,
-  which permits commercial use given credit, a licence link and a note of
-  changes. All three are in `assets/demos/ATTRIBUTION.md`, generated beside
-  the files so it cannot drift, and the credit is in the sheet itself. The
-  **step text** is still free-exercise-db, which says nothing about where its
-  content came from and reads like bodybuilding.com; it is mapped in its own
-  file so replacing it is one file and one field. 136 of the catalog's 156
-  exercises have art; the other 20, and every name a user types, show no demo
-  affordance at all rather than an apology.
+- **The exercise demos are drawn, and only the drawings are borrowed.** The
+  illustrations are @bryllim/workout-guide — three frames an exercise, by Bryl
+  Lim building on Everkinetic, CC BY-SA 4.0, which permits commercial use
+  given credit, a licence link and a note of changes. All three are in
+  `assets/demos/ATTRIBUTION.md`, generated beside the files so it cannot
+  drift, and the credit is in the sheet itself. The **words are ours**, in
+  `scripts/exercise-cues.json`: three lines an exercise — set-up, the working
+  half, the thing people get wrong. They replaced four to six paragraphs of
+  borrowed instructions, which nobody reads standing at a machine. 136 of the
+  catalog's 156 exercises have a demo; the other 20, and every name a user
+  types, show no affordance at all rather than an apology.
 - **The Olympic and conditioning block has no demo** — Clean, Power Clean,
   Clean and Jerk, Snatch, Thruster, Turkish Get-up, Devil's Press, Wall Ball,
   Man Maker, Box Jump, Sled Push, Sled Pull. The photographs that came before

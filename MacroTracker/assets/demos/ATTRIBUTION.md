@@ -16,10 +16,8 @@ no resize, no recolour, no crop. That takes the set from 11.95 MB to
 These assets remain under CC BY-SA 4.0. That applies to the illustrations in
 this folder, not to the rest of the application.
 
-## Step text
+## The words are not from here
 
-The written steps in `src/data/exerciseDemos.ts` are **not** from
-workout-guide, which ships no text. They come from
-[free-exercise-db](https://github.com/yuhonas/free-exercise-db), whose
-repository carries an Unlicense badge but says nothing about the provenance
-of its content.
+workout-guide ships no text. The cues in `src/data/exerciseDemos.ts` are
+ours, written for this app and kept in `scripts/exercise-cues.json`. Nothing
+in this feature is borrowed except the drawings above.
