@@ -72,7 +72,11 @@ export function planForWeight(profile: UserProfile, weightLbs: number): GoalPlan
     activity.multiplier
   );
   if (tdee == null) return null;
-  return buildPlan(tdee, weightKg, profile.goalType, profile.rateLbPerWeek);
+  return buildPlan(tdee, weightKg, profile.goalType, profile.rateLbPerWeek, {
+    sex: profile.sex,
+    age: profile.age,
+    activityMultiplier: activity.multiplier,
+  });
 }
 
 /**

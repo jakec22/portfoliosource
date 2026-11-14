@@ -23,12 +23,25 @@ export const ACTIVITY_LEVELS: ActivityLevel[] = [
   { label: 'Very Active', description: 'Physical job + daily exercise', multiplier: 1.9 },
 ];
 
-// Macro split (fraction of calories) per goal. Higher protein on a cut to
-// preserve muscle; more carbs on a gain to fuel training.
-const SPLIT: Record<GoalType, { protein: number; carbs: number; fat: number }> = {
-  lose: { protein: 0.4, carbs: 0.3, fat: 0.3 },
-  maintain: { protein: 0.3, carbs: 0.4, fat: 0.3 },
-  gain: { protein: 0.3, carbs: 0.45, fat: 0.25 },
+/**
+ * How the calories left after protein divide between carbs and fat, per goal.
+ *
+ * Protein is not in here, and that is the point. It used to be — 40% of
+ * calories on a cut, 30% otherwise — and a share of calories is the wrong
+ * unit for it. Carbs and fat are fuel, so a share of the fuel budget is
+ * exactly what they are; protein is structural, its requirement tracks the
+ * body it has to maintain, and a percentage makes it track appetite instead.
+ * See proteinTargetGPerLb.
+ *
+ * These are the previous split's carb:fat ratios, normalized and otherwise
+ * unchanged: 30/30 → 50/50, 40/30 → 57/43, 45/25 → 64/36. More carbs on a
+ * gain to fuel training; an even divide on a cut, where carbs come down but
+ * fat has a floor of its own to respect.
+ */
+const CARB_FAT: Record<GoalType, { carbs: number; fat: number }> = {
+  lose: { carbs: 0.5, fat: 0.5 },
+  maintain: { carbs: 0.57, fat: 0.43 },
+  gain: { carbs: 0.64, fat: 0.36 },
 };
 
 // ~3500 kcal per pound of body weight, spread across a week → kcal/day per
@@ -38,24 +51,84 @@ const KCAL_PER_LB_WEEK = 500;
 const LB_PER_KG = 2.2046;
 
 /**
- * The most protein the app will ever recommend, in grams per pound of body
- * weight.
+ * The band the protein target lives in, in grams per pound of body weight.
  *
- * SPLIT above expresses protein as a share of calories, which is the right
- * shape for carbs and fat and the wrong one for protein. Protein need tracks
- * body weight, not appetite: the same 40% of calories is 120 g on a small cut
- * and 225 g on a large one, and nothing about the second person's muscle
- * asked for the extra 105 g. What it produced was targets that read as
- * authoritative and could not be eaten — 225 g at 175 lb is 1.29 g/lb, which
- * is roughly a pound of chicken breast past where the evidence stops showing
- * any further benefit.
- *
- * 1.1 g/lb (≈2.4 g/kg) is already at the upper end of what the literature
- * supports for preserving muscle in a deficit, so this is a ceiling on an
- * ambitious number rather than a nudge toward a modest one. It binds only
- * when the percentage split would go higher; under it, nothing changes.
+ * 1.1 g/lb (≈2.4 g/kg) is the upper end of what the literature supports for
+ * preserving muscle in a deficit, and it is a ceiling rather than a
+ * destination: it exists to stop the terms below compounding into a number
+ * nobody can eat, and it should bind for the few people who genuinely sit at
+ * the top of every one of them. The floor (≈1.1 g/kg) sits above the 0.8 g/kg
+ * RDA, because somebody tracking macros in a fitness app is not the sedentary
+ * reference adult the RDA was set for.
  */
 const PROTEIN_CAP_G_PER_LB = 1.1;
+const PROTEIN_FLOOR_G_PER_LB = 0.5;
+
+/**
+ * Protein, in grams per pound of body weight, for this person and this goal.
+ *
+ * The baselines are the published ranges, converted from g/kg: general
+ * active intake is 1.2–1.6 g/kg (0.54–0.73 g/lb), building muscle 1.6–2.2
+ * (0.73–1.0), and holding onto it in a deficit 2.0–2.4 (0.91–1.09). A cut
+ * starts highest because that is the only one of the three where the protein
+ * is defending tissue that is actively at risk; a gain sits between, since
+ * building needs more than maintaining but has surplus calories doing some
+ * of the work.
+ *
+ * Then four adjustments, each small enough that no single answer swings the
+ * result and none of them can reach the ceiling alone:
+ *
+ * - **Activity**, referenced to Moderate. Training is the stimulus that makes
+ *   protein worth eating, so it is the largest term: ±0.14 g/lb across the
+ *   five levels.
+ * - **Pace**, on a cut only. A steeper deficit puts more muscle at risk per
+ *   week, so 1.5 lb/week asks for more than 0.5 does. A faster bulk gets no
+ *   bump — the extra calories are already there.
+ * - **Age**, upward from 60. Older muscle responds less to the same dose
+ *   (anabolic resistance), so maintaining it costs more protein, which is why
+ *   guidance for older adults starts at 1.0–1.2 g/kg rather than 0.8.
+ * - **Sex**, a small downward nudge for female. Per pound of *lean* mass the
+ *   requirement is the same; per pound of *body* weight it differs only
+ *   because average body composition does, and at equal weight women carry a
+ *   higher fat fraction. The app does not collect body fat, so this is a
+ *   proxy for the number it would rather use. It is deliberately smaller than
+ *   the composition gap it stands in for — it is an average standing in for
+ *   an individual, and the cost of being wrong should be small.
+ */
+export function proteinTargetGPerLb(
+  goalType: GoalType,
+  rateLbPerWeek: number,
+  who: { sex: Sex; age: number; activityMultiplier: number },
+): number {
+  const base = goalType === 'lose' ? 0.9 : goalType === 'gain' ? 0.8 : 0.7;
+
+  // Referenced to Moderate (1.55), so this is 0 for the middle answer and
+  // runs −0.14 (Not Active) to +0.14 (Very Active).
+  const activity = 0.4 * (who.activityMultiplier - 1.55);
+
+  // 0.5 lb/week → 0, 1 → +0.04, 1.5 → +0.08.
+  const pace = goalType === 'lose' ? 0.08 * Math.max(0, rateLbPerWeek - 0.5) : 0;
+
+  const age = who.age >= 70 ? 0.1 : who.age >= 60 ? 0.05 : 0;
+  const sex = who.sex === 'female' ? -0.05 : 0;
+
+  return clamp(base + activity + pace + age + sex, PROTEIN_FLOOR_G_PER_LB, PROTEIN_CAP_G_PER_LB);
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+/**
+ * The share of calories protein may take, as a last line of defense for fat.
+ *
+ * Only reachable on a plan held up by CALORIE_FLOOR, where a body-weight
+ * protein target can be most of a 1,200 kcal budget and leave too little
+ * behind for fat to do its hormonal job. It is the old percentage rule kept
+ * on as a backstop for the one case it was ever right about, rather than as
+ * the thing that sets the number.
+ */
+const MAX_PROTEIN_SHARE = 0.4;
 
 /** Calories per gram. The reason macro targets can never be arbitrary. */
 export const KCAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 } as const;
@@ -252,30 +325,49 @@ export function buildPlan(
   weightKg: number,
   goalType: GoalType,
   rateLbPerWeek: number,
+  who: { sex: Sex; age: number; activityMultiplier: number },
 ): GoalPlan {
   const direction = goalType === 'lose' ? -1 : goalType === 'gain' ? 1 : 0;
   const delta = direction * Math.round((rateLbPerWeek || 0) * KCAL_PER_LB_WEEK);
   const calories = Math.max(CALORIE_FLOOR, Math.round(tdee + delta));
   const fiber = Math.round(weightKg * 0.4); // ~0.4 g/kg, ~14g per 1000 kcal
 
-  // Grams first, then the calorie goal from them — not the other way round.
-  // Rounding three macros to whole grams almost never lands back on the
-  // number they were derived from, and the plan then ships a calorie target
-  // its own macros contradict. See gramsForSplit for why the grams win.
-  const split = gramsForSplit(calories, SPLIT[goalType]);
+  // Protein first, from body weight and this person, and the rest of the
+  // budget divides around it. That order is the whole model: protein is the
+  // macro with a requirement, so it gets set rather than solved for, and
+  // carbs and fat are what is left to allocate.
+  //
+  // Three limits, in descending likelihood of being the one that bites: the
+  // target itself, then the gram-space ceiling, then the share backstop. The
+  // gram ceiling is separate from the clamp inside proteinTargetGPerLb
+  // because rounding happens after it — 175 lb × 1.1 is 192.5, which rounds
+  // to 1.103 g/lb — and proteinCapGrams floors instead.
+  const protein = Math.round(
+    Math.min(
+      weightKg * LB_PER_KG * proteinTargetGPerLb(goalType, rateLbPerWeek, who),
+      proteinCapGrams(weightKg),
+      (calories * MAX_PROTEIN_SHARE) / KCAL_PER_GRAM.protein,
+    ),
+  );
 
-  // Then the protein ceiling, with the calories it frees handed to carbs and
-  // fat rather than given up. The calorie target is the one thing on this
-  // screen the person chose — they picked a pace, and describePlan quotes the
-  // deficit back to them — so capping protein must not quietly deepen it by
-  // 130 kcal. rebalanceMacros is the same redistribution the macro sliders
-  // use, in proportion to the shares carbs and fat already hold, so a capped
-  // plan still reads as the split it started from.
-  const cap = proteinCapGrams(weightKg);
-  const macros =
-    weightKg > 0 && split.protein > cap
-      ? rebalanceMacros(calories, split, 'protein', cap)
-      : split;
+  // Carbs and fat take the remainder in the goal's ratio. Fat is rounded
+  // first and carbs mop up the difference, for the reason rebalanceMacros
+  // gives: carbs move in 4-kcal steps and fat in 9, so closing the gap on
+  // the finer of the two leaves the smaller error.
+  const remaining = Math.max(0, calories - protein * KCAL_PER_GRAM.protein);
+  const ratio = CARB_FAT[goalType];
+  const fat = Math.max(0, Math.round((remaining * ratio.fat) / KCAL_PER_GRAM.fat));
+  const carbs = Math.max(
+    0,
+    Math.round((remaining - fat * KCAL_PER_GRAM.fat) / KCAL_PER_GRAM.carbs),
+  );
+
+  // The calorie goal then comes back out of the grams, not the other way
+  // round. Rounding three macros to whole grams almost never lands back on
+  // the number they were derived from, and the plan would otherwise ship a
+  // calorie target its own macros contradict. See gramsForSplit for why the
+  // grams win.
+  const macros = { protein, carbs, fat };
   const exact = macroCalories(macros);
 
   return {

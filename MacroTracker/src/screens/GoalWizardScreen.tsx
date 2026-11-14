@@ -141,9 +141,16 @@ export function GoalWizardScreen({ navigation }: Props) {
   const plan = useMemo(() => {
     if (tdee == null) return null;
     const rate = goalType === 'maintain' ? 0 : rateLbPerWeek;
-    return buildPlan(tdee, currentWeightKg(), goalType, rate);
+    return buildPlan(tdee, currentWeightKg(), goalType, rate, {
+      sex,
+      age: parseInt(age),
+      activityMultiplier: ACTIVITY_LEVELS[activityIdx].multiplier,
+    });
+    // Protein now depends on sex, age and activity as well as the goal, so
+    // those three join the dependency list — the plan has to be rebuilt when
+    // somebody steps back and changes one, not only when the pace changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tdee, goalType, rateLbPerWeek, weightLbs, weightKg, units]);
+  }, [tdee, goalType, rateLbPerWeek, weightLbs, weightKg, units, sex, age, activityIdx]);
 
   // --- Per-step validation gates the Next button ---
   function canAdvance(): boolean {
