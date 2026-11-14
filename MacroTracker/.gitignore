@@ -64,3 +64,8 @@ targets/*/Assets.xcassets/
 targets/*/generated.entitlements
 targets/widget/Info.plist
 targets/watch-widget/Info.plist
+
+# Python bytecode from assets/source/mark.py — regenerated on every run,
+# and it was being committed into the asset tree.
+__pycache__/
+*.pyc

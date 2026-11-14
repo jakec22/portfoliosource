@@ -31,6 +31,7 @@ import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from '../components/Icon';
+import { WizardHeader, WizardFooter } from '../components/WizardChrome';
 
 interface Props {
   navigation: any;
@@ -252,24 +253,7 @@ export function GoalWizardScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      {/* Header: progress + close */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-        >
-          <Icon name="close" size="md" color={c.textFaint} />
-        </TouchableOpacity>
-        <Text style={styles.stepCount}>
-          Step {stepIdx + 1} of {steps.length}
-        </Text>
-        <View style={{ width: 20 }} />
-      </View>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${((stepIdx + 1) / steps.length) * 100}%` as any }]} />
-      </View>
+      <WizardHeader step={stepIdx} total={steps.length} onClose={() => navigation.goBack()} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -592,20 +576,13 @@ export function GoalWizardScreen({ navigation }: Props) {
           )}
         </ScrollView>
 
-        {/* Footer nav */}
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.7}>
-            <Text style={styles.backBtnText}>{stepIdx === 0 ? 'Cancel' : 'Back'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.nextBtn, !canAdvance() && styles.nextBtnDisabled]}
-            onPress={handleNext}
-            activeOpacity={0.85}
-            disabled={!canAdvance()}
-          >
-            <Text style={styles.nextBtnText}>{nextLabel}</Text>
-          </TouchableOpacity>
-        </View>
+        <WizardFooter
+          backLabel={stepIdx === 0 ? 'Cancel' : 'Back'}
+          nextLabel={nextLabel}
+          onBack={handleBack}
+          onNext={handleNext}
+          nextDisabled={!canAdvance()}
+        />
       </KeyboardAvoidingView>
 
       <KeyboardDoneAccessory />
@@ -615,24 +592,6 @@ export function GoalWizardScreen({ navigation }: Props) {
 
 const makeStyles = (c: Theme) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.card },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: space.xl,
-    paddingTop: space.sm,
-    paddingBottom: space.md,
-  },
-  close: { ...type.heading(c), color: c.textFaint, width: 20 },
-  stepCount: { ...type.captionStrong(c), color: c.textFaint },
-  progressTrack: {
-    height: 4,
-    backgroundColor: c.cardMuted,
-    marginHorizontal: space.lg,
-    borderRadius: radius.hairline,
-    overflow: 'hidden',
-  },
-  progressFill: { height: 4, backgroundColor: c.primary, borderRadius: radius.hairline },
   content: { padding: space.xl, paddingBottom: space.xl },
   title: { ...type.title(c), color: c.text, marginBottom: space.xs },
   subtitle: { ...type.body(c), color: c.textMuted, marginBottom: space.xl },
@@ -765,36 +724,4 @@ const makeStyles = (c: Theme) => StyleSheet.create({
   macroPct: { ...type.micro(c), fontFamily: c.fontBodySemi, color: c.textMuted, marginTop: 1 },
   disclaimer: { ...type.caption(c), color: c.textFaint, textAlign: 'center', marginTop: space.lg },
   // Footer
-  footer: {
-    flexDirection: 'row',
-    gap: space.md,
-    paddingHorizontal: space.xl,
-    paddingTop: space.md,
-    paddingBottom: space.sm,
-    borderTopWidth: 1,
-    borderTopColor: c.border,
-  },
-  backBtn: {
-    paddingVertical: space.lg,
-    paddingHorizontal: space.xl,
-    borderRadius: radius.control,
-    backgroundColor: c.cardMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnText: { ...type.bodyStrong(c), color: c.textMuted },
-  nextBtn: {
-    flex: 1,
-    paddingVertical: space.lg,
-    borderRadius: radius.control,
-    backgroundColor: c.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: c.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  nextBtnDisabled: { backgroundColor: c.borderStrong, shadowOpacity: 0 },
-  nextBtnText: { ...type.subhead(c), color: c.onPrimary },
 });
