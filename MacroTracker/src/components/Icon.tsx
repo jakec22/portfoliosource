@@ -37,6 +37,11 @@ const GLYPH = {
   // a person doing the thing sets training apart from the equipment-free
   // recovery marks it now sits beside.
   workout: 'weight-lifter',
+  // Same glyph as `protein`, under the name that means muscle rather than the
+  // macro. The program builder asks about building muscle, not about grams,
+  // and a call site reading `protein` for a training goal is the kind of
+  // thing that gets "tidied" into the wrong icon later.
+  muscle: 'arm-flex',
   heart: 'heart',
   streak: 'fire',
   bodyWeight: 'scale-bathroom',

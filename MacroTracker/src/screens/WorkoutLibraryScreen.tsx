@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Alert } from 'react-native';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
@@ -10,9 +10,6 @@ import { Icon } from '../components/Icon';
 import { TemplateRow } from '../components/TemplateRow';
 import { templateRows } from '../utils/templateOrder';
 import { useTemplateActions } from '../hooks/useTemplateActions';
-import { DesignWorkoutSheet } from '../components/DesignWorkoutSheet';
-import { designPlan, type DesignRequest } from '../services/workoutDesign';
-import { trainingSplit } from '../utils/trainingSplit';
 
 interface Props {
   navigation: any;
@@ -46,43 +43,11 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
   // why the row sliding out from under its actions is acceptable — and until
   // now nothing enforced it, so a list could be left with three rows open
   // and no way to tell which one a tap belonged to.
-  // Generating a program. The sheet stays up while it runs — it is a few
-  // seconds of somebody else's server, and sending them back to an unchanged
-  // list with a spinner somewhere else would read as nothing having happened.
-  const [designing, setDesigning] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const profile = useStore((s) => s.profile);
-
   const openRow = useRef<SwipeableMethods | null>(null);
   const handleOpen = useCallback((methods: SwipeableMethods) => {
     if (openRow.current && openRow.current !== methods) openRow.current.close();
     openRow.current = methods;
   }, []);
-
-  async function handleDesign(req: Omit<DesignRequest, 'experience'>) {
-    setBusy(true);
-    try {
-      // What they have actually trained, so the program can lean away from
-      // it. Absent on a first run, which the function reads as a beginner.
-      const split = trainingSplit(history, 30, c);
-      const recent = Object.fromEntries(split.map((s) => [s.category, s.share]));
-
-      // Not asked for — the app has watched them and they would only guess.
-      const experience =
-        history.length === 0 ? 'new' : history.length < 10 ? 'returning' : 'experienced';
-
-      const plan = await designPlan({ ...req, experience }, { profile, recentSplit: recent });
-      setDesigning(false);
-      navigation.navigate('WorkoutPlanReview', { plan });
-    } catch (e) {
-      Alert.alert(
-        'Could not build a program',
-        `${(e as Error)?.message ?? e}\n\nYou can try again, or build one yourself.`
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -131,7 +96,7 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
                 make. The offer belongs here rather than in a menu. */}
             <TouchableOpacity
               style={styles.designCta}
-              onPress={() => setDesigning(true)}
+              onPress={() => navigation.navigate('DesignProgram')}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Build me a program"
@@ -162,7 +127,7 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
                 out of ideas. Not a card competing with their own. */}
             <TouchableOpacity
               style={styles.designLink}
-              onPress={() => setDesigning(true)}
+              onPress={() => navigation.navigate('DesignProgram')}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Build me a program"
@@ -173,14 +138,6 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
           </>
         )}
       </ScrollView>
-
-      <DesignWorkoutSheet
-        visible={designing}
-        busy={busy}
-        defaultSex={profile?.sex}
-        onClose={() => setDesigning(false)}
-        onSubmit={handleDesign}
-      />
     </SafeAreaView>
   );
 }
