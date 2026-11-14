@@ -4,7 +4,7 @@ import type { ThemeMode } from '../types';
 /**
  * The surface each pack renders on.
  *
- * Both packs are dark, so this is the same colour the phone paints and the
+ * Both packs are dark, so this is the same color the phone paints and the
  * watch no longer diverges from the app. Executive's is a neutral near-black
  * rather than pure black, which keeps its cards a readable step above the
  * ground; Modern keeps pure black, where its neon accents already sit at

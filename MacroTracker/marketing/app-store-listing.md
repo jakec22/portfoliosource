@@ -161,7 +161,7 @@ matters: App Store search results only show the first three.
 `gen.py` embeds `marketing/appstore/meal.jpg` (`.jpeg`/`.png` also work) as the
 photo on the Meal Photo screen. Until that file exists the slot renders as a
 visible placeholder, which is deliberate: the slide advertises photo
-recognition, so a drawn plate would be showing a photo the app never analysed.
+recognition, so a drawn plate would be showing a photo the app never analyzed.
 
 **The file is gitignored on purpose.** This repository is public, and the
 frame a phone captures holds more than the plate — the table, the next diner's
@@ -228,7 +228,7 @@ soft. Pack a screen with four cards and the result reads as mush at thumbnail
 size, which is why slide 3 shows only calories and macros and slide 5 stops
 after the consistency grid.
 
-**Check the component before drawing a screen.** The zone-coloured heart-rate
+**Check the component before drawing a screen.** The zone-colored heart-rate
 chart lives on `WorkoutSummaryScreen`, not on the live workout screen — an
 earlier pass put it on the set logger, where the app only ever shows a bpm
 readout in the status bar.
@@ -271,7 +271,7 @@ node marketing/appstore/watch.js
 
 These are **not** marketing compositions like the phone slides. At 211 points
 across there is no room for a headline, a device frame or an interpretation:
-the screen is the screenshot. So every size, weight, colour, string and
+the screen is the screenshot. So every size, weight, color, string and
 spacing in `watch.js` is copied out of `targets/watch/content.swift`, and the
 faces are the `.ttf` files the watch target itself ships. The page is authored
 at 211 × 257 CSS and rendered at `deviceScaleFactor: 2`, so one CSS pixel is
@@ -299,7 +299,7 @@ store was advertising a watch app that could not do anything.
 
 One face is substituted. `WatchType.readout` is SF Rounded, which cannot be
 embedded here, so the clocks and heart rates use Manrope Bold — the nearest
-geometric face the app already ships. SF Rounded tabularises its digits but
+geometric face the app already ships. SF Rounded tabularizes its digits but
 not its colon; Manrope's `tnum` widens both, so the colons opt out
 individually or the clock gains a gap the device does not have.
 
@@ -329,7 +329,7 @@ To force a specific number instead: `eas build:version:set -p ios`.
 ## Featuring / promotional artwork
 
 `marketing/appstore/promo.py` writes `promo-wide-3840x1646.png` plus the two
-centre crops Apple cuts it down to (`promo-half-3292x1646.png`,
+center crops Apple cuts it down to (`promo-half-3292x1646.png`,
 `promo-square-1646x1646.png`). Run it with `python3 promo.py`.
 
 The size lives in one tuple, `MASTER`, and the crops derive from its height —

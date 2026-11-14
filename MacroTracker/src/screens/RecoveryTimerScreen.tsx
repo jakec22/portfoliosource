@@ -46,7 +46,7 @@ const stepFor = (seconds: number) => (seconds < 5 * 60 ? 30 : 60);
  *
  * Counting up floors, so 0:00 holds until a whole second has actually
  * passed. Counting down ceils, so a 3:00 target reads 3:00 the instant it
- * starts and 0:00 only when the time is genuinely up — the behaviour of
+ * starts and 0:00 only when the time is genuinely up — the behavior of
  * every other timer the user owns.
  */
 function clock(totalSeconds: number, round: 'floor' | 'ceil' = 'floor'): string {
@@ -182,7 +182,7 @@ export function RecoveryTimerScreen({ navigation, route }: Props) {
    *
    * Five buzzes. iOS ignores the duration argument and plays one fixed buzz
    * whatever is passed, so the only way to make this carry is to repeat it:
-   * the array form is a gap-and-buzz pattern, which iOS does honour.
+   * the array form is a gap-and-buzz pattern, which iOS does honor.
    */
   useEffect(() => {
     if (!running || reachedRef.current) return;

@@ -62,7 +62,7 @@ export interface WeightSummary {
  * user's calorie targets. This surfaces the figure the app was already acting
  * on, rather than one it ignores.
  *
- * `smoothed` is a trailing mean, not a centred one: each point averages
+ * `smoothed` is a trailing mean, not a centered one: each point averages
  * itself and the readings in the days before it, so the last value is the
  * same number `smoothedWeight` returns and the line never claims to know
  * about readings that had not happened yet.

@@ -9,7 +9,7 @@ interface Props {
   calendar: CalendarData;
 }
 
-// Rows are Sunday → Saturday. Labelled on Mon/Wed/Fri rather than
+// Rows are Sunday → Saturday. Labeled on Mon/Wed/Fri rather than
 // Sun/Tue/Thu: with one letter per label those three are the only ones that
 // are not ambiguous, where S could be either end of the week and T could be
 // either middle of it.

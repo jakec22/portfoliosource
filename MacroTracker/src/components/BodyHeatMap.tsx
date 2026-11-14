@@ -11,7 +11,7 @@ interface Props {
   /** Window the split covers, for the caption. */
   days: number;
   /**
-   * Home's variant: smaller figures, centred, no ranked list.
+   * Home's variant: smaller figures, centered, no ranked list.
    *
    * The ranking answers "how much went where", which is depth and belongs to
    * the Exercise tab. Home only needs the glance the figure gives — which
@@ -167,7 +167,7 @@ export function BodyHeatMap({ slices, days, compact = false }: Props) {
       </View>
 
       {/* Compact keeps the untrained line — it is the one actionable thing on
-          the figure — but centred under it rather than hanging off a list
+          the figure — but centered under it rather than hanging off a list
           that is no longer there. */}
       {compact && untrained.length > 0 && (
         <Text style={[styles.untrained, styles.untrainedCentered]}>

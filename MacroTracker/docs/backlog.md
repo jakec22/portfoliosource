@@ -19,8 +19,8 @@ has been run on hardware. These are the specific things a mock cannot answer.
   size is exactly what reads fine in a render and poorly in a gym. If they do
   not hold up, the fallback is the row without a tile, not a bigger tile.
 - **The demo loop.** 420ms a frame, 140ms crossfade, played 0,1,2,1. Tempo is
-  a judgement call made without watching it.
-- **`tintColor` on `Animated.Image`.** Types accept it; behaviour on both
+  a judgment call made without watching it.
+- **`tintColor` on `Animated.Image`.** Types accept it; behavior on both
   platforms is unverified.
 - **153 rows mounting at once**, now in two screens. The thumbnails were cut
   to 128px to keep this under ~10 MB of decoded bitmap. Worth confirming both

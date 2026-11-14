@@ -149,7 +149,7 @@ struct MacroBarRow: View {
 }
 
 // A calories-only ring for the small family: at 2x2 there isn't room for four
-// labelled bars, and squeezing them in would make all five numbers unreadable
+// labeled bars, and squeezing them in would make all five numbers unreadable
 // rather than one legible.
 struct CalorieRingView: View {
     let consumed: Double

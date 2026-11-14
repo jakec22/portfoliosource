@@ -17,7 +17,7 @@ no resize, no recolour, no crop. That takes the set from 11.95 MB to
 The thumbnails in `thumbs/` are each exercise's **second** frame scaled to
 128 × 128 and re-encoded the same way. Nothing else is altered.
 
-The app draws both tinted to the theme's text colour. The files on disk are
+The app draws both tinted to the theme's text color. The files on disk are
 unchanged white.
 
 These assets remain under CC BY-SA 4.0. That applies to the illustrations in

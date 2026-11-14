@@ -134,7 +134,7 @@ struct DayProvider: TimelineProvider {
     }
 }
 
-/// One macro as a labelled column — the phone's Food page grid, shrunk. Four
+/// One macro as a labeled column — the phone's Food page grid, shrunk. Four
 /// of these fit the rectangular family where four stacked rows would not.
 struct MacroColumn: View {
     let letter: String
@@ -215,7 +215,7 @@ struct DayComplicationView: View {
     }
 
     private var inline: some View {
-        // The system draws this one in its own font and a single colour, so
+        // The system draws this one in its own font and a single color, so
         // it carries the two numbers and no styling of its own.
         Text("\(s.remaining) cal \(s.isOver ? "over" : "left") · \(s.protein)g protein")
     }

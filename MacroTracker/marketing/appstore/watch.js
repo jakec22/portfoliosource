@@ -11,7 +11,7 @@
  * and a stylised phone, these are the watch screens themselves. At 211 points
  * across there is no room for a frame, a caption or an interpretation: the
  * screen *is* the screenshot. So the rule here is stricter than "mirror a
- * screen the app renders" — every size, weight, colour, string and spacing
+ * screen the app renders" — every size, weight, color, string and spacing
  * below is copied out of targets/watch/content.swift, and the faces are the
  * .ttf files the watch target itself ships.
  *
@@ -22,7 +22,7 @@
  *
  *   * WatchType.readout is SF Rounded, which cannot be embedded here. The
  *     clocks and heart rates use Manrope Bold, the nearest geometric face the
- *     app already ships. SF Rounded tabularises its digits but not its colon;
+ *     app already ships. SF Rounded tabularizes its digits but not its colon;
  *     Manrope's tnum widens both, so the colons are opted out individually.
  *   * The 58pt top inset, the 54pt button height and the status clock were
  *     measured off a real simulator grab rather than guessed — rebuild the
@@ -284,7 +284,7 @@ body{background:#222;display:flex;flex-wrap:wrap;gap:24px;padding:24px;
 .restt{font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
 .clock{font-weight:700;font-size:30px;line-height:1.1;color:${c.accent};
        font-variant-numeric:tabular-nums}
-/* SF Rounded's monospacedDigit tabularises the digits, not the colon; Manrope's
+/* SF Rounded's monospacedDigit tabularizes the digits, not the colon; Manrope's
    tnum widens both, which opens a gap the device does not have. */
 .clock i,.restt i{font-style:normal;font-variant-numeric:normal}
 .hr{display:flex;align-items:baseline;gap:4px}

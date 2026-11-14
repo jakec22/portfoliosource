@@ -218,7 +218,7 @@ export function ExerciseDemoSheet({ name, onClose }: Props) {
           </View>
 
           {/* Said plainly rather than buried in a settings screen: the
-              licence on the drawings asks for the credit and the link. The
+              license on the drawings asks for the credit and the link. The
               words are ours, so they need no line of their own. */}
           <Text style={styles.credit}>
             Illustrations by Bryl Lim and Everkinetic, CC BY-SA 4.0.

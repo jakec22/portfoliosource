@@ -100,7 +100,7 @@ export interface Theme {
    * Ink on `accent`, for the same reason onDanger exists: both accents are
    * light — a warm orange and a hot pink — so white sits around 2.5:1 on
    * them and fails outright. Each is its own hue driven almost to black,
-   * which keeps the button reading as one colour rather than a dark chip.
+   * which keeps the button reading as one color rather than a dark chip.
    */
   onAccent: string;
   accentSoft: string;
@@ -157,10 +157,10 @@ export interface Theme {
 // near-black ground, saturated accents, serif display numerals. The default
 // pack, and the one every other pack is judged against.
 //
-// The ground carries no colour cast on purpose. An earlier pass sat on
+// The ground carries no color cast on purpose. An earlier pass sat on
 // #221F1B, the warm near-black the watch paints, which read brown and pulled
 // every surface with it: the text was +14 red-over-blue and the cards +8.
-// #0E0E10 is -2, so the terracotta and gold below read as chosen colours
+// #0E0E10 is -2, so the terracotta and gold below read as chosen colors
 // rather than as the ground showing through. The watch ground follows it (see
 // WATCH_GROUND in utils/watchPalette.ts) so phone and wrist still match.
 //
@@ -177,7 +177,7 @@ export interface Theme {
 //   - Macro hues are held to 3:1, not 4.5:1, because bar fills are graphics
 //     rather than text. At 4.5 all four land on one luminance and go muddy.
 //
-// accent and macroProtein are deliberately one colour, as are warning and
+// accent and macroProtein are deliberately one color, as are warning and
 // macroCarbs — that pairing is inherited from the light pack.
 export const editorialTheme: Theme = {
   scheme: 'dark',

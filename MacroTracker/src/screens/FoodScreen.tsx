@@ -198,9 +198,9 @@ export function FoodScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
-        {/* The day's four macros, in the same colours and against the same
+        {/* The day's four macros, in the same colors and against the same
             goals Home uses.
-            This was "128p · 96c · 51f" — 13px, in the faintest colour the
+            This was "128p · 96c · 51f" — 13px, in the faintest color the
             theme has, with no targets, so none of the three numbers meant
             anything on its own, and fiber was dropped entirely. A bar answers
             "what still needs filling" without reading any of them, which is

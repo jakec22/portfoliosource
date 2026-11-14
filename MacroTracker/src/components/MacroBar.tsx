@@ -12,7 +12,7 @@ interface Props {
   unit?: string;
 }
 
-// One macro's progress as a labelled horizontal bar. Deliberately not a ring:
+// One macro's progress as a labeled horizontal bar. Deliberately not a ring:
 // the Home screen's calorie summary is the one circular hero, so the macros
 // underneath read as a scannable list instead of competing with it.
 export function MacroBar({ current, goal, label, color, unit = 'g' }: Props) {

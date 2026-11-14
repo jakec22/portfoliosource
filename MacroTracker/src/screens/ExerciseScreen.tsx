@@ -181,7 +181,7 @@ export function ExerciseScreen({ navigation }: Props) {
             puts its value. It was two lines with a sentence under the name,
             and at that height it read as a second button a few points below
             the first — the page opened with a pair rather than with one
-            action. Quiet has to be weight, not only colour. The sentence said
+            action. Quiet has to be weight, not only color. The sentence said
             "most with a demo", which is a feature pitch on a navigation row;
             the library's own footnote says it more precisely to someone who
             has arrived and can act on it. */}

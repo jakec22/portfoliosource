@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Draw the HolyMacro ichthys and render every icon asset from it.
 
-The mark used to exist only as PNGs, so every colour change meant repainting
+The mark used to exist only as PNGs, so every color change meant repainting
 pixels and every size inherited whatever stroke weight the 1024px export
 happened to have. Measuring those PNGs turned up two defects a vector source
 fixes for good:
@@ -43,14 +43,14 @@ def ichthys(width_frac: float, stroke_frac: float, color: str) -> str:
     than two arcs that happen to meet. Drawn once at unit scale and scaled to
     the requested width, so every asset shares one geometry.
     """
-    # Unit geometry: nose right, tail tips left, body centred on y=50.
+    # Unit geometry: nose right, tail tips left, body centered on y=50.
     # The proportions are measured off the shipped mark — 0.36 height-to-width
     # overall, tail tips the vertical extremes — so the silhouette people
     # already have on their Home Screen survives the recolour.
     nose_x, cx, cy = 96.0, 4.0, 50.0
     span = nose_x - cx
     cross_x = 25.0
-    tail_dy = span * 0.18   # tip to centre; 0.36 of width tip-to-tip
+    tail_dy = span * 0.18   # tip to center; 0.36 of width tip-to-tip
     bulge = span * 0.205    # control offset setting body depth; the interior
                             # opening has to stay several stroke-widths tall or
                             # the body reads as a slit at 29pt
@@ -73,7 +73,7 @@ def ichthys(width_frac: float, stroke_frac: float, color: str) -> str:
     stroke = stroke_frac * width_frac * 100   # viewBox units
     path_span = width_frac * 100 - stroke
     scale = path_span / span
-    tx = 50 - (cx + span / 2) * scale         # centre the ink, not the box
+    tx = 50 - (cx + span / 2) * scale         # center the ink, not the box
     ty = 50 - cy * scale
 
     return (

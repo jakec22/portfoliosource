@@ -180,7 +180,7 @@ export function BarcodeScanner({ visible, onClose, onScanned, onLabelCaptured }:
  * this screen cannot follow it there. So the values are named here as a
  * declared exception rather than pulled from `c`.
  *
- * They were four loose Tailwind greys (gray-900/400/300) left over from
+ * They were four loose Tailwind grays (gray-900/400/300) left over from
  * before the token system; naming them is what makes the exception readable
  * as a decision instead of as drift. Contrast is measured against the chrome
  * itself: `camText` is 7.0:1 on `camSurface`, `camTextStrong` 14.3:1 on the

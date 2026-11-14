@@ -19,7 +19,7 @@ import { cancelRecoveryAlert } from '../services/notifications';
  * opening the app, or tapping the notification, without ending anything.
  *
  * Only past the target. Before it, becoming active is just someone glancing
- * at their phone, and cancelling then would throw away the alarm entirely —
+ * at their phone, and canceling then would throw away the alarm entirely —
  * which is the one failure this whole feature exists to prevent.
  */
 export function useRecoveryAlert() {

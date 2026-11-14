@@ -6,7 +6,7 @@ module.exports = config => ({
   // Baked into the target's asset catalog at build time, so no theme sync can
   // change it — it only shows in UI the system draws before or outside our own
   // views. It is the Executive pack's primary verbatim: the pack is dark on
-  // the same ground the watch paints, so the colour already clears 4.5:1
+  // the same ground the watch paints, so the color already clears 4.5:1
   // there and needs no separate lift.
   colors: { $accent: "#34C77B" },
   // 10.0, raised from 9.4. The day stack pages with `.verticalPage`, which is

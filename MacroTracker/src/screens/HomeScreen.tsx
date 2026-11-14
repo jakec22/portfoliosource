@@ -56,7 +56,7 @@ const WEEK = 7;
 // Home opens on today and is usually today, but it is no longer only today.
 // One rule holds the screen together: every figure on it is anchored to the
 // day in the header. The arrows step that day, the week strip picks one, and
-// the "Back to today" pill ends the excursion. Anything that cannot honour
+// the "Back to today" pill ends the excursion. Anything that cannot honor
 // the anchor — the streak, the goal-setup prompts, the start-a-workout row —
 // is shown on today and hidden otherwise, rather than left on screen
 // answering a question about a different day.
@@ -179,16 +179,16 @@ export function HomeScreen({ navigation }: Props) {
   }, [hkAvailable]);
   useEffect(() => {
     if (!hkAvailable) return;
-    let cancelled = false;
+    let canceled = false;
     // Cleared first: the query is a round trip to the health store, and
     // without this the previous day's figure sits under the new day's date
     // until it answers.
     setActiveEnergy(null);
     queryActiveEnergy(viewDate).then((kcal) => {
-      if (!cancelled) setActiveEnergy(kcal);
+      if (!canceled) setActiveEnergy(kcal);
     });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [hkAvailable, viewDate]);
 
@@ -281,7 +281,7 @@ export function HomeScreen({ navigation }: Props) {
         backgroundColor={c.bg}
       />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        {/* The date, and the controls that move it. Centred with the arrows
+        {/* The date, and the controls that move it. Centered with the arrows
             flanking it so that stepping a day changes nothing but the words:
             a header that re-flows on every tap reads as the screen having
             been replaced rather than re-pointed.
@@ -428,7 +428,7 @@ export function HomeScreen({ navigation }: Props) {
 
               {/* Where the week's volume went. Withheld when nothing has been
                   lifted in seven days: every region would render at the same
-                  empty grey, which looks like a broken figure rather than a
+                  empty gray, which looks like a broken figure rather than a
                   rest week. */}
               {weekSplit.length > 0 && (
                 <View style={styles.coverage}>
@@ -694,7 +694,7 @@ export function HomeScreen({ navigation }: Props) {
                       { height: `${Math.max(d.pct * 100, d.logged ? 6 : 0)}%` as any },
                       // Today is green wherever it falls in the strip; the
                       // day being read is blue. On today they are the same
-                      // column and green wins, which is why the two colours
+                      // column and green wins, which is why the two colors
                       // never compete for the same meaning.
                       d.isViewed && { backgroundColor: c.info },
                       d.isToday && { backgroundColor: c.primary },

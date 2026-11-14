@@ -5,7 +5,7 @@ module.exports = config => ({
   icon: '../../assets/icon.png',
   // Executive primary, matching the watch target and the app. This sat on
   // the pre-dark #3F6B52 after the pack went dark, so the widget tinted
-  // itself a colour the app no longer contains.
+  // itself a color the app no longer contains.
   colors: { $accent: "#34C77B" },
   deploymentTarget: "17.0",
   entitlements: {

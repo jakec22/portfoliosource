@@ -134,7 +134,7 @@ export function BuildMealScreen({ route, navigation }: Props) {
     try {
       const analyzed = await analyzeMealText(text);
       if (analyzed.length === 0) {
-        setAiError('No foods recognised. Name the foods and their portions.');
+        setAiError('No foods recognized. Name the foods and their portions.');
         return;
       }
       const now = Date.now();

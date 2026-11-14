@@ -38,7 +38,7 @@ const COPY: Record<ReminderKey, { title: string; body: string; fallback: Reminde
  * plays a notification's sound once and then stops — there is no "ring
  * until dismissed" for anything but the Clock app, which holds entitlements
  * no third-party app is given. So the ring is faked the only way it can be:
- * a short series, each one a fresh notification, with the rest cancelled the
+ * a short series, each one a fresh notification, with the rest canceled the
  * moment the user shows up (see cancelRecoveryAlert and useRecoveryAlert).
  *
  * One a minute, matching the wrist. The watch plays its target pulses and
@@ -151,7 +151,7 @@ export async function scheduleRecoveryAlert(
         // buzz without the sound or to change either.
         //
         // 'defaultRingtone' was tried and dropped. It is louder, but a
-        // ringtone takes its volume and behaviour from the ringer rather
+        // ringtone takes its volume and behavior from the ringer rather
         // than from notification settings, so it lands somewhere between
         // what the user configured for calls and what they configured for
         // alerts, and obeys neither. A short ding that behaves exactly like
@@ -159,7 +159,7 @@ export async function scheduleRecoveryAlert(
         // thing to be woken by; the repeats below are what make it carry.
         sound: 'default',
         // Breaks through Focus and Do Not Disturb, and keeps the alert on
-        // the lock screen rather than letting it summarise. This needs the
+        // the lock screen rather than letting it summarize. This needs the
         // com.apple.developer.usernotifications.time-sensitive entitlement,
         // which is in app.json — free to claim, no request to Apple. Without
         // it iOS quietly downgrades this to 'active' rather than failing.
@@ -218,7 +218,7 @@ export async function applyReminderSchedule(prefs: ReminderPrefs): Promise<void>
   // alarm down with the reminders — leaving someone sitting in the heat
   // waiting for a sound that had been quietly unscheduled.
   //
-  // Enumerated rather than cancelled by a known set of ids, because
+  // Enumerated rather than canceled by a known set of ids, because
   // reminders scheduled by earlier builds carry generated ids that no list
   // here would name, and those have to keep being cleared or they double up.
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();

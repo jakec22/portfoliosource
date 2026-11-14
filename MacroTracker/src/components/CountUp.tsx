@@ -28,7 +28,7 @@ export function CountUp({ value, style, format }: Props) {
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    // Honour the system setting, and skip the work on the first render so a
+    // Honor the system setting, and skip the work on the first render so a
     // screen does not animate up from zero when it opens.
     if (reduceMotion || from.current === value) {
       from.current = value;

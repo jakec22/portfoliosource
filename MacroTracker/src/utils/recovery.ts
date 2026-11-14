@@ -136,7 +136,7 @@ export function weekLabel(startMs: number): string {
 }
 
 /**
- * The colour a kind is drawn in, wherever it is drawn.
+ * The color a kind is drawn in, wherever it is drawn.
  *
  * Heat takes the warning amber and cold the first heart-rate zone's blue —
  * both already in the pack, neither spent on anything recovery collides

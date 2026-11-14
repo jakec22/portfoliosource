@@ -15,7 +15,7 @@
  * **The pictures** are @bryllim/workout-guide: 302 exercises, three frames
  * each, white line art on transparency, by Bryl Lim building on Everkinetic.
  * CC BY-SA 4.0, which says in as many words that you may use them
- * commercially given credit, a link to the licence, and a note of any
+ * commercially given credit, a link to the license, and a note of any
  * changes. The package also carries per-frame attribution, which is what the
  * credit in the sheet is built from rather than a string typed here.
  *
@@ -61,7 +61,7 @@
  * Unmodified the set is 11.95 MB. pngquant takes it to 6.78 MB, and at the
  * size the sheet draws them the difference is not visible — 19 alpha levels
  * against 256, on line art, at 271pt. That is a change to the work, so it is
- * stated in ATTRIBUTION.md as the licence asks. Nothing else is touched: no
+ * stated in ATTRIBUTION.md as the license asks. Nothing else is touched: no
  * resize, no recolour, no crop.
  */
 const fs = require('fs');
@@ -150,7 +150,7 @@ let wrote = 0;
  *
  * Two reasons it is a separate file rather than the full frame scaled down.
  *
- * The picker is a ScrollView of 153 rows and ScrollView does not virtualise,
+ * The picker is a ScrollView of 153 rows and ScrollView does not virtualize,
  * so every row mounts at once. At 512 square that is a megabyte of decoded
  * bitmap each and about 150 MB on screen — enough to be thrown out of memory
  * on an older phone. At 128 it is 64 KB each, under 10 MB for the lot.
@@ -312,12 +312,12 @@ export function exerciseDemo(name: string): ExerciseDemo | null {
 }
 `);
 
-// Attribution, as the licence asks: credit, a link to it, and the changes.
+// Attribution, as the license asks: credit, a link to it, and the changes.
 // Generated with the rest so it cannot drift from what actually shipped.
 // Keyed separately: only some entries carry an upstream `source`, because
 // not every pose derives from Everkinetic — Bryl Lim drew the rest. A single
 // map keyed on creator silently kept whichever one was written last, which
-// dropped the upstream credit the licence actually turns on.
+// dropped the upstream credit the license actually turns on.
 const creators = new Map();
 const upstream = new Map();
 let derived = 0;
@@ -352,7 +352,7 @@ ${(keep.size ? (fs.readdirSync(OUT_IMG).filter((f) => f.endsWith('.png')).reduce
 The thumbnails in \`thumbs/\` are each exercise's **second** frame scaled to
 128 × 128 and re-encoded the same way. Nothing else is altered.
 
-The app draws both tinted to the theme's text colour. The files on disk are
+The app draws both tinted to the theme's text color. The files on disk are
 unchanged white.
 
 These assets remain under CC BY-SA 4.0. That applies to the illustrations in

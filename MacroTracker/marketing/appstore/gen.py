@@ -20,7 +20,7 @@ Three rules the layout is built around:
     advertised an app that no longer existed.
 
 There is no eyebrow above the headlines. The old slides had one; at thumbnail
-size an 8.5px tracked label is a grey smudge, and the headline is the only
+size an 8.5px tracked label is a gray smudge, and the headline is the only
 text that survives the store's scaling, so it gets the room.
 """
 import base64
@@ -108,7 +108,7 @@ body{{position:relative;font-family:'Manrope',-apple-system,Arial,sans-serif;
 /* The ground is strictly neutral and lives on the body, above. The pack's
    own note explains why: a warm near-black read brown and pulled every
    surface with it, so #0E0E10 was chosen at -2 red-over-blue precisely so
-   the green reads as a chosen colour rather than the ground showing
+   the green reads as a chosen color rather than the ground showing
    through. An olive slide would undo that on the store page, which is
    where most people meet the app first. */
 .arcs{{position:absolute;inset:0;overflow:hidden}}
@@ -380,7 +380,7 @@ def macro_col(name, cur, goal, color):
 # ---------------------------------------------------------------- slide 1
 # The Food tab: the pinned header FoodScreen now draws, then the capture
 # route, then the log. The header used to read "128p · 96c · 51f" in the
-# faintest colour the theme has; it carries goals and bars now.
+# faintest color the theme has; it carries goals and bars now.
 s1 = f"""<div class="body">
   <div class="datenav">{icon('left', 13, GRAY700)}
     <span class="datelabel">Today</span>{icon('right', 13, FAINT)}</div>

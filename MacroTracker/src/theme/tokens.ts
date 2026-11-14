@@ -60,8 +60,8 @@ export const space = {
  *
  * 560 is a little wider than the largest iPhone, so nothing about the phone
  * layout changes: below this width the cap does nothing at all. Above it the
- * column centres on the app background, which the navigation theme already
- * paints the same colour, so the sides are seamless rather than letterboxed.
+ * column centers on the app background, which the navigation theme already
+ * paints the same color, so the sides are seamless rather than letterboxed.
  *
  * This is not a designed iPad layout — there is no sidebar and no split view.
  * It is the honest minimum for an app that must keep supporting a device it

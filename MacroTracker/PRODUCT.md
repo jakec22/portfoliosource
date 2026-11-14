@@ -104,7 +104,7 @@ Constraints:
 - **The exercise demos are drawn, and only the drawings are borrowed.** The
   illustrations are @bryllim/workout-guide — three frames an exercise, by Bryl
   Lim building on Everkinetic, CC BY-SA 4.0, which permits commercial use
-  given credit, a licence link and a note of changes. All three are in
+  given credit, a license link and a note of changes. All three are in
   `assets/demos/ATTRIBUTION.md`, generated beside the files so it cannot
   drift, and the credit is in the sheet itself. The **words are ours**, in
   `scripts/exercise-cues.json`: three lines an exercise — set-up, the working
@@ -164,7 +164,7 @@ Constraints:
 1. **Speed in the real scene beats completeness.** The app is operated mid-set
    and mid-meal; anything that costs a second costs adherence.
 2. **Capture beats data entry.** The camera paths — plate, label — are the
-   product's own mechanism; typing is the fallback, not the centre.
+   product's own mechanism; typing is the fallback, not the center.
 3. **Numbers must stay honest.** Adaptive goals, editable history and real
    label reads all exist because a wrong number silently corrupts weeks of
    tracking.

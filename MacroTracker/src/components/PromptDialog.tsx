@@ -201,9 +201,9 @@ const makeStyles = (c: Theme) =>
     btnGhostText: { ...type.bodyStrong(c), color: c.textMuted },
     btnPrimary: { backgroundColor: c.primary },
     btnPrimaryText: { ...type.bodyStrong(c), color: c.onPrimary },
-    // The primary button dimmed, not a grey one. Rendering it as cardMuted
+    // The primary button dimmed, not a gray one. Rendering it as cardMuted
     // made it identical to Cancel sitting beside it, so the pair read as two
     // equal choices with no way to tell which was the action. Keeping its
-    // colour at low opacity says "this button, not yet" instead.
+    // color at low opacity says "this button, not yet" instead.
     btnDisabled: { opacity: 0.4 },
   });

@@ -62,7 +62,7 @@ h1 em{font-style:normal;color:${c.green}}
 .statR{display:flex;gap:7px;align-items:center}
 .statR .mdi{font-size:17px;color:${c.text}}
 .statR .bt{transform:rotate(90deg)}
-/* The 560pt cap, centred — the whole of what iPad support is. */
+/* The 560pt cap, centered — the whole of what iPad support is. */
 .col560{width:560px;margin:0 auto;padding:16px}
 
 .dateRow{display:flex;align-items:center;gap:8px}

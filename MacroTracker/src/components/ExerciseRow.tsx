@@ -51,7 +51,7 @@ export function exerciseSubtitle(demo: ExerciseDemo, category: string): string {
  *
  * The thumbnail is a 128px file rather than a demo frame scaled down. Lists
  * of these run to 153 rows inside a plain ScrollView, which does not
- * virtualise, so every row mounts at once — see the generator for the
+ * virtualize, so every row mounts at once — see the generator for the
  * arithmetic that makes the small copy necessary rather than merely tidy.
  */
 export function ExerciseRow({

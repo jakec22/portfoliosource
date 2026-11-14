@@ -54,7 +54,7 @@ const RECOVERY_ICON: Record<RecoveryKind, IconName> = {
 };
 
 // Warm for heat, cold-blue for the plunge — the same pairing the heart-rate
-// zones use, so the two colours already mean hot and cold elsewhere in the app.
+// zones use, so the two colors already mean hot and cold elsewhere in the app.
 const RECOVERY_TINT: Record<RecoveryKind, (c: Theme) => string> = {
   sauna: (c) => c.warning,
   plunge: (c) => c.hrZone1,
@@ -137,7 +137,7 @@ export function StartSessionSheet({ visible, onClose, onChoose }: Props) {
         title: r.label,
         subtitle: `${RECOVERY_BLURB[r.kind]} · ${formatDuration(target)} target`,
         tint: RECOVERY_TINT[r.kind],
-        // No `*Soft` token exists for the zone colours, so the tile fill is
+        // No `*Soft` token exists for the zone colors, so the tile fill is
         // the tint at low alpha — the same recipe the soft tokens use.
         fill: (c: Theme) => `${RECOVERY_TINT[r.kind](c)}26`,
         choice: { kind: 'recovery', recovery: r.kind } as StartChoice,

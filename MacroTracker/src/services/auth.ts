@@ -110,7 +110,7 @@ export async function signInWithGoogle(): Promise<void> {
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (result.type !== 'success') {
-    // User dismissed/cancelled — not an error worth surfacing.
+    // User dismissed/canceled — not an error worth surfacing.
     return;
   }
 

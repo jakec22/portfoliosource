@@ -30,7 +30,7 @@ interface Props {
  * A target is shown only once the user sets one, and the card is complete
  * without it. The app knows a weekly workout goal because the wizard asks
  * for it; nothing asks for this, so a number drawn here by default would be
- * an invented judgement. The bars answer the real question regardless —
+ * an invented judgment. The bars answer the real question regardless —
  * more or less than usual — without claiming to know what usual should be.
  *
  * Set, it draws as a line across the bars rather than a ring, because the

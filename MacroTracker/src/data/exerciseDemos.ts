@@ -1231,7 +1231,7 @@ export const EXERCISE_DEMOS: Record<string, ExerciseDemo> = {
     secondary: ["Core", "Calves"],
     steps: [
       "Hold something for balance, rise onto your toes.",
-      "Bend the knees and lean back, hips travelling forward.",
+      "Bend the knees and lean back, hips traveling forward.",
       "Pull yourself upright with the quads.",
     ],
     thumb: require('../../assets/demos/thumbs/sissy-squat.png'),

@@ -74,7 +74,7 @@ export const useStore = create<AppState>()(
        * Upload the settings fields an action just changed.
        *
        * Name them. Calling this bare still sends all twenty columns, which is
-       * what the old behaviour was everywhere — and it meant adjusting the
+       * what the old behavior was everywhere — and it meant adjusting the
        * water goal also uploaded the saved meals, the custom foods and every
        * workout template. The one legitimate bare call is hydrate's, which
        * deliberately rewrites the whole row so a partial cloud copy heals.

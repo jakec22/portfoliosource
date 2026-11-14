@@ -258,7 +258,7 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
     }
     @Published var palette = WatchPalette() // active pack's accents
 
-    // The same colours as `palette`, kept as the hex the phone sent so the
+    // The same colors as `palette`, kept as the hex the phone sent so the
     // snapshot can carry them to the complication. SwiftUI's Color has no
     // reliable way back to a hex string, and the complication needs one.
     private var paletteHex: [String: String] = [
@@ -1107,7 +1107,7 @@ struct ContentView: View {
     }
 }
 
-// One macro as a labelled bar: name and value on one line, a filled track
+// One macro as a labeled bar: name and value on one line, a filled track
 // underneath. Mirrors MacroBar.tsx on the phone and the widget's rows.
 struct MacroBar: View {
     let label: String

@@ -103,7 +103,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
    * The free-text field was the default and the catalog was a small "List"
    * button beside it, which had it backwards: almost every exercise someone
    * adds is a bench press or a back squat, and typing one out — correctly
-   * and consistently enough that the history and the body map recognise it
+   * and consistently enough that the history and the body map recognize it
    * later — is work the catalog exists to remove.
    *
    * Nothing is lost by leading with it. The picker searches the catalog and
@@ -111,7 +111,7 @@ export function WorkoutTemplateScreen({ route, navigation }: Props) {
    * that Apple has never heard of is still one tap away; it is reached by
    * typing the name rather than by finding the button that lets you.
    *
-   * The row is created on selection, not before, so cancelling leaves no
+   * The row is created on selection, not before, so canceling leaves no
    * empty card behind.
    */
   function addExercise() {

@@ -4,7 +4,7 @@
 Apple asks for this when an app is under consideration for editorial
 featuring; the Promotional Artwork tab only appears in App Store Connect once
 that happens, and it wants a PSD built on Apple's own template. This script
-produces the flat artwork to place into that template, plus the centre crops
+produces the flat artwork to place into that template, plus the center crops
 it gets cut down to.
 
 Two rules the composition is built around:
@@ -51,7 +51,7 @@ SUBTITLE = "Tracking Simplified"
 # its height, so changing this one tuple re-sizes the whole set.
 MASTER = (3840, 1646)
 
-# The crops Apple cuts the master down to, each taken from the centre — which
+# The crops Apple cuts the master down to, each taken from the center — which
 # is why the lockup lives there and the flanks carry ground only.
 _W, _H = MASTER
 CROPS = [("wide", _W, _H), ("half", _H * 2, _H), ("square", _H, _H)]
@@ -73,7 +73,7 @@ body{{position:relative;background:
   linear-gradient(170deg,#1B1B1F 0%,#141417 40%,#101012 72%,{BG} 100%);
   font-family:'Manrope',sans-serif;-webkit-font-smoothing:antialiased}}
 
-/* Concentric hairlines, the same device the slides use, centred on the mark
+/* Concentric hairlines, the same device the slides use, centered on the mark
    so they read as a ripple rather than as decoration pinned to a corner. */
 .arcs{{position:absolute;inset:0;overflow:hidden}}
 .arcs i{{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);

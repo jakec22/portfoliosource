@@ -70,7 +70,7 @@ function isFresh(message: any): boolean {
 }
 
 /**
- * Subscribe to a command from the watch, however it travelled.
+ * Subscribe to a command from the watch, however it traveled.
  *
  * The watch sends with `sendMessage` when this app is reachable and queues
  * with `transferUserInfo` when it is not (see sendReliable in
@@ -291,7 +291,7 @@ export function sendWatchContext(ctx: WatchContext): void {
 // background whatever the pack — only the accents travel.
 // Takes WatchPalette rather than Record<string, string>: the body reads nine
 // named keys, and against an index signature a renamed field would type-check
-// happily and push undefined, blanking that colour on the wrist.
+// happily and push undefined, blanking that color on the wrist.
 export function setWatchPalette(p: WatchPalette): void {
   palette = {
     themeGround: p.ground,

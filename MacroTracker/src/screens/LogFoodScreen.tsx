@@ -610,7 +610,7 @@ export function LogFoodScreen({ route, navigation }: Props) {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
                   accessibilityRole="button"
                   accessibilityLabel={
-                    isFav ? `Remove ${item.name} from favourites` : `Add ${item.name} to favourites`
+                    isFav ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`
                   }
                   accessibilityState={{ selected: isFav }}
                 >

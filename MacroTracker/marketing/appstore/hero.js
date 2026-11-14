@@ -26,7 +26,7 @@ ${fontCss()}
 html,body{width:1920px;height:1280px}
 body{background:${c.bg};font-family:Manrope,sans-serif;overflow:hidden;position:relative}
 .mdi{font-family:'MDI';font-style:normal;line-height:1;display:inline-block}
-/* The same soft off-centre glow the shipped screenshots use. */
+/* The same soft off-center glow the shipped screenshots use. */
 .glow{position:absolute;inset:0;background:
   radial-gradient(1100px 760px at 76% 34%, rgba(44,188,112,.10), transparent 62%),
   radial-gradient(900px 620px at 10% 82%, rgba(255,255,255,.035), transparent 60%)}

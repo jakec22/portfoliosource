@@ -160,15 +160,15 @@ export function WorkoutSummaryScreen({ route, navigation }: Props) {
   const [calories, setCalories] = useState<number | null>(null);
   useEffect(() => {
     if (!session?.completedAt || !activeEnergyAvailable()) return;
-    let cancelled = false;
+    let canceled = false;
     requestActiveEnergyPermission().then((granted) => {
-      if (!granted || cancelled) return;
+      if (!granted || canceled) return;
       queryActiveEnergyForWorkout(session.startedAt, session.completedAt!).then((kcal) => {
-        if (!cancelled) setCalories(kcal);
+        if (!canceled) setCalories(kcal);
       });
     });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [session?.id]);
 

@@ -100,7 +100,7 @@ const makeStyles = (c: Theme) =>
       marginBottom: space.sm,
     },
     // Tinted while the goals are live and tracking; plain once they are
-    // just numbers. The quiet state is the one that wants no colour: it is
+    // just numbers. The quiet state is the one that wants no color: it is
     // a statement of fact, not a problem to be fixed.
     on: { backgroundColor: c.primarySoft },
     off: { backgroundColor: c.cardMuted },

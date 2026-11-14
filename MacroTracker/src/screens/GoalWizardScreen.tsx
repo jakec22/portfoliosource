@@ -228,7 +228,7 @@ export function GoalWizardScreen({ navigation }: Props) {
     applyGoalPlan(plan.goals, wLbs);
 
     // Deliberately not part of plan.goals: this is a commitment, not an
-    // input to the Mifflin-St Jeor maths above. Training more than planned
+    // input to the Mifflin-St Jeor math above. Training more than planned
     // does not raise the calorie target, and the wizard should not imply it
     // does by bundling the two.
     setWeeklyWorkoutGoal(weeklyWorkouts);

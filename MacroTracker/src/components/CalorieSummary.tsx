@@ -41,7 +41,7 @@ export function CalorieSummary({ consumed, goal, size = 160 }: Props) {
   const firstLap = hasGoal ? Math.min(consumed / goal, 1) : 0;
   // Past the goal the ring starts a second lap rather than sitting full. The
   // old ring clamped at 1, so 2,340 of 2,000 drew exactly the same circle as
-  // hitting 2,000 on the nose — only the numeral changed colour, and the one
+  // hitting 2,000 on the nose — only the numeral changed color, and the one
   // state worth seeing at a glance was the one the ring couldn't show.
   const secondLap = over ? Math.min((consumed - goal) / goal, 1) : 0;
 
