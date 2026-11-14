@@ -1,11 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
 import { radius, space, type } from '../theme/tokens';
 import { Icon } from './Icon';
 import { templateSubtitle, type TemplateRow as Row } from '../utils/templateOrder';
+
+// One action, and the whole tray the three of them make. Both are needed as
+// numbers rather than only as styles: the tray's width is what the gesture
+// has to be tuned against (see `friction` below), and getting that wrong is
+// invisible in the stylesheet.
+const ACTION_W = 72;
+const TRAY_W = space.sm + ACTION_W * 3 + space.sm * 2; // 240
 
 interface Props {
   row: Row;
@@ -13,6 +22,8 @@ interface Props {
   onEdit: () => void;
   onShare: () => void;
   onDelete: () => void;
+  /** Called with this row's handle as it opens, so the list can close the last one. */
+  onOpen?: (methods: SwipeableMethods) => void;
 }
 
 /**
@@ -32,19 +43,65 @@ interface Props {
  * narrowing the actions to keep the name on screen only costs the labels and
  * still loses the name. It is not a problem to solve: one row opens at a
  * time, and it is the row the finger is on.
+ *
+ * ## The gesture
+ *
+ * Swipeable divides the drag by `friction`, so the row moves half as far as
+ * the finger at the 2 the rest of the app uses. That is fine behind an 80pt
+ * Delete — 160pt of travel reveals it — and wrong behind this tray: at 240pt
+ * it would want 480pt of finger to show the three actions, which is wider
+ * than any iPhone. The row tracked sluggishly, refused to open on a normal
+ * swipe, and jumped the rest of the way on release. So this row tracks the
+ * finger 1:1, and opens from a third of the tray rather than Swipeable's
+ * default half.
+ *
+ * Tapping an open row closes it instead of starting the workout. Without
+ * that, a swipe you have changed your mind about has no undo and the nearest
+ * thing to one — tapping the row that is still half visible — launches a
+ * session.
  */
-export function TemplateRow({ row, onStart, onEdit, onShare, onDelete }: Props) {
+export function TemplateRow({ row, onStart, onEdit, onShare, onDelete, onOpen }: Props) {
   const c = useTheme();
   const styles = useMemo(() => makeStyles(c), [c]);
   const { template, count } = row;
 
+  const swipe = useRef<SwipeableMethods>(null);
+  const isOpen = useRef(false);
+
+  // The tray's actions are reachable while it is open, so they do not go
+  // through this; only the row itself does.
+  const handlePress = useCallback(() => {
+    if (isOpen.current) {
+      swipe.current?.close();
+      return;
+    }
+    onStart();
+  }, [onStart]);
+
+  // Close before acting: the screen these push to can come back to a list
+  // where this row is still sitting open behind its own actions.
+  const act = useCallback((fn: () => void) => () => {
+    swipe.current?.close();
+    fn();
+  }, []);
+
   return (
     <ReanimatedSwipeable
+      ref={swipe}
+      friction={1}
+      rightThreshold={TRAY_W / 3}
+      onSwipeableWillOpen={() => {
+        isOpen.current = true;
+        if (swipe.current) onOpen?.(swipe.current);
+      }}
+      onSwipeableWillClose={() => {
+        isOpen.current = false;
+      }}
       renderRightActions={() => (
         <View style={styles.tray}>
           <TouchableOpacity
             style={[styles.act, { backgroundColor: c.primary }]}
-            onPress={onEdit}
+            onPress={act(onEdit)}
             accessibilityRole="button"
             accessibilityLabel={`Edit ${template.name}`}
           >
@@ -53,7 +110,7 @@ export function TemplateRow({ row, onStart, onEdit, onShare, onDelete }: Props) 
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.act, { backgroundColor: c.accent }]}
-            onPress={onShare}
+            onPress={act(onShare)}
             accessibilityRole="button"
             accessibilityLabel={`Share ${template.name}`}
           >
@@ -62,7 +119,7 @@ export function TemplateRow({ row, onStart, onEdit, onShare, onDelete }: Props) 
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.act, { backgroundColor: c.danger }]}
-            onPress={onDelete}
+            onPress={act(onDelete)}
             accessibilityRole="button"
             accessibilityLabel={`Delete ${template.name}`}
           >
@@ -72,11 +129,10 @@ export function TemplateRow({ row, onStart, onEdit, onShare, onDelete }: Props) 
         </View>
       )}
       overshootRight={false}
-      friction={2}
     >
       <Pressable
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-        onPress={onStart}
+        onPress={handlePress}
         accessibilityRole="button"
         accessibilityLabel={`Start ${template.name}. ${count} exercises.`}
       >
@@ -130,7 +186,7 @@ const makeStyles = (c: Theme) =>
 
     tray: { flexDirection: 'row', gap: space.sm, paddingLeft: space.sm },
     act: {
-      width: 72,
+      width: ACTION_W,
       borderRadius: radius.control,
       marginBottom: space.sm,
       alignItems: 'center',

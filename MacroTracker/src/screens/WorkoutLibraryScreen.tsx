@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useStore } from '../store/useStore';
 import { useTheme } from '../theme/useTheme';
 import type { Theme } from '../theme';
@@ -37,6 +38,16 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
   const rows = useMemo(() => templateRows(templates, history), [templates, history]);
   const { startTemplate, deleteTemplate, shareTemplate, importFromLink } =
     useTemplateActions(navigation);
+
+  // One row open at a time. TemplateRow's own comment leans on this — it is
+  // why the row sliding out from under its actions is acceptable — and until
+  // now nothing enforced it, so a list could be left with three rows open
+  // and no way to tell which one a tap belonged to.
+  const openRow = useRef<SwipeableMethods | null>(null);
+  const handleOpen = useCallback((methods: SwipeableMethods) => {
+    if (openRow.current && openRow.current !== methods) openRow.current.close();
+    openRow.current = methods;
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -94,6 +105,7 @@ export function WorkoutLibraryScreen({ navigation }: Props) {
                 }
                 onShare={() => shareTemplate(row.template)}
                 onDelete={() => deleteTemplate(row.template)}
+                onOpen={handleOpen}
               />
             ))}
             <Text style={styles.hint}>
