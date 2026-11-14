@@ -91,15 +91,23 @@ Constraints:
   recovery sessions alike land in Fitness, recovery as "Other".
 - `BodyHeatMap` replaced an earlier training-split donut; the donut must not
   return.
-- **The exercise demos are someone else's photographs.** They come from the
-  free-exercise-db dataset, which carries an Unlicense badge on the repository
-  but says nothing about where its media came from; the step text reads like
-  bodybuilding.com's exercise database. Shipping them was a deliberate call
-  made with that known, not an oversight, and the app credits the dataset in
-  the sheet. Every call site goes through `EXERCISE_DEMOS`, so replacing the
-  set with a licensed one is a change to `assets/demos` and one generated
-  file. 140 of the catalog's 156 exercises have one; the other 16, and every
-  name a user types, show no demo affordance at all rather than an apology.
+- **The exercise demos are drawn, not photographed, and the art and the words
+  come from different places.** The illustrations are @bryllim/workout-guide —
+  three frames an exercise, by Bryl Lim building on Everkinetic, CC BY-SA 4.0,
+  which permits commercial use given credit, a licence link and a note of
+  changes. All three are in `assets/demos/ATTRIBUTION.md`, generated beside
+  the files so it cannot drift, and the credit is in the sheet itself. The
+  **step text** is still free-exercise-db, which says nothing about where its
+  content came from and reads like bodybuilding.com; it is mapped in its own
+  file so replacing it is one file and one field. 136 of the catalog's 156
+  exercises have art; the other 20, and every name a user types, show no demo
+  affordance at all rather than an apology.
+- **The Olympic and conditioning block has no demo** — Clean, Power Clean,
+  Clean and Jerk, Snatch, Thruster, Turkish Get-up, Devil's Press, Wall Ball,
+  Man Maker, Box Jump, Sled Push, Sled Pull. The photographs that came before
+  covered most of them and the illustrations do not. That was the trade, made
+  knowingly: mixing a photograph into a set of line drawings looks like a bug,
+  and the drawings are right for everything else.
 - Watch functionality is iOS-only; the Android port deliberately ships without
   it, and without the home-screen widget.
 - **iPad runs the phone layout in a 560pt column, and has to.** Dropping

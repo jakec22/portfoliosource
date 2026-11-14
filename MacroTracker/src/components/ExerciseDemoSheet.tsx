@@ -24,50 +24,39 @@ interface Props {
   onClose: () => void;
 }
 
-// How long each frame holds, and how long the crossfade between them takes.
-// 1.1s is slow enough to read a position and fast enough to read as one
-// movement rather than two photographs taking turns.
-const HOLD_MS = 1100;
-const FADE_MS = 220;
-
-/** "middle back" -> "Middle back". The dataset stores them lowercase. */
-function sentenceCase(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-/**
- * The dataset's equipment string, as a chip — or null for no chip at all.
- *
- * Its vocabulary is its own and some of it says nothing: "other" is the bin
- * it puts a pull-up bar and a captain's chair in, and a chip reading "Other"
- * is a label that costs a line to tell you nothing. Two more read as data
- * rather than English. Done here rather than in the generated file so the
- * data stays a faithful copy of the source.
- */
-function equipmentLabel(raw: string | null): string | null {
-  if (!raw || raw === 'other') return null;
-  if (raw === 'body only') return 'Bodyweight';
-  if (raw === 'e-z curl bar') return 'EZ-bar';
-  return sentenceCase(raw);
-}
+// The three frames are the start, middle and end of one repetition, so the
+// loop runs out and back — 0,1,2,1 — rather than cutting from the end to the
+// start. A rep returns to where it began; playing it as a cycle of three
+// would show the bar teleporting back to the rack every 1.3 seconds.
+const SEQUENCE = [0, 1, 2, 1];
+// 420ms a frame puts a rep at about 1.7s, which is roughly the tempo of the
+// thing being drawn. The crossfade is short because these are positions in a
+// movement, not a dissolve between pictures: linger on it and the two frames
+// read as a double exposure.
+const HOLD_MS = 420;
+const FADE_MS = 140;
 
 /**
  * How to do an exercise: the movement, and the steps.
  *
- * Two photographs — the start of the movement and the end — alternating in
- * place. That is deliberately not a video. This gets opened standing at a
- * machine, one-handed, often on gym wifi or none at all, and two bundled
- * JPEGs start instantly and work in a basement. A loop also happens to be
- * the right length: the question being asked is "where do my hands go and
- * how far does it travel", not "teach me this lift".
+ * Three drawn frames cycling in place. Deliberately not video. This gets
+ * opened standing at a machine, one-handed, often on gym wifi or none at
+ * all, and bundled line art starts instantly and works in a basement. The
+ * loop is also the right length for the question being asked, which is where
+ * the hands go and how far it travels, not teach me this lift.
  *
- * Under Reduce Motion the frames stop alternating and sit side by side
- * instead. The loop is the one piece of motion here and it runs forever, so
- * leaving it going would be the kind of thing the setting exists to stop —
- * but the two positions are the content, so they have to stay visible.
+ * Line art rather than photographs, which is what this showed first. The
+ * photographs were a man in a red-walled gym — somebody else's app dropped
+ * into the middle of this one. These are white strokes on transparency, so
+ * they sit on the card in either pack and tint with the text they sit under.
  *
- * Not every exercise has one: 16 in the catalog have no honest match in the
- * dataset, and anything typed by hand never will. Callers ask
+ * Under Reduce Motion the loop stops and the two end positions sit side by
+ * side instead. The loop is the one piece of motion here and it runs
+ * forever, so leaving it going is exactly what the setting exists to stop —
+ * but the positions are the content, so they stay visible.
+ *
+ * Not every exercise has one: 20 in the catalog have no honest match in the
+ * illustration set, and anything typed by hand never will. Callers ask
  * `exerciseDemo(name)` first and do not render the affordance at all when it
  * comes back null, rather than offering a button that opens an apology.
  */
@@ -81,29 +70,33 @@ export function ExerciseDemoSheet({ name, onClose }: Props) {
   const demo = name ? exerciseDemo(name) : null;
   const open = demo !== null;
 
-  // Opacity of the second frame, over the first.
-  const fade = useRef(new Animated.Value(0)).current;
-  const [phase, setPhase] = useState(0);
+  // One opacity per frame rather than a single value crossfading a pair: the
+  // sequence revisits the middle frame on the way back, so "which frame is
+  // showing" is not a number this can interpolate between.
+  const fades = useRef([0, 1, 2].map((i) => new Animated.Value(i === 0 ? 1 : 0))).current;
+  const [frame, setFrame] = useState(0);
 
   useEffect(() => {
     if (!open || reduceMotion) return;
-    let to = 0;
-    const tick = () => {
-      to = to === 0 ? 1 : 0;
-      setPhase(to);
-      Animated.timing(fade, {
-        toValue: to,
-        duration: FADE_MS,
-        useNativeDriver: true,
-      }).start();
-    };
-    const id = setInterval(tick, HOLD_MS);
+    let step = 0;
+    const id = setInterval(() => {
+      step = (step + 1) % SEQUENCE.length;
+      const next = SEQUENCE[step];
+      setFrame(next);
+      fades.forEach((v, i) =>
+        Animated.timing(v, {
+          toValue: i === next ? 1 : 0,
+          duration: FADE_MS,
+          useNativeDriver: true,
+        }).start()
+      );
+    }, HOLD_MS);
     return () => {
       clearInterval(id);
-      fade.setValue(0);
-      setPhase(0);
+      fades.forEach((v, i) => v.setValue(i === 0 ? 1 : 0));
+      setFrame(0);
     };
-  }, [open, reduceMotion, fade, name]);
+  }, [open, reduceMotion, fades, name]);
 
   if (!demo || !name) return null;
 
@@ -111,9 +104,8 @@ export function ExerciseDemoSheet({ name, onClose }: Props) {
   // they were four more green pills beside the one that matters, so a squat
   // advertised Calves and Lower back at the same weight as Quadriceps.
   const alsoWorks = demo.secondary.length > 0
-    ? `Also works ${demo.secondary.join(', ')}.`
+    ? `Also works ${demo.secondary.join(', ').toLowerCase()}.`
     : null;
-  const equipment = equipmentLabel(demo.equipment);
 
   return (
     <Modal visible transparent animationType={sheetAnimation} onRequestClose={onClose}>
@@ -142,49 +134,68 @@ export function ExerciseDemoSheet({ name, onClose }: Props) {
 
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           {reduceMotion ? (
-            // Both positions at once, since the loop that would show them in
-            // sequence is the thing being switched off.
-            <View style={styles.stillRow}>
-              {demo.frames.map((frame, i) => (
-                <View key={i} style={styles.still}>
-                  <Image source={frame} style={styles.image} resizeMode="contain" />
-                  <Text style={styles.stillLabel}>{i === 0 ? 'Start' : 'Finish'}</Text>
-                </View>
-              ))}
-            </View>
+            // All three laid out instead of cycling, since the cycle is the
+            // thing being switched off.
+            //
+            // All three, not the two ends. The set does not say what its
+            // frames mean and it is not consistent: a bench press runs
+            // lockout, middle, chest, while a lateral raise runs down, up,
+            // down — a whole repetition. Showing the first and last of that
+            // second kind is two pictures of a man standing still.
+            <>
+              <View style={styles.stillRow}>
+                {demo.frames.map((src, i) => (
+                  <View key={i} style={styles.stillBox}>
+                    <Image
+                      source={src}
+                      style={styles.image}
+                      resizeMode="contain"
+                      tintColor={c.text}
+                    />
+                  </View>
+                ))}
+              </View>
+              <Text style={styles.stillLabel}>Three positions through the movement</Text>
+            </>
           ) : (
             <>
               <View
                 style={styles.stage}
                 accessible
                 accessibilityRole="image"
-                accessibilityLabel={`${name}: the start and finish positions, alternating`}
+                accessibilityLabel={`${name}: one repetition, drawn`}
               >
-                <Image source={demo.frames[0]} style={styles.image} resizeMode="contain" />
-                <Animated.Image
-                  source={demo.frames[1]}
-                  style={[styles.image, styles.overlay, { opacity: fade }]}
-                  resizeMode="contain"
-                />
+                {demo.frames.map((src, i) => (
+                  <Animated.Image
+                    key={i}
+                    source={src}
+                    style={[styles.image, i > 0 && styles.overlay, { opacity: fades[i] }]}
+                    resizeMode="contain"
+                    // The art is a white line drawing on transparency, so it
+                    // takes the pack's ink rather than staying whatever white
+                    // it was drawn in.
+                    tintColor={c.text}
+                  />
+                ))}
               </View>
               <View style={styles.dots}>
-                {[0, 1].map((i) => (
-                  <View key={i} style={[styles.dot, phase === i && styles.dotOn]} />
+                {[0, 1, 2].map((i) => (
+                  <View key={i} style={[styles.dot, frame === i && styles.dotOn]} />
                 ))}
               </View>
             </>
           )}
 
-          {(equipment || demo.primary.length > 0) && (
+          {(demo.equipment || demo.primary.length > 0) && (
             <View style={styles.meta}>
-              {equipment && (
+              {demo.equipment && (
                 <View style={styles.chip}>
-                  <Text style={styles.chipText}>{equipment}</Text>
+                  <Text style={styles.chipText}>{demo.equipment}</Text>
                 </View>
               )}
               {demo.primary.map((m) => (
                 <View key={m} style={[styles.chip, styles.chipMuscle]}>
-                  <Text style={[styles.chipText, styles.chipMuscleText]}>{sentenceCase(m)}</Text>
+                  <Text style={[styles.chipText, styles.chipMuscleText]}>{m}</Text>
                 </View>
               ))}
             </View>
@@ -203,10 +214,13 @@ export function ExerciseDemoSheet({ name, onClose }: Props) {
             </View>
           )}
 
-          {/* Said plainly rather than buried in a settings screen: these are
-              someone else's photographs and someone else's words. */}
+          {/* Said plainly rather than buried in a settings screen. The
+              licence on the drawings asks for the credit and the link; the
+              step text comes from somewhere else entirely and is named
+              separately rather than folded in under one vague "sources". */}
           <Text style={styles.credit}>
-            Photographs and steps from the free-exercise-db dataset.
+            Illustrations by Bryl Lim and Everkinetic, CC BY-SA 4.0.
+            {demo.steps.length > 0 ? ' Steps from free-exercise-db.' : ''}
           </Text>
         </ScrollView>
       </View>
@@ -248,18 +262,20 @@ const makeStyles = (c: Theme) =>
     title: { ...type.heading(c), color: c.text, flex: 1 },
     body: { paddingBottom: space.lg },
 
-    // 3:2, which is what nearly every frame in the set is. The handful of
-    // portrait ones letterbox rather than crop — losing the top of a pull-up
-    // to fill a box is worse than a margin.
+    // The frames are square and the figure is drawn inside a margin of its
+    // own, so 4:3 crops nothing and buys back the vertical space a square
+    // box would spend on that margin.
     stage: {
       width: '100%',
-      aspectRatio: 3 / 2,
+      aspectRatio: 4 / 3,
       borderRadius: radius.card,
       overflow: 'hidden',
       backgroundColor: c.cardMuted,
+      padding: space.sm,
     },
     image: { width: '100%', height: '100%' },
-    overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+    // Frames 2 and 3 sit on top of frame 1, which holds the box's height.
+    overlay: { position: 'absolute', top: space.sm, left: space.sm, right: space.sm, bottom: space.sm },
 
     dots: {
       flexDirection: 'row',
@@ -276,7 +292,13 @@ const makeStyles = (c: Theme) =>
     dotOn: { backgroundColor: c.primary },
 
     stillRow: { flexDirection: 'row', gap: space.sm },
-    still: { flex: 1 },
+    stillBox: {
+      flex: 1,
+      aspectRatio: 1,
+      borderRadius: radius.card,
+      backgroundColor: c.cardMuted,
+      padding: space.xs,
+    },
     stillLabel: {
       ...type.micro(c),
       color: c.textMuted,
