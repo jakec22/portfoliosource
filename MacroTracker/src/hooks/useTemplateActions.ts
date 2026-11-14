@@ -3,7 +3,6 @@ import { useStore } from '../store/useStore';
 import { useSnackbar } from '../store/useSnackbar';
 import { showPrompt } from '../store/usePrompt';
 import { encodeTemplateLink, decodeTemplateLink } from '../utils/templateShare';
-import { formatDuration as formatSetTime } from '../utils/duration';
 import { DEFAULT_WORKOUT_HK, recoveryType } from '../utils/workoutTypes';
 import type { WorkoutTemplate } from '../types';
 
@@ -13,8 +12,9 @@ import type { WorkoutTemplate } from '../types';
  * These four lived in ExerciseScreen because that screen owned the only list
  * of templates. The list has moved to WorkoutLibraryScreen and starting one
  * now happens from the sheet, so three screens need them and none of them
- * should own them. Share in particular is forty lines of formatting that
- * must not exist twice.
+ * should own them. Starting in particular has two ways to refuse — a workout
+ * already running, or a recovery timer the watch is holding — and those
+ * refusals must not exist in three places.
  */
 export function useTemplateActions(navigation: any) {
   const startWorkout = useStore((s) => s.startWorkout);
@@ -52,33 +52,21 @@ export function useTemplateActions(navigation: any) {
     showSnackbar(`Deleted ${t.name}`, { label: 'Undo', onPress: () => restoreTemplate(t) });
   }
 
+  /**
+   * Share a saved workout as the link and nothing else.
+   *
+   * This used to send the workout written out as well — every exercise, every
+   * set, "135 lbs × 10 reps" — with the link underneath. Forty lines of
+   * formatting for a block of text nobody reads: the recipient either has the
+   * app, in which case the link does the whole job and the listing is a wall
+   * of numbers above it, or they do not, in which case a transcript of
+   * somebody else's workout is not what they needed either.
+   *
+   * It also made the message four times longer than it had to be, which
+   * matters in a thread.
+   */
   function handleShareTemplate(t: WorkoutTemplate) {
-    const typeLabel: Record<string, string> = {
-      warmup: ' (Warm-up)',
-      failure: ' (Failure)',
-      dropset: ' (Drop set)',
-    };
-    const lines: string[] = [t.name, ''];
-    for (const ex of t.exercises) {
-      lines.push(ex.name || 'Exercise');
-      ex.sets.forEach((s, i) => {
-        const weight = s.weight ? `${s.weight} lbs` : 'BW';
-        const tag = s.type && s.type !== 'normal' ? typeLabel[s.type] ?? '' : '';
-        let detail: string;
-        if ((ex.mode ?? 'reps') === 'time') {
-          const t = formatSetTime(s.durationSeconds ?? 0);
-          detail = s.weight ? `${s.weight} lbs × ${t}` : t;
-        } else {
-          detail = `${weight} × ${s.reps} rep${s.reps === 1 ? '' : 's'}`;
-        }
-        lines.push(`  ${i + 1}. ${detail}${tag}`);
-      });
-      lines.push('');
-    }
-    // Append a deep link that imports the template into the recipient's app.
-    lines.push('Open in HolyMacro to add this workout:');
-    lines.push(encodeTemplateLink(t));
-    Share.share({ message: lines.join('\n').trim() });
+    Share.share({ message: encodeTemplateLink(t) });
   }
 
   // Fallback for when tapping a shared link doesn't auto-open the app: let the
