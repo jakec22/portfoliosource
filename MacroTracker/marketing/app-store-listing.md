@@ -233,6 +233,25 @@ chart lives on `WorkoutSummaryScreen`, not on the live workout screen — an
 earlier pass put it on the set logger, where the app only ever shows a bpm
 readout in the status bar.
 
+## iPad screenshot
+
+`marketing/appstore/appstore-ipad13-1.png`, 2048 × 2732 — the 13" iPad slot.
+
+```sh
+node marketing/appstore/ipad.js
+```
+
+**iPad runs the phone layout in a 560pt column.** It is not a designed iPad
+layout — no sidebar, no split view — and the slide must not imply one. So the
+device is cropped at the fold rather than shown as a full tablet of mostly
+empty gutters, and the copy sells the glance rather than the canvas. If iPad
+ever gets a layout of its own, this slide is the first thing that becomes a
+lie.
+
+The live listing still holds four raw simulator grabs in the other iPad slots.
+They are from an older build and an older palette; replace them when there is
+something worth putting there.
+
 ## Apple Watch screenshots
 
 `marketing/appstore/appstore-watch-{1..5}.png`, 422 × 514 — the Apple Watch
@@ -336,3 +355,24 @@ The mark is imported from `assets/source/mark.py` rather than an exported
 PNG, so the artwork cannot drift from the shipping icon's geometry, and the
 subtitle is the App Store subtitle verbatim rather than a claim written for
 the artwork.
+
+### The wide hero
+
+`marketing/appstore/holymacro-hero-3840x2560.png`, built by `node
+marketing/appstore/hero.js`. A lock-up and headline on the left, the real
+Home screen on the right.
+
+The phone in it is the app, not an illustration of it: everything inside
+`.app` is drawn at the real token sizes and mirrors `HomeScreen`. The first
+pass used an invented layout, which is a picture of a product that does not
+exist — and the one anyone compares against the moment they open the app.
+
+### Where the numbers come from
+
+`shared.js` holds the day the hero and the iPad slide both show, and both
+import it. They each had their own copy once, and the copies drifted: the two
+disagreed by 32 kcal, and both showed a round 2,400 kcal goal beside
+180/240/70g of macros. Since `buildPlan` started deriving calories from the
+grams, the goal *is* 4P + 4C + 9F — so 2,400 was a state the app could not
+produce. The grams are now the only typed-in figures and everything else is
+computed from them, which is what the app does.

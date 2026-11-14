@@ -1,7 +1,7 @@
-# Intermediates: gen.py rewrites these, shoot.js reads them, and watch.js
-# writes its own (several MB of embedded fonts) on every run.
-slide*.html
-watch.html
+# Intermediates. Every generator here writes a standalone HTML page beside
+# its output and rewrites it on each run; with the faces embedded they are
+# several MB each. No HTML in this folder is a source file.
+*.html
 # Anything rendered at a prefix other than the committed `appstore-*`.
 preview-*.png
 check-*.png
