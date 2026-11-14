@@ -35,6 +35,28 @@ const SPLIT: Record<GoalType, { protein: number; carbs: number; fat: number }> =
 // lb/week of intended change.
 const KCAL_PER_LB_WEEK = 500;
 
+const LB_PER_KG = 2.2046;
+
+/**
+ * The most protein the app will ever recommend, in grams per pound of body
+ * weight.
+ *
+ * SPLIT above expresses protein as a share of calories, which is the right
+ * shape for carbs and fat and the wrong one for protein. Protein need tracks
+ * body weight, not appetite: the same 40% of calories is 120 g on a small cut
+ * and 225 g on a large one, and nothing about the second person's muscle
+ * asked for the extra 105 g. What it produced was targets that read as
+ * authoritative and could not be eaten — 225 g at 175 lb is 1.29 g/lb, which
+ * is roughly a pound of chicken breast past where the evidence stops showing
+ * any further benefit.
+ *
+ * 1.1 g/lb (≈2.4 g/kg) is already at the upper end of what the literature
+ * supports for preserving muscle in a deficit, so this is a ceiling on an
+ * ambitious number rather than a nudge toward a modest one. It binds only
+ * when the percentage split would go higher; under it, nothing changes.
+ */
+const PROTEIN_CAP_G_PER_LB = 1.1;
+
 /** Calories per gram. The reason macro targets can never be arbitrary. */
 export const KCAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 } as const;
 
@@ -177,7 +199,18 @@ export const RATE_OPTIONS: Record<GoalType, number[]> = {
 };
 
 export function imperialToKg(lbs: number): number {
-  return lbs / 2.2046;
+  return lbs / LB_PER_KG;
+}
+
+/**
+ * The protein ceiling for a given body weight, in whole grams.
+ *
+ * Floored rather than rounded. "At the absolute most" is the whole point of a
+ * cap, and 175 lb × 1.1 rounds to 193 g, which is 1.103 g/lb — a cap that
+ * exceeds itself in half of all cases is not one.
+ */
+export function proteinCapGrams(weightKg: number): number {
+  return Math.floor(weightKg * LB_PER_KG * PROTEIN_CAP_G_PER_LB);
 }
 
 export function imperialHeightToCm(feet: number, inches: number): number {
@@ -229,7 +262,20 @@ export function buildPlan(
   // Rounding three macros to whole grams almost never lands back on the
   // number they were derived from, and the plan then ships a calorie target
   // its own macros contradict. See gramsForSplit for why the grams win.
-  const macros = gramsForSplit(calories, SPLIT[goalType]);
+  const split = gramsForSplit(calories, SPLIT[goalType]);
+
+  // Then the protein ceiling, with the calories it frees handed to carbs and
+  // fat rather than given up. The calorie target is the one thing on this
+  // screen the person chose — they picked a pace, and describePlan quotes the
+  // deficit back to them — so capping protein must not quietly deepen it by
+  // 130 kcal. rebalanceMacros is the same redistribution the macro sliders
+  // use, in proportion to the shares carbs and fat already hold, so a capped
+  // plan still reads as the split it started from.
+  const cap = proteinCapGrams(weightKg);
+  const macros =
+    weightKg > 0 && split.protein > cap
+      ? rebalanceMacros(calories, split, 'protein', cap)
+      : split;
   const exact = macroCalories(macros);
 
   return {
