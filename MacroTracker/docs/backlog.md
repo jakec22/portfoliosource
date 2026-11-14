@@ -32,24 +32,32 @@ has been run on hardware. These are the specific things a mock cannot answer.
 
 ---
 
-## `design-workout` has to be deployed before it works
+## Nobody has read a generated program yet
 
-The Edge Function is committed; it is not live. Until it is, "Build me a
-workout" returns an error.
+`design-workout` is deployed and live. What is untested is the only part of
+it that cannot be tested from here: whether Flash writes a *sensible* week.
+The enum guarantees every exercise is real, performable and illustrated. It
+guarantees nothing about whether the three days are a coherent split, whether
+the volume suits the session length, or whether a beginner can follow the
+note.
 
-```sh
-supabase functions deploy design-workout
-```
+So: generate programs against several different sets of answers — 2 days
+bodyweight, 5 days gym, 30 minutes against 60 — and read them as a coach
+would. The prompt is the thing to adjust if they come back wrong, and it is
+one string in `supabase/functions/design-workout/index.ts`.
+
+It was deployed from the dashboard, not the CLI. `supabase functions deploy`
+fails in this repo because `supabase/` sits at `MacroTracker/supabase`, one
+level below the git root, and the API-based deploy declares an entrypoint of
+`supabase/functions/<name>/index.ts` relative to a tree rooted higher up —
+hence `Entrypoint path does not exist`. Both functions are single files with
+no imports, so pasting into the dashboard is a complete deploy. Worth
+solving properly before there is a third function.
 
 No new secret — it reads the same `GEMINI_API_KEY` that `analyze-meal`
 already uses, and shares that key's free-tier quota, which is worth
 remembering if meal analysis ever starts returning 429s after a day of
 program generation.
-
-Worth doing once it is live: generate a few programs against different
-answers and read them. Whether Flash writes a *sensible* three-day split is
-an empirical question and nothing here answers it — the enum guarantees every
-exercise is real and performable, not that the week is well put together.
 
 ---
 
