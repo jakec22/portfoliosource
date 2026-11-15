@@ -93,6 +93,11 @@ struct WatchSnapshot: Codable {
 
     var isOver: Bool { calorieGoal > 0 && caloriesConsumed > calorieGoal }
     var remaining: Int { abs(calorieGoal - caloriesConsumed) }
+    /// "580" under the goal, "+580" over it. On a watch face the system
+    /// recolours everything to the face tint, so `tint` below cannot be the
+    /// thing that says you have gone over — in the two families with room for
+    /// a number and nothing else, the sign is what says it.
+    var signedRemaining: String { isOver ? "+\(remaining)" : "\(remaining)" }
     var calorieProgress: Double {
         calorieGoal > 0 ? min(1, Double(caloriesConsumed) / Double(calorieGoal)) : 0
     }
@@ -134,10 +139,19 @@ struct DayProvider: TimelineProvider {
     }
 }
 
-/// One macro as a labeled column — the phone's Food page grid, shrunk. Four
-/// of these fit the rectangular family where four stacked rows would not.
-struct MacroColumn: View {
-    let letter: String
+/// One macro: name, the number, and a bar for the proportion.
+///
+/// It used to be a letter over a bare bar — on a macro tracker, the one family
+/// with room for the whole day could not tell you a single value. The number
+/// is the addition. The bar stays because fill level reads instantly and it is
+/// what carries the goal, but it is no longer the only thing here: on a tinted
+/// face the system recolours all four the same, leaving the letter alone to
+/// tell them apart.
+///
+/// Four columns rather than a two-by-two grid with goals, which is what this
+/// wanted to be: at 72pt tall a second macro row clips. Measured, not guessed.
+struct MacroCell: View {
+    let name: String
     let value: Int
     let goal: Int
     let color: Color
@@ -147,10 +161,14 @@ struct MacroColumn: View {
     }
 
     var body: some View {
-        VStack(spacing: 1.5) {
-            Text(letter)
+        VStack(spacing: 1) {
+            Text(name)
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundColor(.primary.opacity(0.75))
+            Text("\(value)")
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(color.opacity(0.3))
@@ -159,7 +177,7 @@ struct MacroColumn: View {
                         .frame(width: max(1.5, geo.size.width * progress))
                 }
             }
-            .frame(height: 3.5)
+            .frame(height: 3)
         }
     }
 }
@@ -189,7 +207,7 @@ struct DayComplicationView: View {
     /// The curved corner gauge: the numeral sits in the corner, the day's
     /// progress bends around the bezel beside it.
     private var corner: some View {
-        Text("\(s.remaining)")
+        Text(s.signedRemaining)
             .font(.system(size: 17, weight: .semibold, design: .rounded))
             .widgetLabel {
                 Gauge(value: s.calorieProgress) {
@@ -203,12 +221,13 @@ struct DayComplicationView: View {
     private var circular: some View {
         Gauge(value: s.calorieProgress) {
             Text(s.isOver ? "OVER" : "LEFT")
-                .font(.system(size: 8, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
         } currentValueLabel: {
-            Text("\(s.remaining)")
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .minimumScaleFactor(0.6)
+            Text(s.signedRemaining)
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .minimumScaleFactor(0.5)
                 .lineLimit(1)
+                .widgetAccentable()
         }
         .gaugeStyle(.accessoryCircular)
         .tint(s.tint)
@@ -224,28 +243,31 @@ struct DayComplicationView: View {
     /// stack trades the overview for legibility, and this is where the
     /// overview went.
     private var rectangular: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text("\(s.remaining)")
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(s.tint)
-                Text(s.isOver ? "cal over" : "cal left")
-                    .font(.system(size: 10))
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(s.signedRemaining)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .widgetAccentable()
+                Text(s.isOver ? "over" : "left")
+                    .font(.system(size: 11))
                     .foregroundColor(.primary.opacity(0.6))
                 Spacer(minLength: 0)
                 Text("\(s.caloriesConsumed)/\(s.calorieGoal)")
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.primary.opacity(0.5))
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+
             HStack(spacing: 5) {
-                MacroColumn(letter: "P", value: s.protein, goal: s.proteinGoal,
-                            color: Color(hex: s.proteinColor))
-                MacroColumn(letter: "C", value: s.carbs, goal: s.carbsGoal,
-                            color: Color(hex: s.carbsColor))
-                MacroColumn(letter: "F", value: s.fat, goal: s.fatGoal,
-                            color: Color(hex: s.fatColor))
-                MacroColumn(letter: "Fb", value: s.fiber, goal: s.fiberGoal,
-                            color: Color(hex: s.fiberColor))
+                MacroCell(name: "P", value: s.protein, goal: s.proteinGoal,
+                          color: Color(hex: s.proteinColor))
+                MacroCell(name: "C", value: s.carbs, goal: s.carbsGoal,
+                          color: Color(hex: s.carbsColor))
+                MacroCell(name: "F", value: s.fat, goal: s.fatGoal,
+                          color: Color(hex: s.fatColor))
+                MacroCell(name: "Fib", value: s.fiber, goal: s.fiberGoal,
+                          color: Color(hex: s.fiberColor))
             }
         }
     }
