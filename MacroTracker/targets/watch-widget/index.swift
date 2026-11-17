@@ -139,18 +139,14 @@ struct DayProvider: TimelineProvider {
     }
 }
 
-/// One macro: name, the number, and a bar for the proportion.
+/// One macro as a line in the ledger: name, a bar for progress against the
+/// goal, and the number, right-aligned so the column reads down.
 ///
-/// It used to be a letter over a bare bar — on a macro tracker, the one family
-/// with room for the whole day could not tell you a single value. The number
-/// is the addition. The bar stays because fill level reads instantly and it is
-/// what carries the goal, but it is no longer the only thing here: on a tinted
-/// face the system recolours all four the same, leaving the letter alone to
-/// tell them apart.
-///
-/// Four columns rather than a two-by-two grid with goals, which is what this
-/// wanted to be: at 72pt tall a second macro row clips. Measured, not guessed.
-struct MacroCell: View {
+/// The goal is in the bar, not in the text. Showing "128/185" instead costs
+/// the bar most of its width — measured at 41mm it leaves 7pt of track, which
+/// is a bar in name only — and the bar is the thing that answers "am I on
+/// course" without being read.
+struct MacroRow: View {
     let name: String
     let value: Int
     let goal: Int
@@ -161,24 +157,27 @@ struct MacroCell: View {
     }
 
     var body: some View {
-        VStack(spacing: 1) {
+        HStack(spacing: 3) {
             Text(name)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(.primary.opacity(0.75))
-            Text("\(value)")
-                .font(.system(size: 12, weight: .medium))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.primary.opacity(0.6))
+                .frame(width: 16, alignment: .leading)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(color.opacity(0.3))
+                    Capsule().fill(Color.primary.opacity(0.18))
                     Capsule()
                         .fill(color)
                         .frame(width: max(1.5, geo.size.width * progress))
                 }
             }
-            .frame(height: 3)
+            .frame(height: 3.5)
+            Text("\(value)")
+                .font(.system(size: 10, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: 26, alignment: .trailing)
         }
+        .frame(height: 13)
     }
 }
 
@@ -242,32 +241,49 @@ struct DayComplicationView: View {
     /// The whole-day audit. This is the family the day stack leans on: the
     /// stack trades the overview for legibility, and this is where the
     /// overview went.
+    /// A dial and a ledger: the calorie ring as the one thing the eye lands
+    /// on, the four macros listed beside it.
+    ///
+    /// This replaced a header line over four bare bars. The shape is the
+    /// change — a ring is a different object from a row of text, so there is
+    /// somewhere to look first, and the macros become a column that reads
+    /// downward instead of four things competing across. It also survives
+    /// what a watch face does to it: the rows stay apart because they are
+    /// separate rows, where before they were four hues the system flattened
+    /// into one.
     private var rectangular: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(s.signedRemaining)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .widgetAccentable()
-                Text(s.isOver ? "over" : "left")
-                    .font(.system(size: 11))
-                    .foregroundColor(.primary.opacity(0.6))
-                Spacer(minLength: 0)
-                Text("\(s.caloriesConsumed)/\(s.calorieGoal)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.primary.opacity(0.5))
+        HStack(spacing: 6) {
+            ZStack {
+                Circle().stroke(Color.primary.opacity(0.18), lineWidth: 5)
+                Circle()
+                    .trim(from: 0, to: s.calorieProgress)
+                    .stroke(s.tint, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 0) {
+                    // "+310" is four glyphs where "580" is three, so it shrinks
+                    // to fit rather than growing the ring for the rarer case.
+                    Text(s.signedRemaining)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .widgetAccentable()
+                    Text(s.isOver ? "OVER" : "LEFT")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(.primary.opacity(0.55))
+                }
+                .padding(.horizontal, 3)
             }
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            .frame(width: 46, height: 46)
 
-            HStack(spacing: 5) {
-                MacroCell(name: "P", value: s.protein, goal: s.proteinGoal,
-                          color: Color(hex: s.proteinColor))
-                MacroCell(name: "C", value: s.carbs, goal: s.carbsGoal,
-                          color: Color(hex: s.carbsColor))
-                MacroCell(name: "F", value: s.fat, goal: s.fatGoal,
-                          color: Color(hex: s.fatColor))
-                MacroCell(name: "Fib", value: s.fiber, goal: s.fiberGoal,
-                          color: Color(hex: s.fiberColor))
+            VStack(spacing: 1) {
+                MacroRow(name: "P", value: s.protein, goal: s.proteinGoal,
+                         color: Color(hex: s.proteinColor))
+                MacroRow(name: "C", value: s.carbs, goal: s.carbsGoal,
+                         color: Color(hex: s.carbsColor))
+                MacroRow(name: "F", value: s.fat, goal: s.fatGoal,
+                         color: Color(hex: s.fatColor))
+                MacroRow(name: "Fib", value: s.fiber, goal: s.fiberGoal,
+                         color: Color(hex: s.fiberColor))
             }
         }
     }
