@@ -52,6 +52,36 @@ export function heldMs(s: WorkoutSession): number {
 }
 
 /**
+ * Whether a stored session is the same physical one as the window described.
+ *
+ * Used to decide whether a recovery arriving from the watch has already been
+ * written down. It cannot be an equality test on the start: the same sauna
+ * reaches the phone under two different starts — the phone's, from when the
+ * queued start command finally landed, and the watch's, from when the wrist
+ * actually began — and those differ by however long it sat in the queue. An
+ * equality test found nothing and the session was saved twice, each copy the
+ * full length.
+ *
+ * Overlap is the honest predicate: two sessions of one kind cannot share a
+ * moment, because you are either in the sauna or you are not. Back-to-back
+ * sessions are untouched by it, since the first has ended before the second
+ * begins.
+ */
+export function overlapsRecovery(
+  s: WorkoutSession,
+  label: string,
+  startedAt: number,
+  endsAt: number
+): boolean {
+  return (
+    isRecoverySession(s) &&
+    s.name === label &&
+    s.startedAt < endsAt &&
+    (s.completedAt ?? s.startedAt) > startedAt
+  );
+}
+
+/**
  * Sessions of one recovery kind, bucketed into the last `weeks` calendar
  * weeks ending with the one containing `anchor`.
  *

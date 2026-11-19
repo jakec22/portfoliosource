@@ -88,16 +88,20 @@ export function useWatchWorkout(): void {
   // Start a sauna or plunge the watch kicked off. The store refuses if
   // anything else is running, and beginRecovery clears the heart-rate buffer.
   useEffect(() => {
-    return subscribeWatchStartRecovery((kind) => {
+    return subscribeWatchStartRecovery((kind, startedAt) => {
       const type = RECOVERY_TYPES.find((r) => r.kind === kind);
       if (!type) return;
       const state = useStore.getState();
       if (state.activeWorkout || state.activeRecovery) return;
       const preset = state.recoveryPresets[kind as RecoveryKind];
-      beginRecovery(kind as RecoveryKind, {
-        targetSeconds: preset?.targetSeconds ?? type.defaultTargetSeconds,
-        mode: preset?.mode ?? type.defaultMode,
-      });
+      beginRecovery(
+        kind as RecoveryKind,
+        {
+          targetSeconds: preset?.targetSeconds ?? type.defaultTargetSeconds,
+          mode: preset?.mode ?? type.defaultMode,
+        },
+        startedAt
+      );
     });
   }, []);
 

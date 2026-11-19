@@ -58,7 +58,7 @@ function onWatchEvent(event: string, cb: (payload: any) => void): () => void {
  * this is dropped rather than replayed into a phantom session. Matches the
  * window the watch already applies to a workout arriving by context.
  */
-const COMMAND_TTL_MS = 5 * 60 * 1000;
+export const COMMAND_TTL_MS = 5 * 60 * 1000;
 
 /** False only when the watch stamped the command and it has since gone stale. */
 function isFresh(message: any): boolean {
@@ -351,13 +351,20 @@ export function subscribeWatchStartWorkout(cb: (templateId: string) => void): ()
  * would open a timer for a sauna that finished long ago.
  */
 export function subscribeWatchStartRecovery(
-  cb: (kind: string) => void
+  cb: (kind: string, startedAt?: number) => void
 ): () => void {
   if (Platform.OS !== 'ios') return () => {};
   const unsubscribe = onWatchCommand((message: any) => {
     if (message?.type === 'startRecovery' && isFresh(message)) {
       const kind = typeof message.kind === 'string' ? message.kind : '';
-      if (kind) cb(kind);
+      // The wrist's own start, so the phone dates the session from when it
+      // really began rather than from when this command got through. Absent
+      // from watch builds older than this, which fall back to now.
+      const startedAt =
+        typeof message.startedAt === 'number' && message.startedAt > 0
+          ? message.startedAt
+          : undefined;
+      if (kind) cb(kind, startedAt);
     }
   });
   return () => {

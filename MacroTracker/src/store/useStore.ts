@@ -29,8 +29,14 @@ import {
   settingsSnapshot,
   type SettingsField,
 } from '../services/sync';
-import { startWatchWorkout, startWatchRecovery, endWatchWorkout } from '../services/watch';
+import {
+  startWatchWorkout,
+  startWatchRecovery,
+  endWatchWorkout,
+  COMMAND_TTL_MS,
+} from '../services/watch';
 import { downsampleHeartRate } from '../services/heartRate';
+import { overlapsRecovery } from '../utils/recovery';
 
 // Exported so Home can tell "never set any goals" apart from "set them by
 // hand in the Calculator" — the nudge must not tell the second user that
@@ -183,18 +189,31 @@ export const useStore = create<AppState>()(
        * samples every few minutes, which over a three-minute plunge is one
        * reading if you are lucky.
        */
-      startRecovery: (kind, preset) => {
+      startRecovery: (kind, preset, startedAt) => {
         // One HKWorkoutSession per wrist: starting this would silently take
         // the watch away from whatever is already running.
         const state0 = get();
         if (state0.activeWorkout || state0.activeRecovery) return null;
         const now = Date.now();
+        // A watch-begun session carries the moment the wrist actually started,
+        // and that is the moment this one began — not the moment the command
+        // finally reached the phone. They can be five minutes apart, because
+        // a start queued while the phone sits in a locker is only dropped once
+        // it is older than that, and the gap was showing up twice: as two
+        // timers disagreeing, and as a dedupe key that no longer matched.
+        // Bounded both ways, so a bad clock cannot open a session in the
+        // future or backdate one past the window the command could have
+        // survived in.
+        const begun =
+          startedAt != null && startedAt <= now && now - startedAt <= COMMAND_TTL_MS
+            ? startedAt
+            : now;
         const recovery: ActiveRecovery = {
-          id: `r-${now}-${Math.random()}`,
+          id: `r-${begun}-${Math.random()}`,
           kind,
           targetSeconds: preset.targetSeconds,
           mode: preset.mode,
-          startedAt: now,
+          startedAt: begun,
         };
         set((state) => ({
           activeRecovery: recovery,
@@ -217,13 +236,17 @@ export const useStore = create<AppState>()(
        * deliver the same payload twice.
        */
       logWatchRecovery: (kind, startedAt, heldSeconds) => {
-        const existing = get().workoutHistory.find(
-          (w) => w.startedAt === startedAt && w.activityType === RECOVERY_HK
+        const label = recoveryType(kind).label;
+        const endsAt = startedAt + Math.max(0, Math.round(heldSeconds)) * 1000;
+        // Overlap, not an exact timestamp match — see overlapsRecovery for
+        // why equality let the same sauna be written down twice.
+        const existing = get().workoutHistory.find((w) =>
+          overlapsRecovery(w, label, startedAt, endsAt)
         );
         if (existing) return existing.id;
         const session: WorkoutSession = {
           id: `r-${startedAt}-${Math.random()}`,
-          name: recoveryType(kind).label,
+          name: label,
           activityType: RECOVERY_HK,
           date: formatDate(new Date(startedAt)),
           startedAt,

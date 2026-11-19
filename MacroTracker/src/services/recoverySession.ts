@@ -16,8 +16,12 @@ import type { RecoveryPreset } from '../types';
  */
 
 /** Begin a recovery and clear the heart-rate buffer for it. */
-export function beginRecovery(kind: RecoveryKind, preset: RecoveryPreset) {
-  const started = useStore.getState().startRecovery(kind, preset);
+export function beginRecovery(
+  kind: RecoveryKind,
+  preset: RecoveryPreset,
+  startedAt?: number
+) {
+  const started = useStore.getState().startRecovery(kind, preset, startedAt);
   // Only once the store agreed to start: a refused start (a workout already
   // running) must not wipe that workout's samples.
   if (started) {

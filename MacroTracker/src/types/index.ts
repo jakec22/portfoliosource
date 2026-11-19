@@ -321,7 +321,13 @@ export interface AppState {
    * attach heart rate to afterwards — or null when a workout or another
    * recovery is already running, since a wrist holds one HKWorkoutSession.
    */
-  startRecovery: (kind: RecoveryKind, preset: RecoveryPreset) => ActiveRecovery | null;
+  // `startedAt` is the watch's own start for a session begun there; omitted
+  // means now, which is the phone's own Start button.
+  startRecovery: (
+    kind: RecoveryKind,
+    preset: RecoveryPreset,
+    startedAt?: number
+  ) => ActiveRecovery | null;
   /** Abandon the running recovery without saving it. */
   cancelRecovery: () => void;
   /**

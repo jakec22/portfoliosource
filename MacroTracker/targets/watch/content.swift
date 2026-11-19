@@ -623,7 +623,16 @@ final class DayStats: NSObject, ObservableObject, WCSessionDelegate {
         if recovery.id == "plunge" {
             WKInterfaceDevice.current().enableWaterLock()
         }
-        sendReliable(["type": "startRecovery", "kind": recovery.id])
+        // The start travels with the session, not just the kind. A queued
+        // command can reach the phone minutes later, and without this the
+        // phone dated the session from arrival — which showed up as its timer
+        // disagreeing with this one, and as the same sauna being saved twice
+        // under two different starts.
+        sendReliable([
+            "type": "startRecovery",
+            "kind": recovery.id,
+            "startedAt": recoveryStartedAt,
+        ])
     }
 
     /// The alerts for a sauna or plunge, driven from the workout timer.
